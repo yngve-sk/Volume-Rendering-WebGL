@@ -1,1 +1,1 @@
-require('./viewport-splitter');
+require('./split-view/miniature-split-view');
