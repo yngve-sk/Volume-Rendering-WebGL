@@ -4,8 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "./node_modules/.bin/browserify ./js/main.js -o main-compiled.js"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^4.6.0",
+    "jquery": "^3.1.1",
+    "semantic-ui": "^2.2.9",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "browserify": "^14.1.0",
+    "gulp": "^3.9.1"
+  }
 }
