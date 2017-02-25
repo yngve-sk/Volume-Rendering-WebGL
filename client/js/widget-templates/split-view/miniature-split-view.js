@@ -1,8 +1,8 @@
-let _ = require('underscore');
-let SplitBox = require('./splitbox');
-let $ = require('jquery');
-let d3 = require('d3');
-let LinkGroup = require('./link-group');
+const _ = require('underscore');
+const SplitBox = require('./splitbox');
+const $ = require('jquery');
+const d3 = require('d3');
+const LinkGrouper = require('./link-group');
 
 d3.selection.prototype.moveToFront = function () {
     return this.each(function () {
@@ -48,6 +48,9 @@ class MiniatureSplitView {
             colors: args.colors
         };
 
+        if (args.dispatcher)
+            this.dispatcher = args.dispatcher;
+
         this.parent = $('#' + this.properties.divID);
         this.layout = new SplitBox(args.maxRows, args.maxColumns, args.aspectRatio);
 
@@ -62,7 +65,7 @@ class MiniatureSplitView {
             }
         };
 
-        this.linkGroup = new LinkGroup();
+        this.linkGrouper = new LinkGrouper(this.properties.colors['LINKS'].length);
         this.linkLineCache = {
             x1: 0,
             x2: 0,
@@ -75,24 +78,41 @@ class MiniatureSplitView {
 
         };
 
+        this.linkChangedCallback = {};
     }
 
+    setSplitbox(splitbox) {
+        this.layout = new SplitBox(this.properties.maxRows,
+            this.properties.maxColumns,
+            this.properties.aspectRatio);
+    }
 
     clear() {
         this.parent.html("");
     }
 
+    refresh() {
+        this.clear();
+        this.render();
+    }
+
+
     /* Initialize */
     render() {
-        console.log(d3);
+        //console.log(d3);
         let svg = d3.select('#' + this.properties.divID).append('svg')
             .attr('width', '100%')
             .attr('height', '100%');
         //let g = svg.append('g');
-        console.log(this.layout.flattenedLayoutPercentages);
+        //console.log(this.layout.flattenedLayoutPercentages);
 
         let width = this.parent.width(),
             height = this.parent.height();
+
+        if (width === undefined && height === undefined) {
+            width = this.parent.parent.width();
+            height = this.parent.parent.height();
+        }
 
         let self = this;
 
@@ -152,6 +172,7 @@ class MiniatureSplitView {
 
                 switch (self.properties.state) {
                     case 'REMOVE':
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
                         break;
                     case 'ADD':
                         let vCutOff = self.properties.bottomTopThresholdPercentage * rectHeight;
@@ -165,23 +186,23 @@ class MiniatureSplitView {
                         let topOrBot = isTop ? 'top' : (isBottom ? 'bottom' : '');
                         let direction = topOrBot !== '' ? topOrBot : (isLeft ? 'left' : 'right');
 
-                        console.log("Direction = " + direction);
+                        //console.log("Direction = " + direction);
 
                         if (!topOrBot)
-                            self.showHalfRectAt(x0H, y0, halfRectWidth, rectHeight, d.cellID);
+                            self.showRectAt(x0H, y0, halfRectWidth, rectHeight, d.cellID);
                         else
-                            self.showHalfRectAt(0, isTop ? y0 : bottomCutoff, width, vCutOff, d.cellID);
+                            self.showRectAt(0, isTop ? y0 : bottomCutoff, width, vCutOff, d.cellID);
 
                         break;
                     case 'LINK-ADD':
-                        self.showHalfRectAt(x0Whole, y0, rectWidth, rectHeight, d.cellID);
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight, d.cellID);
                         break;
                     case 'LINK-IN-PROGRESS':
-                        self.showHalfRectAt(x0Whole, y0, rectWidth, rectHeight, self.linkCache.start.id);
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight, self.linkCache.start.id);
                         self.anchorLinkLineEndTo(x, y);
                         break;
                     case 'LINK-REMOVE':
-                        //self.showHalfRectAt(x0Whole, y0, rectWidth, rectHeight, self.linkCache.start.id);
+                        //self.showRectAt(x0Whole, y0, rectWidth, rectHeight, self.linkCache.start.id);
                         break;
 
                 }
@@ -215,7 +236,7 @@ class MiniatureSplitView {
                 let topOrBot = isTop ? 'top' : (isBottom ? 'bottom' : '');
                 let direction = topOrBot !== '' ? topOrBot : (isLeft ? 'left' : 'right');
 
-                console.log("Direction = " + direction);
+                //console.log("Direction = " + direction);
 
                 self.mouseClick(d.rowIndex, d.cellIndex, direction,
                     (x0Whole + (halfRectWidth)),
@@ -253,34 +274,43 @@ class MiniatureSplitView {
         }
     }
 
-    showHalfRectAt(x0, y0, halfRectWidth, rectHeight, cellID) {
-        //console.log("showHalfRectAt(" + x0 + ", " + y0 + ", " + halfRectWidth + ", " + rectHeight + ")");
+    showRectAt(x0, y0, rectWidth, rectHeight, cellID) {
+        //console.log("showRectAt(" + x0 + ", " + y0 + ", " + rectWidth + ", " + rectHeight + ")");
         let path = "#" + this.properties.divID + ">svg>rect.halfRect";
         //console.log(path);
 
         d3.select(path)
             .attr('x', x0)
             .attr('y', y0)
-            .attr('width', halfRectWidth)
+            .attr('width', rectWidth)
             .attr('height', rectHeight)
             .attr('fill', this.getColor(cellID));
     }
 
+    getLinkageColor(cellID) { // horrible design but we/e
+        let prevState = this.properties.state;
+        this.properties.state = 'LINK-ADD';
+
+        let linkedColor = this.getColor(cellID);
+        this.properties.state = prevState;
+        return linkedColor;
+    }
+
     getColor(cellID) {
-        this.linkGroup.printMe();
-        if (!_.contains(['LINK-ADD', 'LINK-REMOVE','LINK-IN-PROGRESS'], this.properties.state)) {
+        //this.linkGrouper.printMe();
+        if (!_.contains(['LINK-ADD', 'LINK-IN-PROGRESS'], this.properties.state)) {
             return this.properties.colors[this.properties.state];
         } else {
             // 1. Get link group index
-            console.log("Links.length = " + this.linkGroup.links.length);
-            let numLinks = this.linkGroup.links.length;
+            //console.log("Links.length = " + this.linkGrouper.links.length);
+            //let numLinks = this.linkGrouper.links.length;
 
-            if (numLinks == 0)
+            /*if (numLinks == 0)
                 return this.properties.colors['LINKS'][0];
-
-            let index = this.linkGroup.getLinkGroupIndexOfMember(cellID);
+*/
+            let index = this.linkGrouper.getLinkGroupIndexOfMember(cellID);
             if (index === -1)
-                return this.properties.colors['LINKS'][numLinks];
+                return this.properties.colors['LINKS'][this.linkGrouper.getNextGroupIndex()];
             else
                 return this.properties.colors['LINKS'][index];
         }
@@ -295,14 +325,14 @@ class MiniatureSplitView {
     }
 
     anchorLinkLineStartTo(x, y) {
-        console.log("anchorLinkLineStartTo(" + x + ", " + y + ")")
+        //console.log("anchorLinkLineStartTo(" + x + ", " + y + ")")
         d3.select("#" + this.properties.divID + ">svg>line.linker-line")
             .attr('x1', x)
             .attr('y1', y);
     }
 
     anchorLinkLineEndTo(x, y) {
-        console.log("anchorLinkLineTo(" + x + ", " + y + ")")
+        //console.log("anchorLinkLineTo(" + x + ", " + y + ")")
         d3.select("#" + this.properties.divID + ">svg>line.linker-line")
             .attr('x2', x)
             .attr('y2', y);
@@ -319,9 +349,9 @@ class MiniatureSplitView {
     }
 
     applyLinkageColors() {
-        for (let linkGroup of this.linkGroup.links) {
+        for (let linkGroup of this.linkGrouper.links) {
             for (let cellID of linkGroup) {
-                let color = this.getColor(cellID);
+                let color = this.getLinkageColor(cellID);
                 d3.select('#' + this.properties.divID + '>svg>rect.id-' + cellID + ".miniature-splitview-rect")
                     .attr('fill', color);
             }
@@ -337,22 +367,37 @@ class MiniatureSplitView {
         }
     }
 
+    unlinkCellID(id) {
+        this.linkGrouper.ungroupMember(id);
+    }
+
     mouseClick(row, col, direction, centerX, centerY, mouseX, mouseY) {
+        let id = -1;
         switch (this.properties.state) {
             case 'ADD':
                 if (direction === 'left' || direction === 'right')
                     this.layout.addCellToRow(row, col, direction === 'left');
                 else
                     this.layout.addRowAt(row, direction === 'top');
-                break;
+                this.dispatcher('refresh', []);
+                return;
             case 'REMOVE':
-                let id = this.layout.removeCellAt(row, col);
-                console.log("Removed cell @ ID: " + id);
-                break;
+                id = this.layout.removeCellAt(row, col);
+                //console.log("Removed cell @ ID: " + id);
+                this.dispatcher('unlinkCellID', [id]);
+                this.dispatcher('refresh', []);
+                return;
             case 'LINK-ADD':
+                if (this.layout.getNumberOfActiveCells() === 1)
+                    return;
+
+                id = this.layout.getCellID(row, col);
                 this.linkCache.start = {
-                    id: this.layout.getCellID(row, col)
+                    id: id
                 };
+
+                this.linkGrouper.addGroupIfDoesntExistForMemberWithId(id);
+
                 this.updateLinkLineCache(centerX, centerY, mouseX, mouseY, this.linkCache.start.id);
                 this.anchorLinkLineStartTo(centerX, centerY);
                 this.anchorLinkLineEndTo(mouseX, mouseY);
@@ -360,7 +405,13 @@ class MiniatureSplitView {
                 this.properties.state = 'LINK-IN-PROGRESS';
                 break;
             case 'LINK-IN-PROGRESS':
-                if (row === this.linkCache.start.row && col === this.linkCache.start.col) {
+                id = this.layout.getCellID(row, col);
+                if (id === this.linkCache.start.id) {
+                    this.properties.state = 'LINK-ADD';
+                    this.linkGrouper.removeIfContainsOnlyOneMember(id);
+                    this.flushLinkCache();
+                    break;
+                } else if (this.linkGrouper.isMembersInSameGroup(id, this.linkCache.start.id)) {
                     this.properties.state = 'LINK-ADD';
                     this.flushLinkCache();
                     break;
@@ -373,15 +424,18 @@ class MiniatureSplitView {
                 this.consumeLinkCache();
                 this.properties.state = 'LINK-ADD';
                 this.flushLinkCache();
+                this.linkDidChange();
                 break;
             case 'LINK-REMOVE':
-                this.linkGroup.ungroupMember(this.layout.getCellID(row, col));
+                this.linkGrouper.ungroupMember(this.layout.getCellID(row, col));
                 break;
         }
 
         this.clear();
         this.render();
     }
+
+
 
     flushLinkCache() {
         this.linkCache = {
@@ -402,14 +456,14 @@ class MiniatureSplitView {
 
     consumeLinkCache() {
         // 1. Check if start is already in a linked group
-        let groupIndexOfStart = this.linkGroup.getLinkGroupIndexOfMember(this.linkCache.start.id);
+        let groupIndexOfStart = this.linkGrouper.getLinkGroupIndexOfMember(this.linkCache.start.id);
 
         if (groupIndexOfStart === -1) { // no group found, create a new one.
-            let groupIndex = this.linkGroup.addNewLinkGroup(this.linkCache.start.id);
-            this.linkGroup.addMemberToGroup(groupIndex, this.linkCache.end.id);
+            let groupIndex = this.linkGrouper.addNewLinkGroup(this.linkCache.start.id);
+            this.linkGrouper.addMemberToGroup(groupIndex, this.linkCache.end.id);
         } else {
-            this.linkGroup.ungroupMember(this.linkCache.end.id); // Ungroup it from old grp
-            this.linkGroup.addMemberToGroup(groupIndexOfStart, this.linkCache.end.id);
+            this.linkGrouper.ungroupMember(this.linkCache.end.id); // Ungroup it from old grp
+            this.linkGrouper.addMemberToGroup(groupIndexOfStart, this.linkCache.end.id);
         }
 
         this.flushLinkCache();
@@ -438,6 +492,18 @@ class MiniatureSplitView {
         };
 
         return bounds;
+    }
+
+    linkDidChange() {
+        if (this.linkChangedCallback.callback)
+            this.linkChangedCallback.callback(this.linkChangedCallback.key);
+    }
+
+    setLinkChangedCallback(key, callback) {
+        this.linkChangedCallback = {
+            key: key,
+            callback: callback
+        }
     }
 
 }

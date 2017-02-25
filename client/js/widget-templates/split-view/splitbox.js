@@ -1,4 +1,5 @@
 let _ = require('underscore');
+let UniqueIndexBag = require('./unique-index-bag');
 
 class Cell {
     constructor(id) {
@@ -14,17 +15,19 @@ class SplitBox {
 
         this.rows = [[]]; // int depicts the cell#
 
-        this.rows[0][0] = new Cell(1);
+        this.cellIDs = new UniqueIndexBag(maxRows * maxColumns);
+
+        this.rows[0][0] = new Cell(this.cellIDs.getIndex());
 
         this.numCells = 1;
-
-        this.cellIDCounter = 1;
 
         this.layoutPercentages = null;
         this.flattenedLayoutPercentages = null;
         this.calculateLayoutPercentages();
-        console.log("SplitBox L27");
-        console.log(this.flattenedLayoutPercentages);
+
+
+        //console.log("SplitBox L27");
+        //console.log(this.flattenedLayoutPercentages);
     }
 
     /* Add cell to row.*/
@@ -33,11 +36,12 @@ class SplitBox {
             return;
 
         let insertionPoint = isLeft ? cell : cell + 1;
-        console.log("addCellToRow(" + row + ", " + cell + ", " + isLeft + ")");
-        console.log(this.rows);
-        this.rows[row].splice(insertionPoint, 0, new Cell(++this.numCells));
-        console.log(this.rows);
+        //console.log("addCellToRow(" + row + ", " + cell + ", " + isLeft + ")");
+        //console.log(this.rows);
+        this.rows[row].splice(insertionPoint, 0, new Cell(this.cellIDs.getIndex()));
+        //console.log(this.rows);
         this.calculateLayoutPercentages();
+        this.layoutDidChange();
     }
 
     getCellID(row, col) {
@@ -62,19 +66,38 @@ class SplitBox {
         this.removeCellAt(loc.row, loc.col);
     }
 
+    getNumberOfActiveCells() {
+        let numCells = 0;
+        for (let row of this.rows)
+            for (let cell of row)
+                numCells++;
+
+        return numCells;
+    }
+
+    getNumberOfNonEmptyRows() {
+        let numRows = 0;
+        for (let row of this.rows)
+            if (row.length > 0)
+                numRows++;
+
+        return numRows;
+    }
+
     removeCellAt(row, cell) {
-        if (this.rows.length === 1 && this.rows[0].length === 1)
+        if (this.getNumberOfActiveCells() === 1) // must have at least 1 at all times.
             return -1;
 
         let id = this.rows[row][cell].id;
 
-        this.rows[row].splice(cell, 1);
-
-        if (this.rows[row].length === 0)
+        if (this.rows[row].length === 1)
             this.rows.splice(row, 1);
+        else
+            this.rows[row].splice(cell, 1);
 
         this.calculateLayoutPercentages();
-
+        this.layoutDidChange();
+        this.cellIDs.returnIndex(id);
         return id;
     }
 
@@ -86,21 +109,23 @@ class SplitBox {
         console.log("L55");
         console.log(this.rows);
         if (this.rows[insertionPoint])
-            this.rows.splice(insertionPoint, 0, [new Cell(++this.numCells)]);
+            this.rows.splice(insertionPoint, 0, [new Cell(this.cellIDs.getIndex())]);
         else
-            this.rows[insertionPoint] = [new Cell(++this.numCells)];
+            this.rows[insertionPoint] = [new Cell(this.cellIDs.getIndex())];
         console.log(this.rows);
 
         this.calculateLayoutPercentages();
+        this.layoutDidChange();
     }
 
     /* Returns the cell index (important to get right in the environment */
-    removeCellFromRow(row, index) {
+    /*removeCellFromRow(row, index) {
         let cell = this.rows[row][index];
         this.rows[row].splice(index, 1);
         this.calculateLayoutPercentages();
+        this.layoutDidChange();
         return cell.id;
-    }
+    }*/
 
     // NAIVE, likely needs fixing up
     calculateLayoutPercentages() {
@@ -127,7 +152,7 @@ class SplitBox {
                 allSameLength = false;
 
             // 3. Set the width of smallest rows and columns
-        let totalWidth = this.aspectRatio.width; // use 100 for greatest precision
+        let totalWidth = this.aspectRatio.width;
         let totalHeight = this.aspectRatio.height;
         let remainingHeight = this.aspectRatio.height;
 
@@ -136,7 +161,7 @@ class SplitBox {
         let results = [];
 
         for (let rowInfo of theRows) {
-            console.log(rowInfo);
+            //console.log(rowInfo);
             let row = rowInfo.row;
             let index = rowInfo.rowIndex;
             let length = row.length;
@@ -228,6 +253,15 @@ class SplitBox {
             if (normalizedX0 <= normalizedX && normalizedX < normalizedX1)
                 return cellIndex;
         }
+    }
+
+    layoutDidChange() {
+        if (this.callback)
+            this.callback();
+    }
+
+    setLayoutDidChangeCallback(callback) {
+        this.callback = callback;
     }
 }
 

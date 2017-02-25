@@ -1,4 +1,3 @@
-require('./gui-controllers/all-controllers');
-require('./widget-templates/all-widgets');
+require('./gui-controllers/main-controller');
 
 module.exports = null;

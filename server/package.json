@@ -1,5 +1,5 @@
 {
-  "name": "volume_renderer_client",
+  "name": "node_volume_rendering_server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,10 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "angular": "^1.6.2",
-    "d3": "^4.6.0",
-    "jquery": "^3.1.1",
-    "semantic-ui": "^2.2.9",
-    "underscore": "^1.8.3"
+    "dissolve": "^0.3.3"
   }
 }
