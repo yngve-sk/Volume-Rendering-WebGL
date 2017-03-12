@@ -3,3 +3,6 @@
 /server/node_modules/*
 /server/datasets/*
 /client/main-compiled.js
+/client/src/3d-views/OLD
+/client/src/settings.jsbeautifyrc
+/dev*
