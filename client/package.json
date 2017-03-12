@@ -10,9 +10,18 @@
   "license": "ISC",
   "dependencies": {
     "angular": "^1.6.2",
+    "angularjs-slider": "^6.1.0",
+    "bufferutil": "^3.0.0",
     "d3": "^4.6.0",
+    "gl-matrix": "^2.3.2",
+    "glslify": "^6.0.1",
     "jquery": "^3.1.1",
     "semantic-ui": "^2.2.9",
-    "underscore": "^1.8.3"
+    "semantic-ui-angular-jquery": "^0.2.1",
+    "spectrum-colorpicker": "^1.8.0",
+    "underscore": "^1.8.3",
+    "utf-8-validate": "^3.0.1",
+    "websocket": "^1.0.24",
+    "ws": "^2.2.0"
   }
 }
