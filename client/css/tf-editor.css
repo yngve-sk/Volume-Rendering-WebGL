@@ -1,0 +1,99 @@
+.tf-editor-container {
+    position: relative;
+}
+
+.tf-editor-background-canvas {
+    position: absolute;
+}
+
+.tf-editor-svg-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+}
+
+.tf-editor-event-listener-rect {}
+
+.tf-editor-3d-selection-histogram-group {}
+
+.tf-editor-full-histogram-group {}
+
+.tf-editor-tf-view-group {}
+
+.tf-editor-color-gradient-axis {
+    fill-opacity: 1;
+    border: thin gainsboro solid;
+    stroke-width: 2px;
+    stroke: black;
+}
+
+
+/*color picker!*/
+
+.tf-editor-color-picker-container {
+    position: absolute;
+    z-index: 1;
+}
+
+g.tf-editor-axis-isovalue>g>text,
+g.tf-editor-axis-opacity>g>text {
+    fill-opacity: 1;
+}
+
+.tf-editor-axis-isovalue {}
+
+.tf-editor-axis-opacity {}
+
+.tf-editor-3d-selection-histogram-line {
+    stroke-width: 0.3px;
+    stroke: grey;
+    stroke-opacity: 0.3;
+}
+
+.tf-editor-3d-selection-histogram-area {
+    fill: grey;
+    fill-opacity: 0.3;
+}
+
+.tf-editor-histogram-line {
+    stroke-width: 0.3px;
+    stroke: black;
+    stroke-opacity: 0.3;
+}
+
+.tf-editor-histogram-area {
+    fill: grey;
+    fill-opacity: 0.3;
+}
+
+.tf-editor-control-point {
+    fill-opacity: 0.7;
+    stroke: black;
+    stroke-opacity: 0.8;
+    stroke-width: 1.5px;
+}
+
+.tf-editor-control-point.selected {
+    fill-opacity: 1;
+    fill: red;
+    stroke: black;
+    stroke-width: 2.5px;
+}
+
+.tf-editor-color-gradient-control-points {
+    fill-opacity: 1;
+}
+
+
+/* Fill opacity is 0 for all these */
+
+.tf-editor-svg-container,
+.tf-editor-event-listener-rect,
+.tf-editor-3d-selection-histogram-group,
+.tf-editor-full-histogram-group,
+.tf-editor-tf-view-group,
+.tf-editor-axis-isovalue,
+.tf-editor-axis-opacity {
+    fill-opacity: 0;
+}

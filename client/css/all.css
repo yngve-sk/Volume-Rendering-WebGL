@@ -1,2 +1,66 @@
 @import url("links-and-views-view.css");
+@import url("tf-editor.css");
+#local-control-panel {
+    float: left;
+    width: 0%;
+    height: 100vh;
+    background-color: green;
+}
 
+#global-control-panel {
+    width: 35%;
+    height: 100vh;
+    float: right;
+}
+
+#webgl-canvas-container,
+.webgl-canvas {
+    width: 65%;
+    height: 100vh;
+    background-color: red;
+}
+
+
+/* TF VIEW STUFF! */
+
+.tf-display-options-checkbox {
+}
+
+tf-widget {}
+
+#global-control-panel>tf-widget>div>div>div>div.nine.wide.column>div>div,
+#global-control-panel>tf-widget>div>div>div>div.seven.wide.column>div {
+    height: 195px;
+}
+
+.tf-editor-container {
+    background: blue;
+    width: 32.5vw;
+    height: 19vw;
+}
+
+.tf-d3-container,
+.tf-canvas {
+    position: absolute;
+    width: 90%;
+    height: 90%;
+}
+
+.tf-canvas {}
+
+.tf-splineline {
+    fill: none;
+    stroke: blue;
+    stroke-width: 3px;
+}
+
+.tf-controlpoint {
+    fill: #fff;
+    fill-opacity: .2;
+    cursor: move;
+}
+
+.tf-controlpoint.selected {
+    fill: #ff7f0e;
+    stroke: #ff7f0e;
+}
