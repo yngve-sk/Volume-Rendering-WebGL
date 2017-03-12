@@ -1,11 +1,10 @@
-let fs = require('fs')
-let Dissolve = require('dissolve');
+let fs = require('fs');
 
 class VolumeDataset {
     constructor(filepath, samplingRate) { // 10, read every 10th, 1: read every 1st
         let buffer = fs.readFileSync(filepath);
 
-        let header = {
+        this.header = {
             rows: buffer.readUInt16LE(0),
             cols: buffer.readUInt16LE(2),
             slices: buffer.readUInt16LE(4),
@@ -13,20 +12,20 @@ class VolumeDataset {
         };
 
 
-        let size = Math.floor((header.rows * header.cols * header.slices) / samplingRate);
+        let size = Math.floor((this.header.rows * this.header.cols * this.header.slices) / samplingRate);
         let offset = 6;
 
         let isovalues = [];
-        for (let i = 0; i < samplingRate; i++) {
+        for (let i = 0; i < size; i++) {
             isovalues[i] = buffer.readUInt16LE(offset);
             offset += 2 * samplingRate;
         }
 
-        header.info.bufferDataSizeBytes = buffer.toString().length - 6; // 6 bytes because header
-        header.info.datasetSizeBytes = size * 2; // * 2 because each dataset item is 2 bytes
-        header.info.datasetLength = size;
+        this.header.info.bufferDataSizeBytes = buffer.toString().length - 6; // 6 bytes because this.header
+        this.header.info.datasetSizeBytes = size * 2; // * 2 because each dataset item is 2 bytes
+        this.header.info.datasetLength = size;
 
-        console.log(header);
+        console.log(this.header);
 
         this.isovalues = isovalues;
 
@@ -37,11 +36,13 @@ class VolumeDataset {
         this.curvatureMagnitude = [];
 
         this.sizes = {
-            slice: header.rows * header.cols,
-            row: header.cols,
-            col: header.rows
+            slice: this.header.rows * this.header.cols,
+            row: this.header.cols,
+            col: this.header.rows,
+            total: this.header.rows * this.header.cols * this.header.slices
         };
 
+        this.calculateGradient();
         //this.calculateGradient();
     }
 
@@ -50,7 +51,7 @@ class VolumeDataset {
     }
 
     _getIndex(row, col, slice) {
-        return slice * this.sizes.slice + row * this.sizes.row + col;
+        return slice * this.sizes.slice + row * this.sizes.col + col;
     }
 
     _jumpY(fromIndex, steps) { // Jump up/down N rows
@@ -61,55 +62,71 @@ class VolumeDataset {
         return fromIndex + steps * this.sizes.slice;
     }
 
-    calculateGradient() {
-        let dx = [],
-            dy = [],
-            dz = [];
+    _getXYZ(index) {
+        let slice = parseInt(index / this.sizes.slice);
 
-        for (let slice = 0; slice < this.sizes.slice - 1; slice++) {
-            for (let row = 0; row < this.sizes.row - 1; row++) {
-                for (let col = 0; col < this.sizes.col - 1; col++) {
-                    let index = this._getIndex(row, col, slice);
-                    dx[index] = this.isovalues[index + 1] - this.isovalues[index];
-                }
-                dx[this.sizes.col - 1] = -1; // No value, just a filling value to make indices match up
-            }
-        }
+        let indexOnSlice = parseInt(index - (this.sizes.slice * slice));
 
-        for (let slice = 0; slice < this.sizes.slice - 1; slice++) {
-            for (let col = 0; col < this.sizes.col - 1; col++) {
-                for (let row = 0; row < this.sizes.row - 1; row++) {
-                    let index = this._getIndex(row, col, slice);
-                    let index2 = this._jumpY(index, 1);
-                    dy[index] = this.isovalues[index2] - this.isovalues[index];
-                }
-                dy[this.sizes.row - 1] = -1; // No value, just a filling value to make indices match up
-            }
-            dy[this.sizes.col - 1] = -1;
-        }
+        let row = parseInt(indexOnSlice / this.sizes.col);
+        let col = parseInt(indexOnSlice % this.sizes.col);
 
-        for (let slice = 0; slice < this.sizes.slice - 1; slice++) {
-            for (let row = 0; row < this.sizes.row - 1; row++) {
-                for (let col = 0; col < this.sizes.col - 1; col++) {
-                    let index = this._getIndex(row, col, slice);
-                    let index2 = this._jumpZ(index, 1);
-                    dz[index] = this.isovalues[index2] - this.isovalues[index];
-                }
-                dz[this.sizes.col - 1] = -1;
-            }
-            dz[this.slice.row - 1] = -1;
-        }
-
-        this.gradient = [];
-
-        console.log(dx.length);
-        console.log(dy.length);
-        console.log(dz.length);
-
+        return {
+            x: col,
+            y: slice,
+            z: row
+        };
     }
 
-    calculateCurvature() {
+    _jump1(xyz) {
+        let x = xyz.x + 1,
+            y = this._jumpY(xyz.y, 1),
+            z = this._jumpZ(xyz.z, 1);
 
+        return {
+            x: x,
+            y: y,
+            z: z
+        }
+    }
+
+    calculateGradient() {
+
+        // MOVE X = MOVE IN IN ROW-DIRECTION, JUMP COLUMN
+        // MOVE Y = MOVE IN SLICE-DIRECTION, JUMP SLICE
+        // MOVE Z = MOVE IN COL-DIRECTION, JUMP ROW
+        let size = this.sizes.total * 3;
+        this.gradient = new Uint8Array(size);
+
+        for (let slice = 0; slice < this.header.slices - 1; slice++) {
+            for (let row = 0; row < this.header.cols - 1; row++) {
+                for (let col = 0; col < this.header.rows - 1; col++) {
+
+                    let localIsoValue = this.getIsoValueAt(row, col, slice);
+
+                    let x1IsoValue = this.getIsoValueAt(row, col + 1, slice);
+                    let z1IsoValue = this.getIsoValueAt(row + 1, col, slice);
+                    let y1IsoValue = this.getIsoValueAt(row, col, slice + 1);
+
+                    let dx = x1IsoValue - localIsoValue,
+                        dy = y1IsoValue - localIsoValue,
+                        dz = y1IsoValue - localIsoValue;
+
+                    let isoValueIndex = this._getIndex(row, col, slice);
+                    let offset = 3 * isoValueIndex;
+
+                    this.gradient[offset++] = dx;
+                    this.gradient[offset++] = dy;
+                    this.gradient[offset] = dz;
+                   // console.log("calculating gradient for index " + isoValueIndex);
+                }
+            }
+        }
+        console.log("Done calculating gradient");
+
+        //        console.log(this.gradient);
+        //
+        //        console.log(this.gradient.length);
+        //        console.log(this.isovalues.length);
     }
 }
 

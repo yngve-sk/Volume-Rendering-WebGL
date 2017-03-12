@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dissolve": "^0.3.3"
+    "dissolve": "^0.3.3",
+    "websocket": "^1.0.24",
+    "ws": "^2.2.0"
   }
 }
