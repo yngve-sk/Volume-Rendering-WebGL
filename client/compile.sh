@@ -1,1 +1,1 @@
-browserify ./js/main.js -o main-compiled.js
+browserify -t glslify ./src/main.js -o main-compiled.js
