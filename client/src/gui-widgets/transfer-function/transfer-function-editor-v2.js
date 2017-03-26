@@ -3,6 +3,7 @@ let VolumeDataset = require('../../environment/environment').VolumeDataset;
 let TestData = require('./histogram-test-dataset');
 let $ = require('jquery');
 let ColorGradient = require('./color-gradient');
+let Environment = require('../../environment/environment');
 
 class TransferFunctionEditor {
     /*
@@ -34,10 +35,31 @@ class TransferFunctionEditor {
                     func.
 
     */
-    constructor(displayOptions, getInteractionMode, $scope$id, getModel) {
-        this.canvas = document.querySelector('.tf-canvas.ng-id-' + $scope$id);
+    constructor(displayOptions, getInteractionMode, $scope$id, getModel, EnvironmentTFKey) {
+        //this.canvas = document.querySelector('.tf-canvas.ng-id-' + $scope$id);
         this.svgContainer = document.querySelector('.tf-d3-container.ng-id-' + $scope$id);
         this.$scope$id = $scope$id;
+        this.EnvironmentTFKey = EnvironmentTFKey;
+
+        /************************************************************/
+        /**********           BINDINGS TO ENVIRONMENT      **********/
+        /************************************************************/
+        this.splines = {}; // Stores the spline line, used to calc the interpolation
+
+        this.tfModel = Environment.TransferFunctionManager.getTransferFunction(EnvironmentTFKey, this.splines);
+
+        this.colorGradientObject = this.tfModel.colorGradient;
+        this.controlPoints = this.tfModel.controlPoints;
+
+        this.getHistogram = () => {
+            return Environment.VolumeDataset.histogram;
+        };
+
+        this.histogramRef = Environment.VolumeDataset.histogram;
+        this.histogramSelectionRef = TestData.histogramSelection;
+        /************************************************************/
+        /************************************************************/
+        /************************************************************/
 
         /*------------------------------------------------*/
         /*                    ELEMENTS                    */
@@ -60,7 +82,7 @@ class TransferFunctionEditor {
         this.colorGradientRectContainer = null;
         this.colorGradientControlPointsGroup = null;
 
-        this.colorGradientObject = new ColorGradient();
+        //this.colorGradientObject = new ColorGradient();
         this.defs = null;
 
         this.isovalueAxis = null;
@@ -83,8 +105,8 @@ class TransferFunctionEditor {
             leftAxisWidthPercentage: 0.07,
             bottomAxisHeightPercentage: 0.25,
             isoValueAxisHeightPercentage: 0.110,
-            curve: d3.curveCardinal,
-            controlPointSplineCurve: d3.curveCardinal,
+            curve: d3.curveLinear,
+            controlPointSplineCurve: d3.curveLinear,
             contentTopPaddingPercentage: 0.2
         };
 
@@ -103,6 +125,17 @@ class TransferFunctionEditor {
             y: 1
         }; // Recalc on each resize
 
+        this.scales = {
+            content: {
+                x: null,
+                y: null
+            },
+            total: {
+                x: null,
+                y: null
+            }
+        }
+
         this.displayOptions = displayOptions;
 
         /*------------------------------------------------*/
@@ -112,7 +145,7 @@ class TransferFunctionEditor {
         /*------------------------------------------------*/
         /*           CONTROL POINTS & EVENT CACHE         */
         /*------------------------------------------------*/
-        this.controlPoints = [];
+        //this.controlPoints = [];
         this.dragged = null;
         this.selectedControlPoint = null;
 
@@ -150,16 +183,17 @@ class TransferFunctionEditor {
             this._keydown();
         });
 
+        //console.log(this.tfModel);
+        //console.log(Environment);
     }
+
 
     _init() {
         this.container = document.querySelector('.tf-editor-container.ng-id-' + this.$scope$id);
 
-
-
         this.canvas = d3.select(this.container)
             .append('canvas')
-            .attr('class', 'tf-editor-background-canvas')
+            .attr('class', 'tf-editor-background-canvas ng-id' + this.$scope$id)
             .attr('width', 400)
             .attr('height', 400); // 400x400 pixels to render on
 
@@ -176,11 +210,11 @@ class TransferFunctionEditor {
         this.originalSize.content = sizes.content;
 
 
-        this.histogramSelectionGroup = this.svgMain.append('g')
-            .attr('class', 'tf-editor-3d-selection-histogram-group');
-
         this.histogramGroup = this.svgMain.append('g')
             .attr('class', 'tf-editor-full-histogram-group');
+
+        this.histogramSelectionGroup = this.svgMain.append('g')
+            .attr('class', 'tf-editor-3d-selection-histogram-group');
 
         this.transferFunctionGroup = this.svgMain.append('g')
             .attr('class', 'tf-editor-tf-view-group');
@@ -264,10 +298,10 @@ class TransferFunctionEditor {
 
     _colorPicked(tinycolor, isFinal) {
         let rgb = this.colorPicker.spectrum('get').toHexString();
-        console.log("color set to: " + rgb);
-
-        console.log(this.colorGradientObject);
-        console.log("Color " + rgb + " selected " + (isFinal ? 'FINALLY ' : 'TEMPORARILY') + ' @ index ' + this.colorGradientState.selectedIndex);
+        //console.log("color set to: " + rgb);
+        //
+        //        console.log(this.colorGradientObject);
+        //        console.log("Color " + rgb + " selected " + (isFinal ? 'FINALLY ' : 'TEMPORARILY') + ' @ index ' + this.colorGradientState.selectedIndex);
 
         this.colorGradientObject.setColorAt(this.colorGradientState.selectedIndex, rgb);
         this._refreshColorGradient();
@@ -284,6 +318,12 @@ class TransferFunctionEditor {
     _resize() {
         // Step1, calculate the sizing relative to clientwidth/height of the SVG!
         let sizes = this._getSizes();
+
+        this.scales.content.x = d3.scaleLinear().domain([0, 1]).range([0, sizes.content.width]);
+        this.scales.content.y = d3.scaleLinear().domain([1, 0]).range([0, sizes.content.height]);
+
+        this.scales.total.x = d3.scaleLinear().domain([0, 1]).range([0, sizes.total.width]);
+        this.scales.total.y = d3.scaleLinear().domain([1, 0]).range([0, sizes.total.height]);
 
         this.scale = { // Recalc the scale
             x: sizes.total.width / this.originalSize.total.width,
@@ -334,12 +374,11 @@ class TransferFunctionEditor {
                 'translate(' + sizes.content.x0 + ', ' + sizes.bottomAxis.colorGradientRect.y0 + ')' +
                 'scale(' + this.scale.x + ', ' + this.scale.y + ')'
             );
-        console.log(this.colorGradientRect.node().getBoundingClientRect());
+        //console.log(this.colorGradientRect.node().getBoundingClientRect());
 
         this.colorGradientControlPointsGroup
             .attr('transform',
-                'translate(' +
-                0 + ', ' + -8 + ')');
+                'translate(' + 0 + ', ' + -8 + ')');
 
         this.isovalueAxis
             .attr('transform',
@@ -431,29 +470,55 @@ class TransferFunctionEditor {
         this.colorGradientControlPointsGroup.selectAll('*').remove();
     }
 
+    _refreshHistogram() {
+        this._clearHistogram();
+        this._renderHistogram();
+    }
+
+    _refreshHistogramSelection() {
+        this._clearHistogramSelection();
+        this._renderHistogramSelection();
+    }
+
+    _refreshTransferFunction() {
+        this._clearTransferFunction();
+        this._renderTransferFunction();
+        this._renderColorGradientOntoCanvas();
+    }
+
     _refreshColorGradient() {
         this._clearColorGradient();
         this._renderColorGradientRect();
-        this._renderColorGradientControlPoints();
+        this._renderColorGradientControlPoints(this._getSizes());
+        this._renderColorGradientOntoCanvas();
     }
 
     render() {
         this._clear();
         let sizes = this._getSizes();
-        this._renderHistogramSelection(sizes);
-        this._renderHistogram(sizes);
-        this._renderTransferFunction();
+
+        if (this.displayOptions.showHistogramSelection)
+            this._renderHistogramSelection(sizes);
+
+        if (this.displayOptions.showHistogram)
+            this._renderHistogram(sizes);
+
+        if (this.displayOptions.showTransferFunction)
+            this._renderTransferFunction();
+
+        this._renderColorGradient(sizes);
+        this._renderColorGradientOntoCanvas(sizes);
         this._renderAxes(sizes);
-        this._renderColorGradientRect();
-        this._renderColorGradientControlPoints();
+
         //this._renderColorOpacityBitmap();
     }
 
     _renderHistogramSelection(sizes) {
-        let yDomain = d3.extent(TestData.histogram),
+        let histogram = this.getHistogram();
+        let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
-        let xDomain = [0, TestData.histogram.length - 1],
+        let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
         let yScale = d3.scaleLinear().domain(yDomain).range(yRange),
@@ -480,22 +545,23 @@ class TransferFunctionEditor {
 
         this.histogramSelectionGroup
             .append('path')
-            .datum(TestData.histogramSelection)
+            .datum(this.histogramSelectionRef)
             .attr('d', line)
             .attr('class', 'tf-editor-3d-selection-histogram-line');
 
         this.histogramSelectionGroup
             .append('path')
-            .datum(TestData.histogramSelection)
+            .datum(this.histogramSelectionRef)
             .attr('d', area)
             .attr('class', 'tf-editor-3d-selection-histogram-area');
     }
 
     _renderHistogram(sizes) {
-        let yDomain = d3.extent(TestData.histogram),
+        let histogram = this.getHistogram();
+        let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
-        let xDomain = [0, TestData.histogram.length - 1],
+        let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
         let yScale = d3.scaleLinear().domain(yDomain).range(yRange),
@@ -522,13 +588,13 @@ class TransferFunctionEditor {
 
         this.histogramGroup
             .append('path')
-            .datum(TestData.histogram)
+            .datum(histogram)
             .attr('d', line)
             .attr('class', 'tf-editor-histogram-line');
 
         this.histogramGroup
             .append('path')
-            .datum(TestData.histogram)
+            .datum(histogram)
             .attr('d', area)
             .attr('class', 'tf-editor-histogram-area');
     }
@@ -539,20 +605,21 @@ class TransferFunctionEditor {
     }
 
     _renderControlPointSplines() {
-        let splines = d3.line()
+
+        this.splines = d3.line()
             .curve(this.options.controlPointSplineCurve)
             .x((d) => {
-                return d[0];
+                return this.scales.content.x(d[0]);
             })
             .y((d) => {
-                return d[1];
+                return this.scales.content.y(d[1]);
             });
 
         this.transferFunctionGroup
             .append('path')
             .datum(this.controlPoints)
             .attr('class', 'tf-splineline')
-            .attr('d', splines);
+            .attr('d', this.splines);
     }
 
     _renderControlPoints() {
@@ -580,11 +647,11 @@ class TransferFunctionEditor {
                     self._renderTransferFunction();
                 }
             })
-            .attr("cx", function (d) {
-                return d[0];
+            .attr("cx", (d) => {
+                return this.scales.content.x(d[0]);
             })
-            .attr("cy", function (d) {
-                return d[1];
+            .attr("cy", (d) => {
+                return this.scales.content.y(d[1]);
             })
             .classed("selected", (d) => {
                 return d === this.selected;
@@ -593,11 +660,11 @@ class TransferFunctionEditor {
 
         circles
 
-            .attr("cx", function (d) {
-                return d[0];
+            .attr("cx", (d) => {
+                return this.scales.content.x(d[0]);
             })
-            .attr("cy", function (d) {
-                return d[1];
+            .attr("cy", (d) => {
+                return this.scales.content.y(d[1]);
             });
 
         circles.exit().remove();
@@ -605,6 +672,11 @@ class TransferFunctionEditor {
 
     _renderColorOpacityBitmap() {
 
+    }
+
+    _renderColorGradient(sizes) {
+        this._renderColorGradientRect();
+        this._renderColorGradientControlPoints(sizes);
     }
 
     _renderColorGradientRect() {
@@ -638,27 +710,91 @@ class TransferFunctionEditor {
                 return d.color;
             }).exit().remove();
 
-        //
-        //// Load gradient data into the svg gradient of this view.
-        //this.colorGradientRect.selectAll('stop')
-        //    .data(gradient)
-        //    .enter()
-        //    .append('stop')
-        //    .attr('offset', (d) => {
-        //        return d.offset;
-        //    })
-        //    .attr('stop-color', (d) => {
-        //        return d.color;
-        //    });
-
         // Apply the gradient to the rect
         this.colorGradientRect.style('fill', 'url(#linear-gradient-' + this.$scope$id + ')');
     }
 
-    _renderColorGradientControlPoints() {
-        let sizes = this._getSizes();
+    _renderColorGradientOntoCanvas(sizes) {
+        let canvasNode = this.canvas.node();
+        let context = canvasNode.getContext('2d', {alpha: true});
+
+        let splines = d3.line() // Used for opacity TF stuff
+            .curve(this.options.controlPointSplineCurve)
+            .x((d) => {
+                return x(d[0]);
+            })
+            .y((d) => {
+                return y(d[1]);
+            });
+
+        let cWidth = canvasNode.width,
+            cHeight = canvasNode.height;
+
+        let x0 = 0,
+            x1 = cWidth,
+            y0 = cHeight / 2,
+            y1 = y0;
+
+
+        let colorGradient = context.createLinearGradient(x0, y0, x1, y1);
+        let opacityGradient = context.createLinearGradient(x0, y0, x1, y1);
+
+        for (let point of this.colorGradientObject.gradient) {
+            colorGradient.addColorStop(point.offset / 100, point.color);
+        }
+
+        for (let point of this.controlPoints) {
+            let opacity = parseInt(Math.round(point[1] * 255));; // only linear interp. for now.
+            opacityGradient.addColorStop(point[0], 'rgba(' + opacity + ', ' + opacity + ',' + opacity + ',1)');
+        }
+
+        context.fillStyle = opacityGradient;
+        context.fillRect(0, 0, canvasNode.width, canvasNode.height);
+
+        // Now extract the interpolated pixels
+        let imgData = context.getImageData(0, 0, canvasNode.width, 1);
+
+        let data = imgData.data;
+        let width = imgData.width;
+
+        let opacities = new Uint8ClampedArray(width);
+
+        for (let i = 0; i < width * 4; i += 4) {
+            opacities[i / 4] = data[i]; // transform back to [0,1]
+        }
+
+
+        context.fillStyle = colorGradient;
+        context.fillRect(0, 0, canvasNode.width, canvasNode.height);
+
+        let imgData2 = context.getImageData(0, 0, canvasNode.width, canvasNode.height);
+        let data2 = imgData2.data;
+        let height = imgData2.height;
+
+        //let newImageData = new Uint8ClampedArray(width * height * 4);
+
+        // Copy to new img data turns out, not needed!
+        //for (let i = 0; i < data2.length; i++) {
+        //    newImageData[i] = data2[i];
+        //}
+
+        // Adjust opacities row by row
+        // r g b a  r g b a
+        // 0 1 2 3  4 5 6 7
+        for (let i = 3; i < data2.length; i += 4) {
+            let opacityAdjust = opacities[parseInt(i / 4) % width];
+            data2[i] = opacityAdjust;
+        }
+
+        context.putImageData(new ImageData(data2, width, height), 0, 0);
+        Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey);
+    }
+
+
+
+    _renderColorGradientControlPoints(sizes) {
         let triangle = d3.symbol()
-            .type(d3.symbolDiamond)
+            .type(d3.symbolTriangle)
             .size(25);
 
         let groups = this.colorGradientControlPointsGroup
@@ -667,7 +803,7 @@ class TransferFunctionEditor {
             .enter()
             .append('g')
             .attr('transform', (d) => {
-                return 'translate(' + (d.offset * sizes.content.width) / 100 + ', 0)' +
+                return 'translate(' + (d.offset * this.originalSize.content.width) / 100 + ', 0)' +
                     'scale(1,-1)';
             })
             .attr('class', '.tf-editor-color-gradient-symbols');
@@ -683,7 +819,7 @@ class TransferFunctionEditor {
 
     _renderAxes(sizes) {
         let xScale = d3.scaleLinear()
-            .domain([0, TestData.histogram.length])
+            .domain([0, this.histogramRef.length])
             .range([0, this.originalSize.content.width]);
 
         let yScale = d3.scaleLinear()
@@ -704,57 +840,54 @@ class TransferFunctionEditor {
 
 
     _colorGradientMouseDown(mouse) {
-        console.log('_colorGradientMouseDown');
+        //console.log('_colorGradientMouseDown');
         // Add new control point
         // 1. Place a control point!
         //let mouse = d3.mouse(this.colorGradientRect.node());
         let sizes = this._getSizes();
         let offset = 100 * (mouse[0] / sizes.content.width);
 
-        console.log("mouse down @ " + mouse + ", offset = " + offset);
+        //console.log("mouse down @ " + mouse + ", offset = " + offset);
         // 2. Get offset
         //TestData.gradient.addControlPoint(color, offset);
     }
 
-    _getColorGradientPos(sizes, parentMouse) {
-        let offsetY = sizes.content.height
-    }
-
     _colorGradientMouseUp(mouse) {
+        let mouse2 = d3.mouse(this.colorGradientRectContainer.node());
         //let mouse = d3.mouse(this.colorGradientRect.node());
         let sizes = this._getSizes();
-        let offsetX = 100 * (mouse[0] / sizes.content.width);
-        let offsetY = 100 * (mouse[1] / sizes.bottomAxis.colorGradientRect.height);
+        let offsetX = 100 * (this.scale.x * mouse[0] / sizes.content.width);
+        let offsetY = 100 * (this.scale.y * mouse[1] / sizes.bottomAxis.colorGradientRect.height);
 
         // If placed @ valid location, set up the color picker.
         this.colorGradientState.selectedIndex = this.colorGradientObject.addControlPoint('white', offsetX);
-        console.log(this.colorGradientObject.gradient);
-        console.log("Mouse up, index = " + this.colorGradientState.selectedIndex);
+        //        console.log(this.colorGradientObject.gradient);
+        //        console.log("Mouse up, index = " + this.colorGradientState.selectedIndex + ", offset = " + offsetX);
         this.colorGradientState.isAwaitingColorSelection = true;
         this.colorPicker.spectrum('toggle');
     }
 
     _colorGradientMouseMove(mouse) {
-        //let mouse = d3.mouse(this.colorGradientRect.node());
+
         if (this.colorGradientState.isAwaitingColorSelection || this.colorGradientState.selectedIndex === -1)
             return;
 
-        console.log(d3.mouse(this.colorGradientRect.node()));
-        console.log(d3.mouse(this.svgMain.node()));
-        console.log(this.svgMain.node().getBoundingClientRect());
-
-        console.log(this.colorGradientRect.node());
         let sizes = this._getSizes();
-        let offset = 100 * (mouse[0] / sizes.content.width);
+        let offset = 100 * (this.scale.x * mouse[0] / sizes.content.width);
+        //console.log(offset);
 
-        let offsetX = 100 * (mouse[0] / sizes.content.width);
-        let offsetY = 100 * (mouse[1] / sizes.bottomAxis.colorGradientRect.height);
+        // NOTE: Scale the mouse coords, scale transformations arent taken into
+        // account for mouse events.
+        let offsetX = 100 * (this.scale.x * mouse[0] / sizes.content.width);
+        let offsetY = 100 * (this.scale.y * mouse[1] / sizes.bottomAxis.colorGradientRect.height);
+
+        //console.log("content.width = " + sizes.content.width + ", mouse[0] = " + mouse[0] + ", " + "offsetX = " + offsetX);
 
         this.colorGradientState.selectedIndex = this.colorGradientObject.moveControlPoint(
             this.colorGradientState.selectedIndex, offset);
 
         this._refreshColorGradient();
-        console.log("_colorGradientMouseMove(), (x,y) = (" + offsetX + ', ' + offsetY + ')');
+        //console.log("_colorGradientMouseMove(), (x,y) = (" + offsetX + ', ' + offsetY + ')');
     }
 
     _mousedown() {
@@ -765,10 +898,19 @@ class TransferFunctionEditor {
             case 'TF':
                 if (this.dragged)
                     return;
-                this.controlPoints.push(this.selected = this.dragged = d3.mouse(this.transferFunctionGroup.node()));
-                this._clearTransferFunction();
-                this._renderControlPointSplines();
-                this._renderControlPoints();
+
+                let mouse = d3.mouse(this.transferFunctionGroup.node());
+
+                let mouseX = mouse[0],
+                    mouseY = mouse[1];
+
+                let mouseXNormalized = this.scales.content.x.invert(mouseX),
+                    mouseYNormalized = this.scales.content.y.invert(mouseY);
+
+                let mouseNormalized = [mouseXNormalized, mouseYNormalized];
+
+                this.controlPoints.push(this.selected = this.dragged = mouseNormalized);
+                this._refreshTransferFunction();
                 break;
             default:
                 break;
@@ -784,16 +926,14 @@ class TransferFunctionEditor {
             case 'TF':
                 if (!this.dragged) return;
                 this.dragged = null;
-                this._clearTransferFunction();
-                this._renderControlPointSplines();
-                this._renderControlPoints();
+                this._refreshTransferFunction();
             default:
                 break;
         }
     }
 
     _mousemove() {
-        console.log(d3.mouse(this.eventListenerRect.node()));
+        //console.log(d3.mouse(this.eventListenerRect.node()));
 
         let interactionMode = this.getInteractionMode();
         switch (interactionMode) {
@@ -802,11 +942,9 @@ class TransferFunctionEditor {
             case 'TF':
                 if (!this.dragged) return;
                 let m = d3.mouse(this.transferFunctionGroup.node());
-                this.dragged[0] = m[0];
-                this.dragged[1] = m[1];
-                this._clearTransferFunction();
-                this._renderControlPointSplines();
-                this._renderControlPoints();
+                this.dragged[0] = this.scales.content.x.invert(m[0]);
+                this.dragged[1] = this.scales.content.y.invert(m[1]);
+                this._refreshTransferFunction();
                 break;
             default:
                 break;
@@ -822,14 +960,16 @@ class TransferFunctionEditor {
                 this.removeSelectedControlPoint();
                 break;
         }
+
+        //console.log(this.tfModel);
+        //console.log(Environment);
     }
 
     removeSelectedControlPoint() {
         let i = this.controlPoints.indexOf(this.selected);
         this.controlPoints.splice(i, 1);
         this.selected = this.controlPoints.length ? this.controlPoints[i > 0 ? i - 1 : 0] : null;
-        this._clearTransferFunction();
-        this._renderTransferFunction();
+        this._refreshTransferFunction();
     }
 
 }
