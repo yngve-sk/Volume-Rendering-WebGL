@@ -7,13 +7,19 @@ require('spectrum-colorpicker');
 let TransferFunctionEditor = require('../../gui-widgets/transfer-function/transfer-function-editor-v2');
 let Environment = require('../../environment/environment');
 
-let controller = function ($scope) {
+let controller = function ($scope, $timeout) {
+    let tfRenderer = null; // Initialized when DOM is ready.
+
     $scope.displayOptions = {
         showHistogram: true,
+        showHistogramSelection: true,
         showTransferFunction: true,
-        showSelection: true,
         zoomInOnSelection: false
     };
+
+    $scope.displayOptionsChanged = function () {
+        tfRenderer.render();
+    }
 
     $scope.gradientMagSlider = {
         weighting: 100,
@@ -51,23 +57,38 @@ let controller = function ($scope) {
         }
     };
 
+    $scope.onChange = () => {
+        alert("SCOPEchange");
+    }
 
+    this.onChange = () => {
+        alert("THISchange");
+    }
 
-    $scope.interactionMode = 1;
+    // Debugging only
+    window["MYSCOPE" + $scope.$id] = $scope;
+
+    $scope.interactionMode = 2;
     $scope.getInteractionMode = function () {
         return TF_INTERACTION_MODES[$scope.interactionMode];
     };
 
-    let tfRenderer = null; // Initialized when DOM is ready.
     $scope.DOMReady = () => {
 
         tfRenderer = new TransferFunctionEditor(
             $scope.displayOptions,
             $scope.getInteractionMode,
             $scope.$id,
-            getModel);
+            getModel,
+            $scope.name);
         tfRenderer.render();
 
+        $scope.$watch('displayOptions', (newV, oldV) => {
+            console.log("DISP OPTIONS CHANGE!");
+            tfRenderer.render();
+        }, true);
+
+        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID($scope.name, $scope.$id)
     }
 
     // Returns the model currently attached to the TF with the given name,

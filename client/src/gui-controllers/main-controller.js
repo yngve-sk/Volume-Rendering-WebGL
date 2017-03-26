@@ -18,8 +18,8 @@ let app = angular.module('WebGLVolumeRendererClient', ['semantic-ui', 'rzModule'
 //-----    --   --  --  --  - - - - - CONTROLLERS -----    --   --  --  --  - - - - -//
 //_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_-//
 app.controller('master-controller', require('./ng-controllers/master-controller'));
-app.controller('gl-controller', require('./ng-controllers/gl-controller'));
 app.controller('global-control-panel', require('./ng-controllers/global-control-panel-controller'));
+
 
 
 
@@ -29,7 +29,7 @@ app.controller('global-control-panel', require('./ng-controllers/global-control-
 //          (Directives can contain controllers of their own...)
 app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('linksAndViewsView', require('./ng-directives/links-and-views-view'));
-
+//app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
 
 //require('./angular-semantic-ui.min');
 

@@ -5,7 +5,7 @@ let directive = function () {
         restrict: 'E',
         scope: {},
         controller: localController,
-        templateUrl: 'src/gui-controllers/ng-directives/links-and-views-view-template.html'
+        templateUrl: 'src/gui-controllers/ng-templates/links-and-views-view-template.html'
     }
 };
 
