@@ -19,6 +19,8 @@
     "semantic-ui": "^2.2.9",
     "semantic-ui-angular-jquery": "^0.2.1",
     "spectrum-colorpicker": "^1.8.0",
+    "tinycolor2": "^1.4.1",
+    "twgl.js": "^3.2.2",
     "underscore": "^1.8.3",
     "utf-8-validate": "^3.0.1",
     "websocket": "^1.0.24",
