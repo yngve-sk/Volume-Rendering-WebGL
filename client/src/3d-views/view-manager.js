@@ -8,11 +8,10 @@ let View = require('./view');
 */
 
 class ViewManager {
-    constructor() {
+    constructor(environmentRef) {
+        this.env = environmentRef;
         this.views = {}; // {cellID: View Obj}
-        this.views[0] = new View('webgl-canvas-0', 0, this.environment);
-
-        this.views[0].refresh();
+        this.views[0] = new View('webgl-canvas-0', 0, this.env);
     }
 
     refresh() {
@@ -24,6 +23,11 @@ class ViewManager {
 
             view.refresh();
         }
+    }
+
+    __DEBUGRefreshView0() {
+        console.log("__DEBUGRefreshView0()");
+        this.views[0].refresh();
     }
 }
 
