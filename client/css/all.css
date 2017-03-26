@@ -1,5 +1,6 @@
 @import url("links-and-views-view.css");
 @import url("tf-editor.css");
+@import url("volume-view-manager.css");
 #local-control-panel {
     float: left;
     width: 0%;
@@ -17,7 +18,7 @@
 .webgl-canvas {
     width: 65%;
     height: 100vh;
-    background-color: red;
+    background-color: white;
 }
 
 
@@ -34,7 +35,6 @@ tf-widget {}
 }
 
 .tf-editor-container {
-    background: blue;
     width: 32.5vw;
     height: 19vw;
 }
