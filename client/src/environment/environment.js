@@ -40,10 +40,9 @@ class Environment {
         this.ViewManager = new ViewManager(this);
         this.TransferFunctionManager = new TransferFunctionManager(this);
 
-        this.TransferFunctions = {
-            GLOBAL: new TransferFunction()
-        };
-
+        //this.TransferFunctions = {
+        //    GLOBAL: new TransferFunction()
+        //};
     }
 
     // called when a link group for the given property changes
@@ -55,7 +54,13 @@ class Environment {
     notifyLayoutChanged(newLayout) {
         console.log("ENV, layout changed...");
     }
+
+    getTransferFunctionForViewWithCellID(cellID) {
+        // TEMP: Just return the global TF
+        return this.TransferFunctionManager.getTransferFunction('GLOBAL');
+    }
 }
 
-
-module.exports = new Environment();
+let env = new Environment();
+window.TheEnvironment = env;
+module.exports = env;//new Environment();
