@@ -296,9 +296,10 @@ class VolumeRenderer {
     }
 
     _updateTextures() {
-        if (Environment.TransferFunctionManager.checkNeedsUpdate('GLOBAL'))
+        let check = Environment.TransferFunctionManager.checkNeedsUpdate('GLOBAL');
+        if (check) {
             this.__updateTexture_IsoToColorOpacity();
-
+        }
     }
 
     _initTextures() {
@@ -349,7 +350,7 @@ class VolumeRenderer {
         //    src: Environment.VolumeDataset.isovaluesAndGradientMagnitudes
         //});
 
-        this.__updateTexture_IsoToColorOpacity();
+        //this.__updateTexture_IsoToColorOpacity();
 
         //this.u_IsoValueToColor = Environment.TransferFunctionManager.tfs['GLOBAL']
         //this.u_IsoValueToOpacity = Environment.TransferFunctionManager.tfs['GLOBAL']
@@ -361,13 +362,34 @@ class VolumeRenderer {
 
     __updateTexture_IsoToColorOpacity() {
         console.log('__updateTexture_IsoToColorOpacity()');
-        let isoToColorData = Environment.TransferFunctionManager.getCanvasForTFKey('GLOBAL');
+        let info = Environment.TransferFunctionManager.getCanvasForTFKey('GLOBAL');
+        let isoToColorData = info.canvas,
+            bounds = info.textureBounds;
+
+        let gl = this.gl;
+
+        let imgdata = isoToColorData.getContext('2d').getImageData(bounds.x, bounds.y, bounds.width, 1);
+        let buffer = imgdata.data; // UInt8ClampedArray, i.e all values [0,255]
+
+        //this.uniforms.u_IsoValueToColorOpacity = gl.createTexture();
+        //gl.bindTexture(gl.TEXTURE_2D, this.uniforms.u_IsoValueToColorOpacity);
+        //gl.texSubImage2D(gl.TEXTURE_2D,
+        //    0, //level
+        //    bounds.x,
+        //    bounds.y,
+        //    bounds.width,
+        //    bounds.height,
+        //    gl.RGBA, // format
+        //    gl.UNSIGNED_BYTE, // format of canvas data
+        //    info.canvas
+        //);
 
         this.uniforms.u_IsoValueToColorOpacity = twgl.createTexture(this.gl, {
             target: this.gl.TEXTURE_2D,
-            width: isoToColorData.width,
-            height: isoToColorData.height,
-            src: isoToColorData,
+            internalFormat: gl.RGBA,
+            width: bounds.width,
+            height: 1,
+            src: buffer,
             premultiplyAlpha: false
         });
 
@@ -424,11 +446,9 @@ class VolumeRenderer {
         gl.drawElements(gl.TRIANGLES, this.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
     }
 
-    _init() {
-    }
+    _init() {}
 
-    _initShaders() {
-    }
+    _initShaders() {}
 
     _initBuffers() {
         // 1. Create the bounding box

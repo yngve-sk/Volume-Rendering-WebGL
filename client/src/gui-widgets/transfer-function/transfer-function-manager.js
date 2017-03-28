@@ -18,11 +18,23 @@ class TransferFunctionManager {
             'GLOBAL': false
         }
 
+        this.textureBounds = {
+            'GLOBAL': null
+        }
+
         this.canvasPointers = {
 
         }
     }
 
+    /**
+     * Check if the transfer function given key has updated.
+     * If it has, the renderer must re-upload the texture
+     * from the canvas to the GPU.
+     *
+     * @param {string} key - the transfer function key
+     * @returns {bool}
+     */
     checkNeedsUpdate(key) {
         if (this.needsUpdate[key]) {
             this.needsUpdate[key] = false;
@@ -31,8 +43,14 @@ class TransferFunctionManager {
         return false;
     }
 
-    notifyDiscreteTFDidChange(key) {
+    /**
+     * Notify the TF manager that the transfer function did change.
+     *
+     * @param {string} key
+     */
+    notifyDiscreteTFDidChange(key, textureBounds) {
         this.needsUpdate[key] = true;
+        this.textureBounds[key] = textureBounds;
     }
 
     addTransferFunction(key) {
@@ -49,7 +67,10 @@ class TransferFunctionManager {
     }
 
     getCanvasForTFKey(key) {
-        return this.canvasPointers[key];
+        return {
+            canvas: this.canvasPointers[key],
+            textureBounds: this.textureBounds[key]
+        };
     }
 
 

@@ -107,7 +107,13 @@ class TransferFunctionEditor {
             isoValueAxisHeightPercentage: 0.110,
             curve: d3.curveLinear,
             controlPointSplineCurve: d3.curveLinear,
-            contentTopPaddingPercentage: 0.2
+            contentTopPaddingPercentage: 0.2,
+            content: {
+                circleRadius: 5.5
+            },
+            canvas: {
+                texturePreviewHeightPercentage: 0.2
+            }
         };
 
         this.originalSize = {
@@ -200,6 +206,7 @@ class TransferFunctionEditor {
         this.svgMain = d3.select(this.container)
             .append('svg')
             .attr('class', 'tf-editor-svg-container');
+
         //.attr('width', '100%')
         //.attr('height', '100%');
 
@@ -330,11 +337,13 @@ class TransferFunctionEditor {
             y: sizes.total.height / this.originalSize.total.height
         };
 
+        let pp = 2;
+
         this.eventListenerRect
-            .attr('x', sizes.content.x0)
-            .attr('y', sizes.content.y0)
-            .attr('width', sizes.content.width)
-            .attr('height', sizes.content.height);
+            .attr('x', sizes.content.x0 - pp * this.options.content.circleRadius)
+            .attr('y', sizes.content.y0 - pp * this.options.content.circleRadius)
+            .attr('width', sizes.content.width + pp * 2 * this.options.content.circleRadius)
+            .attr('height', sizes.content.height + pp * 2 * this.options.content.circleRadius);
 
         this.histogramSelectionGroup
             .attr('transform',
@@ -348,19 +357,20 @@ class TransferFunctionEditor {
 
         this.transferFunctionGroup
             .attr('transform',
-                'translate(' + sizes.content.x0 + ', ' + sizes.content.y0 + ')' +
-                'scale(' + this.scale.x + ', ' + this.scale.y + ')');
+                'translate(' + sizes.content.x0 + ', ' + sizes.content.y0 + ')');
+        //+'scale(' + this.scale.x + ', ' + this.scale.y + ')');
 
         this.transferFunctionControlPointGroup
             .attr('transform',
-                'translate(' + sizes.content.x0 + ', ' + sizes.content.y0 + ')' +
-                'scale(' + this.scale.x + ', ' + this.scale.y + ')');
+                'translate(' + sizes.content.x0 + ', ' + sizes.content.y0 + ')');
+        //+'scale(' + this.scale.x + ', ' + this.scale.y + ')');
+        this._refreshTransferFunctionSplinesAndControlPoints();
 
         this.canvas
             .style('left', sizes.content.x0)
-            .style('top', sizes.content.y0)
+            .style('top', sizes.content.y0 - sizes.content.height * this.options.canvas.texturePreviewHeightPercentage)
             .style('width', sizes.content.width)
-            .style('height', sizes.content.height);
+            .style('height', sizes.content.height * (1 + this.options.canvas.texturePreviewHeightPercentage));
 
         //    this.colorGradientRect
         //        .attr('x', sizes.content.x0)
@@ -395,7 +405,7 @@ class TransferFunctionEditor {
         let totalWidthPX = this.svgMain.style('width'),
             totalHeightPX = this.svgMain.style('height');
 
-        let totalWidth = parseFloat(totalWidthPX.replace('px', '')),
+        let totalWidth = parseFloat(totalWidthPX.replace('px', '')), // padding
             totalHeight = parseFloat(totalHeightPX.replace('px', ''));
 
         let contentY0 = this.options.contentTopPaddingPercentage * totalHeight;
@@ -484,6 +494,11 @@ class TransferFunctionEditor {
         this._clearTransferFunction();
         this._renderTransferFunction();
         this._renderColorGradientOntoCanvas();
+    }
+
+    _refreshTransferFunctionSplinesAndControlPoints() {
+        this._clearTransferFunction();
+        this._renderTransferFunction();
     }
 
     _refreshColorGradient() {
@@ -628,7 +643,7 @@ class TransferFunctionEditor {
         let self = this;
 
         circles.enter().append("circle")
-            .attr("r", 1e-6)
+            .attr("r", this.options.content.circleRadius)
             .attr('class', 'tf-editor-control-point')
             .on("mousedown", (d) => {
                 this.selected = this.dragged = d;
@@ -656,7 +671,7 @@ class TransferFunctionEditor {
             .classed("selected", (d) => {
                 return d === this.selected;
             })
-            .attr("r", 6.5);
+            .attr("r", this.options.content.circleRadius);
 
         circles
 
@@ -714,9 +729,11 @@ class TransferFunctionEditor {
         this.colorGradientRect.style('fill', 'url(#linear-gradient-' + this.$scope$id + ')');
     }
 
-    _renderColorGradientOntoCanvas(sizes) {
+    /*  _renderColorGradientOntoCanvas(sizes) {
         let canvasNode = this.canvas.node();
-        let context = canvasNode.getContext('2d', {alpha: true});
+        let context = canvasNode.getContext('2d', {
+            alpha: true
+        });
 
         let splines = d3.line() // Used for opacity TF stuff
             .curve(this.options.controlPointSplineCurve)
@@ -789,7 +806,202 @@ class TransferFunctionEditor {
         context.putImageData(new ImageData(data2, width, height), 0, 0);
         Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey);
     }
+*/
 
+    getTextureBounds() {
+        let canvasNode = this.canvas.node();
+
+        return {
+            x: 0,
+            y: 0,
+            width: canvasNode.width,
+            height: canvasNode.height * this.options.canvas.texturePreviewHeightPercentage
+        }
+    }
+
+    _renderColorGradientOntoCanvas(sizes) {
+        this._renderColorGradientCanvas(sizes);
+        this._renderColorGradientTexture(sizes);
+    }
+    /* Renders the texture as it should be, i.e opacity interpolates left-to-right
+       over the color. Less intensive to do on a smaller strip that changes whenever
+       a control point is dragged, instead of doing it on the entire thing. */
+    _renderColorGradientTexture(sizes) {
+        let canvasNode = this.canvas.node();
+        let context = canvasNode.getContext('2d', {
+            alpha: true
+        });
+
+        let splines = d3.line() // Used for opacity TF stuff
+            .curve(this.options.controlPointSplineCurve)
+            .x((d) => {
+                return x(d[0]);
+            })
+            .y((d) => {
+                return y(d[1]);
+            });
+
+        let tWidth = canvasNode.width,
+            tHeight = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+
+        let x0 = 0,
+            x1 = tWidth,
+            y0 = tHeight / 2,
+            y1 = y0;
+
+
+        let colorGradient = context.createLinearGradient(x0, y0, x1, y1);
+        let opacityGradient = context.createLinearGradient(x0, y0, x1, y1);
+
+        for (let point of this.colorGradientObject.gradient) {
+            colorGradient.addColorStop(point.offset / 100, point.color);
+        }
+
+        for (let point of this.controlPoints) {
+            let opacity = parseInt(Math.round(point[1] * 255));; // only linear interp. for now.
+            opacityGradient.addColorStop(point[0], 'rgba(' + opacity + ', ' + opacity + ',' + opacity + ',1)');
+        }
+
+        context.fillStyle = opacityGradient;
+        context.fillRect(0, 0, tWidth, tHeight);
+
+        // Now extract the interpolated pixels
+        let imgData = context.getImageData(0, 0, tWidth, tHeight);
+
+        let data = imgData.data;
+        let width = imgData.width;
+
+        let opacities = new Uint8ClampedArray(width);
+
+        for (let i = 0; i < width * 4; i += 4) {
+            opacities[i / 4] = data[i]; // transform back to [0,1]
+        }
+
+
+        context.fillStyle = colorGradient;
+        context.fillRect(0, 0, tWidth, tHeight);
+
+        let imgData2 = context.getImageData(0, 0, tWidth, tHeight);
+        let data2 = imgData2.data;
+        let height = imgData2.height;
+
+        //let newImageData = new Uint8ClampedArray(width * height * 4);
+
+        // Copy to new img data turns out, not needed!
+        //for (let i = 0; i < data2.length; i++) {
+        //    newImageData[i] = data2[i];
+        //}
+
+        // Adjust opacities row by row
+        // r g b a  r g b a
+        // 0 1 2 3  4 5 6 7
+        for (let i = 3; i < data2.length; i += 4) {
+            let opacityAdjust = opacities[parseInt(i / 4) % width];
+            data2[i] = opacityAdjust;
+        }
+
+        context.putImageData(new ImageData(data2, width, height), 0, 0);
+        Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
+    }
+
+    /* Opacity interpolates down-up, color as usual */
+    _renderColorGradientCanvas(sizes) {
+        let canvasNode = this.canvas.node();
+        let context = canvasNode.getContext('2d', {
+            alpha: true
+        });
+
+        let splines = d3.line() // Used for opacity TF stuff
+            .curve(this.options.controlPointSplineCurve)
+            .x((d) => {
+                return x(d[0]);
+            })
+            .y((d) => {
+                return y(d[1]);
+            });
+
+        let offsetY = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+
+        let cWidth = canvasNode.width,
+            cHeight = canvasNode.height - offsetY;
+
+        let x0C = 0,
+            x1C = cWidth,
+            y0C = cHeight / 2,
+            y1C = y0C;
+
+        let x0O = cWidth / 2,
+            x1O = cWidth / 2,
+            y0O = canvasNode.height,
+            y1O = offsetY;
+
+
+        let colorGradient = context.createLinearGradient(x0C, y0C, x1C, y1C);
+        let opacityGradient = context.createLinearGradient(x0O, y0O, x1O, y1O);
+
+        for (let point of this.colorGradientObject.gradient) {
+            colorGradient.addColorStop(point.offset / 100, point.color);
+        }
+
+        let dummyControlPoints = [[0, 1], [1, 0]];
+
+        for (let point of dummyControlPoints) {
+            let opacity = parseInt(Math.round(point[1] * 255));; // only linear interp. for now.
+            opacityGradient.addColorStop(point[0], 'rgba(' + opacity + ', ' + opacity + ',' + opacity + ',1)');
+        }
+
+        context.fillStyle = opacityGradient;
+        context.fillRect(0, offsetY, 1, cHeight);
+
+        // Now extract the interpolated pixels
+        let imgData = context.getImageData(0, offsetY, 1, cHeight);
+
+        let data = imgData.data;
+        let width = imgData.width;
+
+        let opacities = new Uint8ClampedArray(cHeight);
+
+        let cHeightRGBA = cHeight * 4;
+        for (let i = 0; i < cHeightRGBA; i += 4) {
+            opacities[i / 4] = data[cHeightRGBA - i]; // transform back to [0,1]
+        }
+
+
+        context.fillStyle = colorGradient;
+        context.fillRect(0, offsetY, canvasNode.width, cHeight);
+
+        let imgData2 = context.getImageData(0, offsetY, canvasNode.width, cHeight);
+        let data2 = imgData2.data;
+        let height = imgData2.height;
+
+        //let newImageData = new Uint8ClampedArray(width * height * 4);
+
+        // Copy to new img data turns out, not needed!
+        //for (let i = 0; i < data2.length; i++) {
+        //    newImageData[i] = data2[i];
+        //}
+
+        // Adjust opacities row by row
+        // r g b a  r g b a
+        // 0 1 2 3  4 5 6 7
+        let rowWidth = cWidth * 4;
+        for (let row = 0; row < cHeight; row++) {
+            for (let col = 3; col < cWidth * 4; col += 4) {
+                let rowOffset = row * rowWidth;
+                let colOffset = col + 3;
+                data2[rowOffset + col] = opacities[row];
+            }
+        }
+
+        //for (let i = 3; i < data2.length; i += 4) {
+        //    let opacityAdjust = opacities[parseInt(i / 4) % width];
+        //    data2[i] = opacityAdjust;
+        //}
+        let newImageData = new ImageData(data2, canvasNode.width, cHeight);
+
+        context.putImageData(newImageData, 0, offsetY, 0, 0, canvasNode.width, cHeight);
+
+    }
 
 
     _renderColorGradientControlPoints(sizes) {
@@ -933,7 +1145,16 @@ class TransferFunctionEditor {
     }
 
     _mousemove() {
-        //console.log(d3.mouse(this.eventListenerRect.node()));
+        let clamp01 = (num) => {
+            return num < 0 ? 0 : num > 1 ? 1 : num;
+        }
+
+        //let relativeM = d3.mouse(this.transferFunctionGroup.node());
+//
+//        console.log("Raw: " + relativeM);
+//        relativeM[0] = clamp01(this.scales.content.x.invert(relativeM[0]));
+//        relativeM[1] = clamp01(this.scales.content.y.invert(relativeM[1]));
+//        console.log("Relative: " + relativeM);
 
         let interactionMode = this.getInteractionMode();
         switch (interactionMode) {
@@ -942,8 +1163,9 @@ class TransferFunctionEditor {
             case 'TF':
                 if (!this.dragged) return;
                 let m = d3.mouse(this.transferFunctionGroup.node());
-                this.dragged[0] = this.scales.content.x.invert(m[0]);
-                this.dragged[1] = this.scales.content.y.invert(m[1]);
+                this.dragged[0] = clamp01(this.scales.content.x.invert(m[0]));
+                this.dragged[1] = clamp01(this.scales.content.y.invert(m[1]));
+
                 this._refreshTransferFunction();
                 break;
             default:
