@@ -102,9 +102,9 @@ class VolumeDataset {
     }
 
     calculateHistogram() {
-        this.histogram = new Int16Array(4095 * 4 + 1);
+        this.histogram = new Uint8Array(4096);
         for (let val of this.isovalues) {
-            this.histogram[val]++;
+            this.histogram[(val/8)]++;
         }
     }
 
