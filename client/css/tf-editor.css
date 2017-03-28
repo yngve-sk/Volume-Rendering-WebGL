@@ -1,10 +1,12 @@
 .tf-editor-container {
     position: relative;
+    width: 100%;
 }
 
 .tf-editor-background-canvas {
     opacity: 1;
     position: absolute;
+    width: 100%;
 }
 
 .tf-editor-svg-container {
@@ -13,6 +15,50 @@
     height: 100%;
     background: transparent;
 }
+
+
+
+.tf-display-options-checkbox {
+}
+
+tf-widget {}
+
+#global-control-panel>tf-widget>div>div>div>div.nine.wide.column>div>div,
+#global-control-panel>tf-widget>div>div>div>div.seven.wide.column>div {
+    height: 195px;
+}
+
+.tf-editor-container {
+    width: 100%;
+    height: 20vh;
+}
+
+.tf-d3-container,
+.tf-canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.tf-canvas {}
+
+.tf-splineline {
+    fill: none;
+    stroke: blue;
+    stroke-width: 3px;
+}
+
+.tf-controlpoint {
+    fill: #fff;
+    fill-opacity: .2;
+    cursor: move;
+}
+
+.tf-controlpoint.selected {
+    fill: #ff7f0e;
+    stroke: #ff7f0e;
+}
+
 
 .tf-editor-event-listener-rect {}
 
