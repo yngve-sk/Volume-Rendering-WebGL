@@ -1,18 +1,14 @@
-require('./gui-controllers/main-controller');
+require('./angular-assets/main-controller');
 require('./client2server/websocket-client');
 
-let Environment = require('./environment/environment');
-console.log('L4 main.js, Environment.VolumeDataset.isovalues = ' + Environment.VolumeDataset.isoValues);
+let Environment = require('./core/environment');
 
 function printEnvironment() {
-    console.log('printEnvironment() main.js, Environment.VolumeDataset.isovalues = ' + Environment.VolumeDataset.isoValues);
+    console.log(Environment);
 }
 
 module.exports = {
     printEnvironment: printEnvironment,
-    otherShit: 'hey'
 };
-
-let $ = require('jquery');
 
 // TODO move elsewhere, semantic ui init stuff.

@@ -1,4 +1,4 @@
-let ColorGradient = require('../src/gui-widgets/transfer-function/color-gradient');
+let ColorGradient = require('../src/widgets/transfer-function/color-gradient');
 let assert = require('chai').assert;
 let mocha = require('mocha');
 
