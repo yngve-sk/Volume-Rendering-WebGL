@@ -3,6 +3,8 @@ module.exports = function (grunt) {
     require('load-grunt-tasks')(grunt);
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-browserify');
+    grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-contrib-cssmin');
 
     var srcFiles = [
     'src/twgl.js',
@@ -60,7 +62,43 @@ module.exports = function (grunt) {
                     transform: ['glslify']
                 }
             }
+        },
+        uglify: {
+            my_target: {
+                options: {
+                    mangle: false,
+                    compress: false
+
+                },
+                files: {
+                    'build/externals.min.js': [
+                        'node_modules/jquery/dist/jquery.min.js',
+                        'node_modules/angular/angular.min.js',
+                        'node_modules/angularjs-slider/dist/rzslider.js',
+                        'semantic/dist/semantic.min.js',
+                        'node_modules/jquery-resizable-dom/dist/jquery-resizable.js',
+                        'node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js'
+                    ]
+                }
+            }
+        },
+        cssmin: {
+            options: {
+                mergeIntoShorthands: false,
+                roundingPrecision: -1
+            },
+            target: {
+                files: {
+                    'build/style.css': [
+                        'css/all.css',
+                        'semantic/dist/semantic.min.css',
+                        'node_modules/spectrum-colorpicker/spectrum.css',
+                        'node_modules/angularjs-slider/dist/rzslider.min.css'
+                        ]
+                }
+            }
         }
+
 
 
     });
