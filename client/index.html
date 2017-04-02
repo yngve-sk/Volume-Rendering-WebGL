@@ -4,37 +4,78 @@
     <title>titul</title>
     <link type="text/css" rel="stylesheet" href="css/all.css">
     <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
+
 </head>
 
 <body>
-    <div ng-controller="master-controller as mc">
-        <links-and-views-view></links-and-views-view>
-        <div id="local-control-panel"></div>
-        <span id="webgl-canvas-container">
-            <canvas id="webgl-canvas-0" class="webgl-canvas">
-        </canvas>
-        </span>
-        <div id="global-control-panel" ng-controller="global-control-panel as gcp">
-            <div class="ui segments">
-                <button class="ui button active" ng-click="getIsoValues()">Fetch Isovalues</button>
-                <button class="ui button active" ng-click="getGradient()">Fetch Gradient</button>
-                <button class="ui button active" ng-click="render3D()">3D Render</button>
+    <div ng-controller="master-controller as mc" id="master-container">
 
-                <button class="ui primary button" ng-click="initTextures()">
+        <links-and-views-view></links-and-views-view>
+        <!--div class="ui black big launch fixed right floated button" id="options-button" ng-click="toggleShowControls()">
+            <i class="content icon"></i>
+            <span class="text">Controls</span>
+        </div-->
+
+        <div class="panel-container">
+
+            <div class="panel-left">
+                <div id="webgl-canvas-container">
+                    <canvas id="webgl-master-canvas" class="webgl-canvas">
+                    </canvas>
+                </div>
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+                <div id="controllers-container">
+
+                    <div class="panel-container-vertical">
+
+                        <div class="panel-top">
+                            <global-control-panel></global-control-panel>
+                        </div>
+
+                        <div class="splitter-horizontal">
+                        </div>
+
+                        <div class="panel-bottom">
+                            <local-control-panel></local-control-panel>
+                        </div>
+
+                    </div>
+                    <!--div id="global-control-panel" ng-controller="global-control-panel as gcp">
+                        <div class="ui segments">
+                            <button class="ui button active" ng-click="getIsoValues()">Fetch Isovalues</button>
+                            <button class="ui button active" ng-click="getGradient()">Fetch Gradient</button>
+                            <button class="ui button active" ng-click="render3D()">3D Render</button>
+
+                            <button class="ui primary button" ng-click="initTextures()">
                         _initTextures()
                     </button>
-                <button class="ui primary button" ng-click="initBuffers()">
+                            <button class="ui primary button" ng-click="initBuffers()">
                         _initBuffers()
                     </button>
+                        </div>
+                        <br>
+                        <tf-widget name="GLOBAL"></tf-widget>
+                    </div-->
+                </div>
             </div>
-            <br>
-            <tf-widget name="GLOBAL"></tf-widget>
         </div>
-        <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+
+
+
+    </div>
+
+
+    <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
         <script src="semantic/dist/semantic.min.js"></script-->
 
 
-        <!--
+    <!--
 
             Couldn't get these to work with browserify,
              esp semantic UI and its angular integration
@@ -44,21 +85,22 @@
 
         -->
 
-        <script src="./node_modules/jquery/dist/jquery.min.js"></script>
-        <script src="./semantic/dist/semantic.min.js"></script>
-        <script src="./node_modules/angular/angular.min.js"></script>
+    <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./semantic/dist/semantic.min.js"></script>
+    <script src="./node_modules/angular/angular.min.js"></script>
+    <script src="./node_modules/jquery-resizable-dom/dist/jquery-resizable.js"></script>
 
-        <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
-        <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
+    <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
+    <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
 
-        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.css" />
-        <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>
 
 
-        <script src="./node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js"></script>
+    <script src="./node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js"></script>
 
-        <script src="main-compiled.js"></script>
-    </div>
+    <script src="build/main-compiled.js"></script>
+
 </body>
 
 </html>

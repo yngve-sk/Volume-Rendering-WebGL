@@ -1,0 +1,32 @@
+#webgl-canvas-container {
+    position: relative;
+    width: 65vw;
+}
+
+#webgl-master-canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.webgl-master-canvas-overlay-svg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.subview-cell {}
+
+.subview-subcell {}
+
+.subview-subcell-volume {
+    stroke: red;
+}
+
+.subview-subcell-slicer {
+    stroke: yellow;
+}
+
+.subview-subcell-sphere {
+    stroke: green;
+}

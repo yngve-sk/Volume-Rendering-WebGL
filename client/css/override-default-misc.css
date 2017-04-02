@@ -1,0 +1,22 @@
+/* Hide the Spectrum lib color picker icon */
+
+.tf-editor-color-picker-container {
+    z-index: -1;
+}
+
+
+/* Remove padding and margin from default semantic ui */
+
+sm-accordion-group>div.content.active,
+
+/*
+.compact {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+*/
+
+
+/*.checkbox>label {
+    margin: 0 !important;
+}*/
