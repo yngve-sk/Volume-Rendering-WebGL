@@ -2,8 +2,7 @@
 // 'get', get a resource
 // 'do', perform an operation
 var toBuffer = require('blob-to-buffer');
-let Environment = require('../environment/environment');
-console.log('L4 main.js, Environment.VolumeDataset.isovalues = ' + Environment.VolumeDataset.isoValues);
+let Environment = require('../core/environment');
 
 let Main = require('../main');
 
@@ -64,7 +63,7 @@ socket.onmessage = (message) => {
             //    //Environment.VolumeDataset.setIsoValues(cache);
             //    //delete cache;
 //
-//                //console.log(require('../environment/environment'));
+//                //console.log(require('../core/environment'));
 //            });
             break;
         case 'stringjson':
