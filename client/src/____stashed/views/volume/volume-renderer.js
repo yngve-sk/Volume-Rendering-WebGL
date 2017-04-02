@@ -31,10 +31,8 @@ let Transformations = require('../viewing&transformations/transformations');
 let Camera = require('../viewing&transformations/camera');
 
 setTimeout(() => {
-    Environment = require('../../environment/environment');
+    Environment = require('../../core/environment');
     console.log(Environment); // Shitty workaround, TODO find something better
-    GetColorGradientInput = Environment.TransferFunctionManager.getTransferFunction('GLOBAL').canvas.node();
-
 }, 1500);
 
 class VolumeRenderer {
@@ -197,11 +195,6 @@ class VolumeRenderer {
 
     toggleDoRender() {
         this.doRefresh = !this.doRefresh;
-        this.printState();
-    }
-
-    printState() {
-        console.log(GetColorGradientInput());
     }
 
     /*
@@ -392,7 +385,6 @@ class VolumeRenderer {
             src: buffer,
             premultiplyAlpha: false
         });
-
     }
 
     _renderFirstPass(fbinfo, cull, viewport) {
