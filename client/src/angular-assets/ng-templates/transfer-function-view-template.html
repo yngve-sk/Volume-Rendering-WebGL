@@ -1,0 +1,91 @@
+<div class="tf-controls-container">
+    <!-- TOP CONTAINER START -->
+    <div class="tf-top-controls-container">
+        <div class="tf-display-options-container">
+            <!-- TF DISPLAY OPTIONS -->
+            <center>Show...</center>
+            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogram" label="Histogram">
+            </sm-checkbox><br>
+            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogramSelection" label="Selection">
+            </sm-checkbox><br>
+            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showTransferFunction" label="Transfer Function">
+            </sm-checkbox><br>
+            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.show3DSelectionHistogram" label="3D Sel. Histogram" enabled="false">
+            </sm-checkbox>
+
+        </div>
+
+        <div class="tf-gmag-curv-sliders-container">
+            <!-- G-mag / Curvature weighting on opacity -->
+            <rzslider rz-slider-model="gradientMagSlider.weighting"></rzslider>
+            <center>Surface Weighting</center>
+            <br>
+            <rzslider rz-slider-model="curvatureSlider.weighting"></rzslider>
+            <center>Curvature Weighting</center>
+        </div>
+
+    </div>
+    <!-- TOP CONTAINER END -->
+
+    <!-- INTERACTION MODE SELECTION START -->
+    <div>
+
+        <center>TF Interaction Mode</center>
+        <div class="inline fields">
+            <div class="field">
+                <sm-radio name="iMode" model="interactionMode" enabled="false" label="Select" value="1">
+            </div>
+            <div class="field">
+                <sm-radio name="iMode" model="interactionMode" label="Edit Transfer Function" value="2">
+            </div>
+        </div>
+
+    </div>
+    <!--           <div>
+        <div class="ui segment">
+            <div class="ui form">
+                <div class="inline fields">
+                    <label>TF Interaction Mode</label>
+                    <div class="field">
+                        <sm-radio name="iMode" model="interactionMode" enabled="false" label="Select" value="1">
+                    </div>
+                    <div class="field">
+                        <sm-radio name="iMode" model="interactionMode" label="Edit Transfer Function" value="2">
+                    </div>
+                    <button class="ui primary button" ng-click="renderTFEditor()">
+                        render()
+                    </button>
+                    <button class="ui primary button" ng-click="clearTFEditor()">
+                        _clear()
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>-->
+    <!-- INTERACTION MODE SELECTION END -->
+
+    <!-- THE TRANSFER FUNCTION EDITOR START -->
+
+    <div style="width:100%">
+        <div class="tf-editor-container ng-id-{{$id}}">
+            <div class="tf-editor-color-picker-container ng-id-{{$id}}">
+                <input type='text' />
+            </div>
+
+            <!--svg class="tf-editor-svg-main ng-id-{{$id}}">
+                <rect class="tf-editor-event-listener-rect ng-id-{{$id}}"></rect>
+                <g class="tf-editor-selection-histogram ng-id-{{$id}}"></g>
+                <canvas class="tf-canvas ng-id-{{$id}}"></canvas>
+            </svg-->
+            <!--div class="tf-d3-container ng-id-{{$id}}"></div-->
+        </div>
+    </div>
+
+    <p>Histogram: {{displayOptions.showHistogram}}</p>
+    <p>TF: {{displayOptions.showTransferFunction}}</p>
+    <p>Selection: {{displayOptions.showSelection}}</p>
+    <p>show3DSelectionHistogram: {{displayOtions.show3DSelectionHistogram}}</p>
+    <p>Gradient Magnitude: {{gradientMagSlider.weighting}}</p>
+    <p>Curvature Weighting: {{curvatureSlider.weighting}}</p>
+    <p>Interaction Mode: {{getInteractionMode()}}</p>
+</div>
