@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: SubcellLayout</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Class: SubcellLayout</h1>
+
+
+
+
+
+
+<section>
+
+<header>
+
+        <h2>SubcellLayout</h2>
+
+            <div class="class-description">Layout of a subcell, hardcoded to 3 subviews (main, sphere and slicer) for now</div>
+
+
+</header>
+
+<article>
+    <div class="container-overview">
+
+
+
+
+    <h2>Constructor</h2>
+
+
+    <h4 class="name" id="SubcellLayout"><span class="type-signature"></span>new SubcellLayout<span class="signature">(args)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Constructs a new subcell layout
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>args</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Multipliers to scale the inner layout. The inner layout has 2 multipliers: SnapThreshold, and standardSize. (NOTE: Maybe make it more dynamic to add more widgets, for now only 2 subcells are hardcoded in here.)
+                <h6>Properties</h6>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>snapThresholdMultiplier</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The threshold to snap the layout to a different scheme. Decides WHEN one of the following conditions arise:
+     <br>
+     (1) : width > snapThreshold * height:
+     <br>
+     will put the subviews on the right and have them use all the available height, hence the side length of the views will be height/2.
+     <br>
+     <br>
+     (2): height > snapThreshold * width <br>will put the subviews on the bottom and have them use all available width. Side length of subcells will be width/2
+     <br>
+     <br>
+     If none of the snap thresholds are met, the standardSize multiplier will decide the layouting</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>standardSizeMultiplier</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Scales the size of the two subcells, which will be put in the lower right corner and have a side length of standardSize*(shortest cell side)/2</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Data.html">Data</a></li><li><a href="module-Environment.html">Environment</a></li><li><a href="module-TransferFunction.html">TransferFunction</a></li><li><a href="module-View.html">View</a></li><li><a href="module-View_DataStructures.html">View/DataStructures</a></li></ul><h3>Classes</h3><ul><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Environment-Environment.html">Environment</a></li><li><a href="module-TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-View_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-View_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="View.SubcellLayout.html">SubcellLayout</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a>
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

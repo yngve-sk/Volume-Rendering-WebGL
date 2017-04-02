@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>TransferFunction - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module-Data-DatasetManager.html">DatasetManager</a><ul class='methods'><li data-type='method'><a href="module-Data-DatasetManager.html#addDataset">addDataset</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addHistogramSelection">addHistogramSelection</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addViewSelectionPoint">addViewSelectionPoint</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#getHistogramForCellID">getHistogramForCellID</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#removeDataset">removeDataset</a></li></ul></li><li><a href="module-Data-SelectionManager.html">SelectionManager</a><ul class='methods'><li data-type='method'><a href="module-Data-SelectionManager.html#getSelections">getSelections</a></li><li data-type='method'><a href="module-Data-SelectionManager.html#select">select</a></li></ul></li><li><a href="module-Data-VolumeDataset.html">VolumeDataset</a><ul class='methods'><li data-type='method'><a href="module-Data-VolumeDataset.html#calculateHistogram">calculateHistogram</a></li><li data-type='method'><a href="module-Data-VolumeDataset.html#getHistogram">getHistogram</a></li><li data-type='method'><a href="module-Data-VolumeDataset.html#setIsoValues">setIsoValues</a></li></ul></li><li><a href="module-SplitViews-LinkGrouper.html">LinkGrouper</a><ul class='methods'><li data-type='method'><a href="module-SplitViews-LinkGrouper.html#getMasterCellID">getMasterCellID</a></li></ul></li><li><a href="module-TransferFunction-ColorGradient.html">ColorGradient</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction-ColorGradient.html#addControlPoint">addControlPoint</a></li><li data-type='method'><a href="module-TransferFunction-ColorGradient.html#moveControlPoint">moveControlPoint</a></li><li data-type='method'><a href="module-TransferFunction-ColorGradient.html#removeControlPoint">removeControlPoint</a></li><li data-type='method'><a href="module-TransferFunction-ColorGradient.html#removeControlPointAtIndex">removeControlPointAtIndex</a></li><li data-type='method'><a href="module-TransferFunction-ColorGradient.html#setColorAt">setColorAt</a></li></ul></li><li><a href="module-TransferFunction-TransferFunction.html">TransferFunction</a></li><li><a href="module-TransferFunction-TransferFunctionEditor.html">TransferFunctionEditor</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction-TransferFunctionEditor.html#getTextureBounds">getTextureBounds</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionEditor.html#render">render</a></li></ul></li><li><a href="module-TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#addTransferFunction">addTransferFunction</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#checkNeedsUpdateCellID">checkNeedsUpdateCellID</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getCanvasForTFKey">getCanvasForTFKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getTransferFunctionForTFEditorKey">getTransferFunctionForTFEditorKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyDiscreteTFDidChange">notifyDiscreteTFDidChange</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyTFPointsToCanvasWithID">notifyTFPointsToCanvasWithID</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-Data.html">Data</a></li><li><a href="module-SplitViews.html">SplitViews</a></li><li><a href="module-TransferFunction.html">TransferFunction</a></li></ul>
+</nav>
+
+<div id="main">
+
+    <h1 class="page-title">TransferFunction</h1>
+
+
+
+
+
+
+
+<section>
+
+<header>
+
+        <h2>
+            <span class="ancestors"><a href="module-TransferFunction.html">TransferFunction</a>~</span>
+
+        TransferFunction
+        </h2>
+
+
+</header>
+
+<article>
+    <div class="container-overview">
+
+
+
+
+
+    <h4 class="name" id="TransferFunction"><span class="type-signature"></span>new TransferFunction<span class="signature">()</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Represents a transfer function, holding a color gradient
+and an opacity gradient. Note: Interpolation happens in the editor
+and WebGL reads the texture directly from the canvas.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>

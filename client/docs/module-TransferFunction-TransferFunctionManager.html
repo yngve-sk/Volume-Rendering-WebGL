@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: TransferFunctionManager</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Class: TransferFunctionManager</h1>
+
+
+
+
+
+
+<section>
+
+<header>
+
+        <h2>
+            <span class="ancestors"><a href="module-TransferFunction.html">TransferFunction</a>~</span>TransferFunctionManager</h2>
+
+            <div class="class-description">Manages multiple transfer function objects.</div>
+
+
+</header>
+
+<article>
+    <div class="container-overview">
+
+
+
+
+    <h2>Constructor</h2>
+
+
+    <h4 class="name" id="TransferFunctionManager"><span class="type-signature"></span>new TransferFunctionManager<span class="signature">(environment)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Constructs a new TF manager
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>environment</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type"><a href="module-Environment-Environment.html">module:Environment~Environment</a></span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">A reference to the environment for 2-way communication</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <h3 class="subsection-title">Methods</h3>
+
+
+
+
+
+
+    <h4 class="name" id="addTransferFunction"><span class="type-signature"></span>addTransferFunction<span class="signature">(key)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Adds a transfer function
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>key</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The cell ID, can be a number between [0, numCells - 1] OR 'GLOBAL' which is the global transfer function.</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="checkNeedsUpdateCellID"><span class="type-signature"></span>checkNeedsUpdateCellID<span class="signature">(cellID)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Check if a TF texture needs to be for given cell.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>cellID</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the ID of the cell
+
+Note: Only functions being actively edited can trigger changes,
+hence the cellID will only be updated if its TF was recently
+edited in the TF editor.</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="getCanvasForTFKey"><span class="type-signature"></span>getCanvasForTFKey<span class="signature">(key)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Gets the canvas and the texture bounds, used to fetch
+the canvas and load it into the GPU as a texture.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>key</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the TF key - 'LOCAL' or 'GLOBAL'</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="getReferencedCellIDForTFKey"><span class="type-signature"></span>getReferencedCellIDForTFKey<span class="signature">(tfEditorKey)</span><span class="type-signature"> &rarr; {string|number}</span></h4>
+
+
+
+
+
+<div class="description">
+    Gets the cell ID referenced by the TF editor
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>tfEditorKey</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">'GLOBAL' or 'LOCAL'</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    - if 'GLOBAL', will simply return 'GLOBAL'
+since the global TF editor is always editing its own TF, otherwise
+it'll return an actual cell
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="getTransferFunctionForTFEditorKey"><span class="type-signature"></span>getTransferFunctionForTFEditorKey<span class="signature">(key, (optional))</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Gets the transfer function given the key
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>key</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the TF, 'LOCAL' or 'GLOBAL'</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>(optional)</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">d3.curve</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Sets the d3 curve style</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="notifyDiscreteTFDidChange"><span class="type-signature"></span>notifyDiscreteTFDidChange<span class="signature">(key, textureBounds)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Notify the TF manager that the transfer function did change.
+Will be called from the TF editor any time the texture does change
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>key</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the transfer function key, 'LOCAL' or 'GLOBAL'</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>textureBounds</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type"><a href="module-TransferFunction.html#.TextureBounds">module:TransferFunction.TextureBounds</a></span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The texture bounds, passed in as a convenience. Will be returned when views get the texture bound via <code>getCanvasForTFKey</code></td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="notifyTFPointsToCanvasWithID"><span class="type-signature"></span>notifyTFPointsToCanvasWithID<span class="signature">(key, ngid)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Called each time a TF editor is created. Called after
+the TF editor is done compiling, will link the canvas
+to the TF ID.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>key</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the TF key, 'LOCAL' or 'GLOBAL'</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>ngid</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the angular $scope$id of the view, used to identify it</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="removeTransferFunction"><span class="type-signature"></span>removeTransferFunction<span class="signature">(id)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Deletes the given TF from memory. PS do not ever delete the GLOBAL
+one, shouldn't ever happen.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>id</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the cell ID</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Data.html">Data</a></li><li><a href="module-Environment.html">Environment</a></li><li><a href="module-TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Environment-Environment.html">Environment</a></li><li><a href="module-TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widget_SplitView_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul><h3><a href="global.html">Global</a></h3>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a>
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

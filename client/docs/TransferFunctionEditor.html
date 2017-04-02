@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>TransferFunctionEditor - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColorGradient.html">ColorGradient</a><ul class='methods'><li data-type='method'><a href="ColorGradient.html#addControlPoint">addControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#moveControlPoint">moveControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#removeControlPoint">removeControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#removeControlPointAtIndex">removeControlPointAtIndex</a></li><li data-type='method'><a href="ColorGradient.html#setColorAt">setColorAt</a></li></ul></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a><ul class='methods'><li data-type='method'><a href="module-Data-DatasetManager.html#addDataset">addDataset</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addHistogramSelection">addHistogramSelection</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addViewSelectionPoint">addViewSelectionPoint</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#getHistogramForCellID">getHistogramForCellID</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#removeDataset">removeDataset</a></li></ul></li><li><a href="module-SplitViews-LinkGrouper.html">LinkGrouper</a><ul class='methods'><li data-type='method'><a href="module-SplitViews-LinkGrouper.html#getMasterCellID">getMasterCellID</a></li></ul></li><li><a href="module-TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#addTransferFunction">addTransferFunction</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#checkNeedsUpdateCellID">checkNeedsUpdateCellID</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getCanvasForTFKey">getCanvasForTFKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getTransferFunctionForTFEditorKey">getTransferFunctionForTFEditorKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyDiscreteTFDidChange">notifyDiscreteTFDidChange</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyTFPointsToCanvasWithID">notifyTFPointsToCanvasWithID</a></li></ul></li><li><a href="SelectionManager.html">SelectionManager</a><ul class='methods'><li data-type='method'><a href="SelectionManager.html#getSelections">getSelections</a></li><li data-type='method'><a href="SelectionManager.html#select">select</a></li></ul></li><li><a href="TransferFunction.html">TransferFunction</a></li><li><a href="TransferFunctionEditor.html">TransferFunctionEditor</a><ul class='methods'><li data-type='method'><a href="TransferFunctionEditor.html#getTextureBounds">getTextureBounds</a></li><li data-type='method'><a href="TransferFunctionEditor.html#render">render</a></li></ul></li><li><a href="VolumeDataset.html">VolumeDataset</a><ul class='methods'><li data-type='method'><a href="VolumeDataset.html#calculateHistogram">calculateHistogram</a></li><li data-type='method'><a href="VolumeDataset.html#getHistogram">getHistogram</a></li><li data-type='method'><a href="VolumeDataset.html#setIsoValues">setIsoValues</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-Data.html">Data</a></li><li><a href="module-SplitViews.html">SplitViews</a></li><li><a href="module-TransferFunction.html">TransferFunction</a></li></ul><h3><a href="global.html">Global</a></h3>
+</nav>
+
+<div id="main">
+
+    <h1 class="page-title">TransferFunctionEditor</h1>
+
+
+
+
+
+
+
+<section>
+
+<header>
+
+        <h2>
+        TransferFunctionEditor
+        </h2>
+
+            <div class="class-description">Represents the front-end of the transfer function editor.
+Reads in user actions and writes to underlying objects,
+which are read by the renderer. This element is self-contained
+and shouldn't require any other input than user input via
+the GUI.</div>
+
+
+</header>
+
+<article>
+    <div class="container-overview">
+
+
+
+
+    <h2>Constructor</h2>
+
+
+    <h4 class="name" id="TransferFunctionEditor"><span class="type-signature"></span>new TransferFunctionEditor<span class="signature">(displayOptions, getInteractionMode, $scope$id, EnvironmentTFKey)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Constructs a new TF editor
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>displayOptions</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type"><a href="module-TransferFunction.html#.DisplayOptions">module:TransferFunction.DisplayOptions</a></span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last"></td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>getInteractionMode</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">function</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Function to fetch the current interaction mode as set in the GUI. Will return 'Select' or 'TF'.</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>$scope$id</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Angularjs ID of the view this editor will be embedded into. This ID is inserted into the classlists (ng-id-$scope$id) of some DOM elements in use by this editor.</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>EnvironmentTFKey</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The environment transfer function view key. Differs from $scope$id. This key is either 'LOCAL' or 'GLOBAL', representing one
+    of the two active TF editors. the 'LOCAL' and 'GLOBAL' TFs have slightly different
+    behaviors.</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <h3 class="subsection-title">Methods</h3>
+
+
+
+
+
+
+    <h4 class="name" id="getTextureBounds"><span class="type-signature"></span>getTextureBounds<span class="signature">()</span><span class="type-signature"> &rarr; {<a href="module-TransferFunction.html#.TextureBounds">module:TransferFunction.TextureBounds</a>}</span></h4>
+
+
+
+
+
+<div class="description">
+    Gets the current texture bounds of the color X opacity gradient
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type"><a href="module-TransferFunction.html#.TextureBounds">module:TransferFunction.TextureBounds</a></span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="render"><span class="type-signature"></span>render<span class="signature">()</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Renders the data currently linked to this view.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>

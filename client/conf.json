@@ -1,0 +1,32 @@
+{
+    "tags": {
+        "allowUnknownTags": true
+    },
+    "source": {
+        "include": ["src/widgets/transfer-function",
+                    "src/widgets/split-view",
+                    "src/datasets&selections",
+                    "src/core"],
+        "exclude": ["src/geometry"
+                    ]
+    },
+    "plugins": [],
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": true,
+        "dateFormat": "ddd MMM Do YYYY",
+        "outputSourceFiles": false,
+        "outputSourcePath": false,
+        "systemName": "",
+        "footer": "",
+        "copyright": "",
+        "linenums": true,
+        "collapseSymbols": false,
+        "inverseNav": true,
+        "highlightTutorialCode": true,
+        "default": {
+            "outputSourceFiles": false,
+            "includeDate": false
+        }
+    }
+}

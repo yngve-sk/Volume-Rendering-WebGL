@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>ColorGradient - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColorGradient.html">ColorGradient</a><ul class='methods'><li data-type='method'><a href="ColorGradient.html#addControlPoint">addControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#moveControlPoint">moveControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#removeControlPoint">removeControlPoint</a></li><li data-type='method'><a href="ColorGradient.html#removeControlPointAtIndex">removeControlPointAtIndex</a></li><li data-type='method'><a href="ColorGradient.html#setColorAt">setColorAt</a></li></ul></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a><ul class='methods'><li data-type='method'><a href="module-Data-DatasetManager.html#addDataset">addDataset</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addHistogramSelection">addHistogramSelection</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#addViewSelectionPoint">addViewSelectionPoint</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#getHistogramForCellID">getHistogramForCellID</a></li><li data-type='method'><a href="module-Data-DatasetManager.html#removeDataset">removeDataset</a></li></ul></li><li><a href="module-SplitViews-LinkGrouper.html">LinkGrouper</a><ul class='methods'><li data-type='method'><a href="module-SplitViews-LinkGrouper.html#getMasterCellID">getMasterCellID</a></li></ul></li><li><a href="module-TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction.TransferFunctionEditor.html#getTextureBounds">getTextureBounds</a></li><li data-type='method'><a href="module-TransferFunction.TransferFunctionEditor.html#render">render</a></li></ul></li><li><a href="module-TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a><ul class='methods'><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#addTransferFunction">addTransferFunction</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#checkNeedsUpdateCellID">checkNeedsUpdateCellID</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getCanvasForTFKey">getCanvasForTFKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#getTransferFunctionForTFEditorKey">getTransferFunctionForTFEditorKey</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyDiscreteTFDidChange">notifyDiscreteTFDidChange</a></li><li data-type='method'><a href="module-TransferFunction-TransferFunctionManager.html#notifyTFPointsToCanvasWithID">notifyTFPointsToCanvasWithID</a></li></ul></li><li><a href="SelectionManager.html">SelectionManager</a><ul class='methods'><li data-type='method'><a href="SelectionManager.html#getSelections">getSelections</a></li><li data-type='method'><a href="SelectionManager.html#select">select</a></li></ul></li><li><a href="VolumeDataset.html">VolumeDataset</a><ul class='methods'><li data-type='method'><a href="VolumeDataset.html#calculateHistogram">calculateHistogram</a></li><li data-type='method'><a href="VolumeDataset.html#getHistogram">getHistogram</a></li><li data-type='method'><a href="VolumeDataset.html#setIsoValues">setIsoValues</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-Data.html">Data</a></li><li><a href="module-SplitViews.html">SplitViews</a></li><li><a href="module-TransferFunction.html">TransferFunction</a></li></ul><h3><a href="global.html">Global</a></h3>
+</nav>
+
+<div id="main">
+
+    <h1 class="page-title">ColorGradient</h1>
+
+
+
+
+
+
+
+<section>
+
+<header>
+
+        <h2>
+        ColorGradient
+        </h2>
+
+            <div class="class-description">Represents a color gradient consisting of control points</div>
+
+
+</header>
+
+<article>
+    <div class="container-overview">
+
+
+
+
+    <h2>Constructor</h2>
+
+
+    <h4 class="name" id="ColorGradient"><span class="type-signature"></span>new ColorGradient<span class="signature">(Array)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Constructs a new color gradient with given initial control points.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>Array</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Array.&lt;<a href="module-TransferFunction.html#.CGControlPoint">module:TransferFunction.CGControlPoint</a>></span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">of control points, may be empty</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <h3 class="subsection-title">Methods</h3>
+
+
+
+
+
+
+    <h4 class="name" id="addControlPoint"><span class="type-signature"></span>addControlPoint<span class="signature">(Point)</span><span class="type-signature"> &rarr; {number}</span></h4>
+
+
+
+
+
+<div class="description">
+    Adds a control point and returns the array index
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>Point</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type"><a href="module-TransferFunction.html#.CGControlPoint">module:TransferFunction.CGControlPoint</a></span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The control point</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    The index of the control point
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="moveControlPoint"><span class="type-signature"></span>moveControlPoint<span class="signature">(index, newOffset)</span><span class="type-signature"> &rarr; {number}</span></h4>
+
+
+
+
+
+<div class="description">
+    Moves the control point at given index to the
+new offset
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>index</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the current index of the control point</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>newOffset</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the offset to move it to</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    the new index of this control point
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="removeControlPoint"><span class="type-signature"></span>removeControlPoint<span class="signature">(offset)</span><span class="type-signature"> &rarr; {bool}</span></h4>
+
+
+
+
+
+<div class="description">
+    Removes a control point, given offset
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>offset</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the offset, must be [0,100] and existing</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    true if offset was deleted
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">bool</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="removeControlPointAtIndex"><span class="type-signature"></span>removeControlPointAtIndex<span class="signature">(index)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>index</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Index of the control point</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="setColorAt"><span class="type-signature"></span>setColorAt<span class="signature">(index, newColor)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Changes the color for control point at given index
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>index</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last"></td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>newColor</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">string</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">the color</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> using the Minami theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
