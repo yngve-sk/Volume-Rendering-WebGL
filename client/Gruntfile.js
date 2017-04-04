@@ -64,20 +64,31 @@ module.exports = function (grunt) {
             }
         },
         uglify: {
-            my_target: {
+            externals: {
                 options: {
-                    mangle: false,
-                    compress: false
+                    mangle: true,
+                    compress: true
 
                 },
                 files: {
                     'build/externals.min.js': [
                         'node_modules/jquery/dist/jquery.min.js',
                         'node_modules/angular/angular.min.js',
-                        'node_modules/angularjs-slider/dist/rzslider.js',
                         'semantic/dist/semantic.min.js',
                         'node_modules/jquery-resizable-dom/dist/jquery-resizable.js',
-                        'node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js'
+                        'node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js',
+                        'node_modules/angularjs-slider/dist/rzslider.js'
+                    ]
+                }
+            },
+            mainBundle: {
+                options: {
+                    mangle: true,
+                    compress: true
+                },
+                files: {
+                    'build/main.min.js': [
+                    'build/main-compiled.js'
                     ]
                 }
             }
@@ -102,6 +113,9 @@ module.exports = function (grunt) {
 
 
     });
+
+    grunt.registerTask('dist', ['jsdoc', 'cssmin', 'uglify:externals', 'browserify']);
+    grunt.registerTask('distMinify', ['jsdoc', 'cssmin', 'uglify:externals', 'browserify', 'uglify:mainBundle']);
 
     grunt.registerTask('docs', ['jsdoc'])
     grunt.registerTask('default', 'docs');

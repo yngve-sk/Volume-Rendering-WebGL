@@ -42561,17 +42561,147 @@ app.controller('master-controller', require('./ng-controllers/master-controller'
 //          (Directives can contain controllers of their own...)
 app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('linksAndViewsView', require('./ng-directives/links-and-views-view'));
+app.directive('datasetManagerView', require('./ng-directives/dataset-view'));
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
 
 //require('./angular-semantic-ui.min');
 
+setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+
+}, 1000);
 
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":16,"./ng-directives/global-control-panel-view":18,"./ng-directives/links-and-views-view":19,"./ng-directives/local-control-panel-view":20,"./ng-directives/transfer-function-view":21}],13:[function(require,module,exports){
+},{"./ng-controllers/master-controller":17,"./ng-directives/dataset-view":19,"./ng-directives/global-control-panel-view":20,"./ng-directives/links-and-views-view":21,"./ng-directives/local-control-panel-view":22,"./ng-directives/transfer-function-view":23}],13:[function(require,module,exports){
+let Environment = require('../../core/environment');
+
+let WSClient = require('../../client2server/websocket-client'),
+    GET = WSClient.GET;
+
+let Settings = require('../../core/settings').WSClient,
+    Timeouts = Settings.Timeouts;
+
+let FR = new FileReader();
+
+let controller = function ($scope, $timeout) {
+
+    let loaderElement = null;
+    let statusElement = null;
+
+    let setLoaderVisibility = (visible) => {
+        loaderElement.style.display = visible ? 'block' : 'none';
+    }
+
+    let setStatusVisibility = (visible) => {
+        statusElement.style.display = visible ? 'block' : 'none';
+    }
+
+    $scope.loaderText = "...";
+    $scope.loadAutomatically = true && Settings.loadAutomaticallyByDefault;
+
+    $scope.selectedDataset = 'one';
+    $scope.datasets = ['one', 'two', 'three'];
+
+    let fetchDatasets = () => {
+        setStatusVisibility(false);
+        $scope.loaderText = 'Getting list of datasets...';
+        setLoaderVisibility(true);
+        GET({
+            type: 'dataset-list'
+        }, true, Timeouts.getDatasetList).then((list) => {
+            $scope.loaderText = 'Successfully fetched dataset list';
+            setLoaderVisibility(false);
+            $scope.datasets = list;
+            $scope.selectedDataset = list[0];
+
+            if ($scope.loadAutomatically)
+                $scope.loadSelectedDataset();
+
+        }).catch((e) => {
+            alert("Timed out getting dataset-list, (timeout = " + Timeouts.getDatasetList + "ms )");
+            setLoaderVisibility(false);
+        });
+    }
+
+    $scope.$watch('selectedDataset', (newValue, oldValue) => {
+        if (newValue !== oldValue)
+            setStatusVisibility(false);
+
+        if ($scope.loadAutomatically)
+            $scope.loadSelectedDataset();
+    });
+
+    $scope.loadSelectedDataset = () => {
+        setStatusVisibility(false);
+        console.log(Timeouts);
+        let base = 'Getting dataset ' + $scope.selectedDataset + " ... ";
+        $scope.loaderText = base + ' header';
+
+        setLoaderVisibility(true);
+        GET({
+                    type: 'dataset',
+                    dataset: $scope.selectedDataset,
+                    field: 'header'
+                },
+                true,
+                Timeouts.getDatasetHeader)
+
+            .then((header) => {
+                $scope.loaderText = base + ' isovalues';
+                $scope.$apply();
+
+
+
+                GET({
+                            type: 'dataset',
+                            dataset: $scope.selectedDataset,
+                            field: 'isovalues'
+                        },
+                        false,
+                        Timeouts.getDatasetIsovalues)
+
+                    .then((arraybuffer) => {
+                        $scope.loaderText = 'Successfully fetched dataset ' + $scope.selectedDataset;
+                        $scope.$apply();
+
+                        setTimeout(() => {
+                            setLoaderVisibility(false);
+                            setStatusVisibility(true);
+                        }, 2000);
+
+                        let isovalues = new Int16Array(arraybuffer);
+
+                        Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, isovalues);
+
+                    })
+                    .catch((e) => {
+                        $scope.loaderText = 'Timed out getting isovalues (timeout = ' + Timeouts.getDatasetIsovalues + ')';
+                        $scope.$apply();
+                    })
+            })
+            .catch((e) => {
+                alert("Timed out getting header...");
+            })
+    }
+
+
+
+
+
+    $scope.DOMReady = () => {
+        loaderElement = document.getElementById('dataset-manager-view-status');
+        statusElement = document.getElementById('dataset-manager-status2');
+        fetchDatasets();
+    }
+}
+
+module.exports = controller;
+
+},{"../../client2server/websocket-client":24,"../../core/environment":25,"../../core/settings":32}],14:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42580,70 +42710,29 @@ let controller = function ($scope) {
         console.log("Global control panel DOM ready.");
     }
 
-    $scope.getIsoValues = () => {
-        console.log("Getting isovalues...");
-        GET('isovalues', false, 30000).then((isovalues) => {
-            Environment.VolumeDataset.setIsoValues(new Int16Array(isovalues));
-            console.log("RECEIVED ISOVALUES!!");
-            console.log(Environment);
-            GET('header', true, 30000).then((header) => {
-                console.log("GOT HEADER,,");
-                console.log(header);
-                Environment.VolumeDataset.setHeader(header);
-                GET('histogram', false, 30000).then((histogram) => {
-                    Environment.VolumeDataset.histogram = new Int16Array(histogram);
-                    console.log("Received histogram");
-                }).catch((err) => {
-                    alert("err getting histogram");
-                });
-            }).catch((err) => {
-                alert(err + " ERROR GETTING HEADER");
-            });
 
-        }).catch((err) => {
-            alert("TIMED OUT GETTING ISOVALUES: " + err);
-        })
-    };
-
-    $scope.getGradient = () => {
-        GET('isovaluesAndGradientMagnitudes', false, 60000).then((isovaluesAndGradientMagnitudes) => {
-            Environment.VolumeDataset.isovaluesAndGradientMagnitudes = isovaluesAndGradientMagnitudes;
-            console.log("RECEIVED GRADIENT+ISOs!");
-            console.log(Environment);
-            GET('header', true, 30000).then((header) => {
-                console.log("GOT HEADER,,");
-                console.log(header);
-                Environment.VolumeDataset.setHeader(header);
-            }).catch((err) => {
-                alert(err + " ERROR GETTING HEADER");
-            })
-        }).catch((err) => {
-            alert("ERROR: " + err);
-        })
-    };
-
-    $scope.render3D = () => {
-        console.log("render3D()");
-        Environment.ViewManager.__DEBUGRefreshView0();
-    };
-
-    $scope.initTextures = () => {
-        Environment.ViewManager.views[0].volumeRenderer._initTextures();
-    };
-
-    $scope.initBuffers = () => {
-        Environment.ViewManager.views[0].volumeRenderer._initBuffers();
-    };
+    $scope.onOpenTFEditorPane = () => {
+        setTimeout(function () {
+            window.dispatchEvent(new Event('resizeTFEditor'));
+        }, 200);
+    }
 }
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":22,"../../core/environment":23}],14:[function(require,module,exports){
+},{"../../client2server/websocket-client":24,"../../core/environment":25}],15:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
 
 let controller = function ($scope) {
+
+    let viewID2LinkerKey = {
+        1: shared.linkers.TRANSFER_FUNCTION,
+        2: shared.linkers.CAMERA,
+        3: shared.linkers.SLICER,
+        4: shared.linkers.SPHERE_AND_LIGHTS,
+    }
 
     let callbacks = {
         linkChanged: Environment.notifyLinkChanged,
@@ -42658,12 +42747,16 @@ let controller = function ($scope) {
 
     $scope.addViewText = adding;
 
+    let isAddMode = true;
+
     $scope.addView = () => {
+        isAddMode = true;
         objController.changeAddRemoveState('ADD');
         $scope.addViewText = adding;
     };
 
     $scope.removeView = () => {
+        isAddMode = false;
         objController.changeAddRemoveState('REMOVE');
         $scope.addViewText = removeViewTextAndIcon;
     };
@@ -42675,27 +42768,54 @@ let controller = function ($scope) {
 
     // ADD or REMOVE
     let linkStates = {
-        [shared.linkers.SLICER_SPHERE]: 'LINK-ADD',
+        [shared.linkers.TRANSFER_FUNCTION]: 'LINK-ADD',
         [shared.linkers.CAMERA]: 'LINK-ADD',
-        [shared.linkers.LIGHTS]: 'LINK-ADD',
-        [shared.linkers.TRANSFER_FUNCTION]: 'LINK-ADD'
+        [shared.linkers.SLICER]: 'LINK-ADD',
+        [shared.linkers.SPHERE_AND_LIGHTS]: 'LINK-ADD'
     };
 
-    $scope.getLinkerState = (key) => {
+    $scope.isActiveLinker = (id, on) => {
+        return linkStates[viewID2LinkerKey[id]] === 'LINK-ADD';
+    }
+
+    $scope.idActiveAddRemove = () => {
+        return isAddMode;
+    }
+
+    $scope.getLinkerState = (id) => {
+        let key = viewID2LinkerKey[id];
         return linkStates[key] === 'LINK-ADD' ? 'Adding...' : 'Deleting...';
     }
 
     // state: 'add' or 'delete'
-    $scope.setLinkerState = (key, state) => {
+    $scope.setLinkerState = (id, state) => {
+        let key = viewID2LinkerKey[id];
+        console.log("setLinkerState(" + id + "->" + key + ", " + state + ")");
         objController.changeLinkerState(key, state);
         linkStates[key] = state;
     }
+
+    let colorButtons = () => {
+        for (let id in viewID2LinkerKey) {
+            let key = viewID2LinkerKey[id];
+
+            // Highlight selected button
+            let state = linkStates[key];
+            if (state === 'LINK-ADD') {
+                $('.view-splitter-button.id-' + id + '-on').addClass('linkbtn-highlight')
+            }
+
+
+        }
+    }
+
+
 
 }
 
 module.exports = controller;
 
-},{"../../core/environment":23,"../../widgets/split-view/controller-view-shared-variables":36,"../../widgets/split-view/view-splitter-master-controller":43}],15:[function(require,module,exports){
+},{"../../core/environment":25,"../../widgets/split-view/controller-view-shared-variables":39,"../../widgets/split-view/view-splitter-master-controller":46}],16:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42708,7 +42828,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":22,"../../core/environment":23}],16:[function(require,module,exports){
+},{"../../client2server/websocket-client":24,"../../core/environment":25}],17:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -42748,7 +42868,7 @@ module.exports = function ($scope) {
 
 };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -42858,7 +42978,28 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":23,"../../widgets/transfer-function/transfer-function-editor-v2":45,"jquery":7,"spectrum-colorpicker":8}],18:[function(require,module,exports){
+},{"../../core/environment":25,"../../widgets/transfer-function/transfer-function-editor-v2":48,"jquery":7,"spectrum-colorpicker":8}],19:[function(require,module,exports){
+let datasetViewController = require('../ng-controllers/dataset-view-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: {},
+        replace: true,
+        controller: datasetViewController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+
+                scope.DOMReady();
+            }, 0);
+        },
+        templateUrl: 'src/angular-assets/ng-templates/dataset-view-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/dataset-view-controller":13}],20:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -42881,7 +43022,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":13}],19:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":14}],21:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -42903,7 +43044,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":14}],20:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":15}],22:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -42925,7 +43066,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":15}],21:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":16}],23:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -42956,12 +43097,13 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":23,"../ng-controllers/transfer-function-view-controller":17}],22:[function(require,module,exports){
+},{"../../core/environment":25,"../ng-controllers/transfer-function-view-controller":18}],24:[function(require,module,exports){
+/**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
 // 'do', perform an operation
 var toBuffer = require('blob-to-buffer');
-let Environment = require('../core/environment');
+//let Environment = require('../core/environment');
 
 let Main = require('../main');
 
@@ -43012,18 +43154,6 @@ socket.onmessage = (message) => {
                 messageReceived();
             }
             reader.readAsArrayBuffer(message.data);
-            //let buf = toBuffer(message.data, function (err, buffer) {
-            //    if (err) throw err
-            //    //console.log(cache);
-            //    cache = buffer;
-            //    time = Date.now() - time;
-            //    printTime(message.data.size / 1000000);
-            //    messageReceived(); // Notify message received
-            //    //Environment.VolumeDataset.setIsoValues(cache);
-            //    //delete cache;
-//
-//                //console.log(require('../core/environment'));
-//            });
             break;
         case 'stringjson':
             console.log("parsing string to json...");
@@ -43039,7 +43169,24 @@ socket.onmessage = (message) => {
 
 
 let messageReceived = null;
-let get = (resource, doStringify, maxWait) => {
+
+/**
+ * Gets the resource from the server
+ *
+ * @method get
+ * @param {Object} resource the resource to request
+ * @param {string} resource.type - resource type
+ * @param {string} resource.dataset
+ * @param {string} resource.field
+ * @param {bool} doStringify
+ * @param {number} maxWait max wait millis
+ * @return {Promise} Promise that'll either resolve or reject
+ */
+function get(resource, doStringify, maxWait) {
+    console.log("GET... ");
+    console.log(resource);
+    console.log(doStringify);
+    console.log(maxWait);
     expectedType = doStringify ? 'stringjson' : 'blob';
     return new Promise(function (resolve, reject) {
         _send({
@@ -43061,7 +43208,7 @@ module.exports = {
     GET: get
 };
 
-},{"../core/environment":23,"../main":35,"blob-to-buffer":2}],23:[function(require,module,exports){
+},{"../main":38,"blob-to-buffer":2}],25:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -43072,6 +43219,8 @@ let modes = require('./interaction-modes'),
 
 let TransferFunctionManager = require('../widgets/transfer-function/transfer-function-manager');
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
+
+let WSClient = require('../client2server/websocket-client');
 
 /** @module Core/Environment */
 
@@ -43135,6 +43284,19 @@ class Environment {
                     console.error(event);
                     break;
             }
+        }
+
+        this.notifyDatasetWasLoaded = (name, header, isovalues) => {
+            console.log("notifyDatasetWasLoaded!");
+            this.DatasetManager.addDataset({
+                name: name,
+                header: header,
+                isovalues: isovalues
+            });
+
+
+            // For now pretend only one dataset will be loaded at a time.
+
         }
 
         this.readyElements = []; // Expect call from:
@@ -43239,13 +43401,15 @@ class Environment {
     _notifyListeners(channel, key) {
         this.listeners[channel][key]();
     }
+
+
 }
 
 let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../core/views/view-manager":31,"../datasets&selections/dataset-manager":32,"../widgets/split-view/view-splitter-master-controller":43,"../widgets/transfer-function/transfer-function":47,"../widgets/transfer-function/transfer-function-manager":46,"./interaction-modes":24}],24:[function(require,module,exports){
+},{"../client2server/websocket-client":24,"../core/views/view-manager":34,"../datasets&selections/dataset-manager":35,"../widgets/split-view/view-splitter-master-controller":46,"../widgets/transfer-function/transfer-function":50,"../widgets/transfer-function/transfer-function-manager":49,"./interaction-modes":26}],26:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -43300,7 +43464,7 @@ module.exports = {
     }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 let m4 = require('twgl.js').m4;
 
 
@@ -43355,7 +43519,7 @@ class Camera {
 
 module.exports = Camera;
 
-},{"twgl.js":10}],26:[function(require,module,exports){
+},{"twgl.js":10}],28:[function(require,module,exports){
 /** @module:Core/Models/Lights */
 
 /**
@@ -43368,7 +43532,7 @@ class LightModel {
 
 module.exports = LightModel;
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 let SlicerModel = require('./slicer-model');
 let SphereModel = require('./sphere-model');
 let Camera = require('./camera');
@@ -43449,7 +43613,7 @@ class ModelManager {
 
 module.exports = ModelManager;
 
-},{"./camera":25,"./light-model":26,"./slicer-model":28,"./sphere-model":29}],28:[function(require,module,exports){
+},{"./camera":27,"./light-model":28,"./slicer-model":30,"./sphere-model":31}],30:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a slicer.
  * @memberof module:Core/Models
@@ -43466,7 +43630,7 @@ class SlicerModel {
 
 module.exports = SlicerModel;
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -43484,7 +43648,128 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
+let d3 = require('d3');
+
+/** @module Settings */
+
+/**
+ * Settings for the linker / splitter views.
+ * @typedef {Object} LinkerAndSplitterViewSettings
+
+ * @property {number} maxRows - Maximum amount of rows allowed (Note: Will decide amount of subviews available)
+ * @property {number} maxColumns - Maximum amount of columns allowed (Note: Will decide amount of subviews available)
+ * @property {bool} showIDs if true, the cell IDs will show
+ * @property {number} bottomTopThresholdPercentage Percentage at which the mouse snaps to being seen as being closest to the bottom/top of the row as opposed to closest to one of the sides of the current cell. Only used when adding cells.
+
+ * @property {Object} colors Colors of the view
+ * @property {string[]} colors.LINKS Array of valid CSS colors (hex, rgba, string). The length of this array will be the maximum amount of groups allowed, and will also decide the coloring of the link groups in each link view.
+ * @property {string} colors.REMOVE Color of a cell when mouse is over it and the mode set to REMOVE (remove cells).
+ * @property {string} colors.ADD Color of a cell when mouse is over it and the mode set to ADD (add cells).
+ * @memberof module:Settings
+ **/
+
+
+/**
+ * Settings for the transfer function editor
+ * @typedef {Object} TransferFunctionEditorSettings
+ * @property {Object} Resolution Higher resolution = higher quality, but possibly also lower performance. (Also note the relation between this and the hardcoded other hardcoded sizes)
+ * @property {number} Resolution.width Any number
+ * @property {number} Resolution.height Any number
+
+ * @property {Object} Layout
+ * @property {number} Layout.leftAxisWidthPercentage [0, 1]
+ * @property {number} Layout.bottomAxisHeightPercentage [0, 1]
+ * @property {number} Layout.isoValueAxisHeightPercentage [0, 1]
+ * @property {number} Layout.contentTopPaddingPercentage [0, 1]
+ * @property {number} Layout.texturePreviewHeightPercentage [0, 1]
+
+ * @property {Object} TransferFunctionDisplay
+ * @property {d3.curve} TransferFunctionDisplay.curve Any number
+ * @property {number} TransferFunctionDisplay.circleRadius Any number
+
+ * @property {Object} ColorGradientDisplay
+ * @property {number} ColorGradientDisplay.triangleSize Any number
+ * @property {number} ColorGradientDisplay.crossSize Any number
+ * @property {number} ColorGradientDisplay.trianglesGroupTranslateY Any number:
+ * @property {number} ColorGradientDisplay.crossTranslateY Any number
+ * @memberof module:Settings
+ **/
+
+/**
+ *
+ * @typedef {Object} WSClientSettings
+ * @property {Object} Timeouts timeout (millis) max wait when fetching resource from server
+ * @property {number} Timeouts.getDatasetList millis max wait
+ * @property {number} Timeouts.getDatasetHeader millis max wait
+ * @property {number} Timeouts.getDatasetIsovalues millis max wait
+ * @memberof module:Settings
+ **/
+
+/**
+* Holds all settings
+*
+* @property {Object} Widgets Settings for all widgets (SplitView / TransferFunction)
+* @property {Object} Widgets.TransferFunction Settings for transfer functions
+
+* @property {module:Settings.TransferFunctionEditorSettings} Widgets.TransferFunction.Editor
+* @property {module:Settings.LinkerAndSplitterViewSettings} Widgets.LinkerAndSplitterView Settings for the linker / splitter views.
+* @property {module:Settings.WSClientSettings}
+
+*/
+let SETTINGS = {
+    Widgets: {
+        TransferFunction: {
+            Editor: {
+                Resolution: {
+                    width: 400,
+                    height: 200
+                },
+                Layout: {
+                    leftAxisWidthPercentage: 0.07,
+                    bottomAxisHeightPercentage: 0.25,
+                    isoValueAxisHeightPercentage: 0.110,
+                    contentTopPaddingPercentage: 0.2,
+                    texturePreviewHeightPercentage: 0.2
+                },
+                TransferFunctionDisplay: {
+                    curve: d3.curveLinear,
+                    circleRadius: 6
+                },
+                ColorGradientDisplay: {
+                    triangleSize: 45,
+                    crossSize: 45,
+                    trianglesGroupTranslateY: -10,
+                    crossTranslateY: 17
+                }
+            }
+        },
+        LinkerAndSplitterView: {
+            maxRows: 3,
+            maxColumns: 4,
+            showIDs: false,
+            bottomTopThresholdPercentage: 0.20,
+            colors: {
+                'LINKS': ['red', 'green', 'white', 'blue', 'brown', 'gold'],
+                'REMOVE': 'red',
+                'ADD': 'green'
+            }
+        }
+    },
+    WSClient: {
+        Timeouts: {
+            getDatasetList: 5000,
+            getDatasetHeader: 5000,
+            getDatasetIsovalues: 30000
+        },
+        loadAutomaticallyByDefault: false
+    }
+}
+
+
+module.exports = SETTINGS;
+
+},{"d3":3}],33:[function(require,module,exports){
 /**
  * Represents a subview, will manage the renderers for each
  * subview, and also hold pointers to the models which the
@@ -43583,7 +43868,7 @@ class Subview {
 
 module.exports = Subview;
 
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 let d3 = require('d3');
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
@@ -43697,7 +43982,7 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../widgets/split-view/miniature-split-view-overlay":38,"../../widgets/split-view/subcell-layout":41,"../models/model-manager":27,"./subview":30,"d3":3}],32:[function(require,module,exports){
+},{"../../widgets/split-view/miniature-split-view-overlay":41,"../../widgets/split-view/subcell-layout":44,"../models/model-manager":29,"./subview":33,"d3":3}],35:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -43760,13 +44045,17 @@ class DatasetManager {
     /**
      * Adds a dataset
      *
-     *
-     * @param {string} name the name of the dataset, Ex: 'Manix', 'Hand' etc
-     * @param {Int16Array} isovalues The isovalues scaled up to a range of [0, 2^15]
+     * @param {Object} args
+     * @param {string} args.name the name of the dataset, Ex: 'Manix', 'Hand' etc
+     * @param {Object} args.header The header of the dataset
+     * @param {Int16Array} args.isovalues The isovalues scaled up to a range of [0, 2^15]
      */
-    addDataset(name, isovalues) {
-        this.cellID2Dataset['GLOBAL'] = name;
-        this.datasets[name] = new VolumeDataset(isovalues);
+    addDataset(args) {
+        this.cellID2Dataset['GLOBAL'] = args.name;
+        this.datasets[args.name] = new VolumeDataset(args.header, args.isovalues);
+        console.log("Added dataset to dataset manager");
+        console.log(this.datasets[args.name]);
+        console.log(this.datasets);
     }
 
     /**
@@ -43814,7 +44103,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":33,"./volume-dataset":34}],33:[function(require,module,exports){
+},{"./selection":36,"./volume-dataset":37}],36:[function(require,module,exports){
 
 
 /**
@@ -43875,8 +44164,8 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],34:[function(require,module,exports){
-
+},{}],37:[function(require,module,exports){
+let d3 = require('d3');
 
 /**
  * Represents one volume dataset, holds the isovalues, gradient, curvature etc.
@@ -43888,15 +44177,13 @@ class VolumeDataset {
 
     /**
      * Constructs a new volume dataset
+     * @param {Object} header the header info of the dataset
      * @param {Int16Array} isovalues the isovalues, scaled from the range [0, 4095] to [0, 2^15]
      * @constructor
      */
-    constructor(isovalues) {
-        this.header = {
-            rows: -1,
-            cols: -1,
-            slices: -1
-        };
+    constructor(header, isovalues) {
+        this.header = header;
+
 
         this.isovalues = isovalues
         this.histogram = [];
@@ -43905,10 +44192,6 @@ class VolumeDataset {
         this.gradientMagnitudes = [];
         this.isovaluesAndGradientMagnitudes = [];
 
-        this.boundingBox = {
-            min: null,
-            max: null
-        };
         this.calculateHistogram();
     }
 
@@ -43952,15 +44235,15 @@ class VolumeDataset {
     /**
      * Calculates the histogram, NOTE: Will scale values down from [0, 2^15]
      * to [0, 4095], length of the histogram will always be 4096, and the max
-     * count value will be 2^15
+     * count value will be 2^15, so each value is divided by 8
      */
     calculateHistogram() {
         let max = d3.max(this.isovalues);
-        this.histogram = new Uint16Array(max + 1);
+        this.histogram = new Uint16Array(4096);
         let iso = -1;
         let i = -1;
         for (i = 0; i < this.isovalues.length; i++) {
-            let isoValue = this.isovalues[i];
+            let isoValue = this.isovalues[i]/8;
             ++this.histogram[isoValue];
         }
     }
@@ -43968,7 +44251,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{}],35:[function(require,module,exports){
+},{"d3":3}],38:[function(require,module,exports){
 
 
 
@@ -43987,24 +44270,24 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":12,"./client2server/websocket-client":22,"./core/environment":23}],36:[function(require,module,exports){
+},{"./angular-assets/main-controller":12,"./client2server/websocket-client":24,"./core/environment":25}],39:[function(require,module,exports){
 let divIDs = {
     ADD: 'lvw-add-view',
     linkers: {
-        SLICER_SPHERE: 'lvw-link-view-1',
+        TRANSFER_FUNCTION: 'lvw-link-view-1',
         CAMERA: 'lvw-link-view-2',
-        LIGHTS: 'lvw-link-view-3',
-        TRANSFER_FUNCTION: 'lvw-link-view-4'
+        SLICER: 'lvw-link-view-3',
+        SPHERE_AND_LIGHTS: 'lvw-link-view-4'
     }
 };
 
 let add = 'ADD';
 
 let linkers = {
-    'SLICER_SPHERE': 'SLICER_SPHERE',
+    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
     'CAMERA': 'CAMERA',
-    'LIGHTS': 'LIGHTS',
-    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION'
+    'SLICER': 'SLICER',
+    'SPHERE_AND_LIGHTS': 'SPHERE_AND_LIGHTS'
 };
 
 
@@ -44014,7 +44297,7 @@ module.exports = {
     add: add
 };
 
-},{}],37:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -44143,7 +44426,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":42,"underscore":11}],38:[function(require,module,exports){
+},{"./unique-index-bag":45,"underscore":11}],41:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44365,7 +44648,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],39:[function(require,module,exports){
+},{"d3":3}],42:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -44903,7 +45186,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":37,"./splitbox":40,"d3":3,"jquery":7,"underscore":11}],40:[function(require,module,exports){
+},{"./link-group":40,"./splitbox":43,"d3":3,"jquery":7,"underscore":11}],43:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -45274,7 +45557,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":42,"underscore":11}],41:[function(require,module,exports){
+},{"./unique-index-bag":45,"underscore":11}],44:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -45466,7 +45749,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],42:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -45508,10 +45791,11 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":11}],43:[function(require,module,exports){
+},{"underscore":11}],46:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let shared = require('./controller-view-shared-variables');
+let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
 
 window.addEventListener('resize', () => {
     dispatch("refresh");
@@ -45636,24 +45920,21 @@ let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, other
 
 */
 
+
 let viewSettings = {
     divID: '',
-    maxRows: 3,
-    maxColumns: 4,
+    maxRows: BaseSettings.maxRows,
+    maxColumns: BaseSettings.maxColumns,
     aspectRatio: {
-        width: 4,
+        width: 8,
         height: 3
     },
-    showIDs: true,
+    showIDs: BaseSettings.showIDs,
     state: 'ADD',
     canLink: true,
     canAddRemove: false,
-    bottomTopThresholdPercentage: 0.20,
-    colors: {
-        'LINKS': ['red', 'green', 'white', 'purple', 'brown'],
-        'REMOVE': 'red',
-        'ADD': 'green'
-    }
+    bottomTopThresholdPercentage: BaseSettings.bottomTopThresholdPercentage,
+    colors: BaseSettings.colors
 };
 
 let genLinkingView = (divID, settings) => {
@@ -45683,7 +45964,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"./controller-view-shared-variables":36,"./miniature-split-view":39,"underscore":11}],44:[function(require,module,exports){
+},{"../../core/settings":32,"./controller-view-shared-variables":39,"./miniature-split-view":42,"underscore":11}],47:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -45820,12 +46101,14 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":9}],45:[function(require,module,exports){
+},{"tinycolor2":9}],48:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
 let ColorGradient = require('./color-gradient');
 let Environment = require('../../core/environment');
+
+let TFEditorSettings = require('../../core/settings').Widgets.TransferFunction.Editor;
 
 /**
  * Represents the front-end of the transfer function editor.
@@ -45924,27 +46207,29 @@ class TransferFunctionEditor {
         /*     INTERACTION STATES, OPTIONS & MODELREF     */
         /*------------------------------------------------*/
         this.getInteractionMode = getInteractionMode;
+        /*
 
-        this.options = {
-            leftAxisWidthPercentage: 0.07,
-            bottomAxisHeightPercentage: 0.25,
-            isoValueAxisHeightPercentage: 0.110,
-            curve: d3.curveLinear,
-            controlPointSplineCurve: d3.curveLinear,
-            contentTopPaddingPercentage: 0.2,
-            content: {
-                circleRadius: 5.5
-            },
-            canvas: {
-                texturePreviewHeightPercentage: 0.2
-            },
-            colorGradient: {
-                triangleSize: 35,
-                crossSize: 35,
-                trianglesGroupTranslateY: -8,
-                crossTranslateY: 14
-            }
-        };
+                this.options = {
+                    leftAxisWidthPercentage: 0.07,
+                    bottomAxisHeightPercentage: 0.25,
+                    isoValueAxisHeightPercentage: 0.110,
+                    curve: d3.curveLinear,
+                    controlPointSplineCurve: d3.curveLinear,
+                    contentTopPaddingPercentage: 0.2,
+                    content: {
+                        circleRadius: 5.5
+                    },
+                    canvas: {
+                        texturePreviewHeightPercentage: 0.2
+                    },
+                    colorGradient: {
+                        triangleSize: 35,
+                        crossSize: 35,
+                        trianglesGroupTranslateY: -8,
+                        crossTranslateY: 14
+                    }
+                };
+        */
 
         this.originalSize = {
             total: {
@@ -46020,6 +46305,10 @@ class TransferFunctionEditor {
             this._resize()
         }, false);
 
+        window.addEventListener('resizeTFEditor', () => {
+            this._resize()
+        }, false);
+
         d3.select(window).on("keydown", () => {
             this._keydown();
         });
@@ -46077,7 +46366,9 @@ class TransferFunctionEditor {
 
         // Used to scale groups and their children,
         //will also be basis for the original coord system.
-        let sizes = this._getSizes();
+        let res = TFEditorSettings.Resolution;
+        let sizes = this._getSizesFromTotal(res.width, res.height);
+
         this.originalSize.total = sizes.total;
         this.originalSize.content = sizes.content;
 
@@ -46251,14 +46542,15 @@ class TransferFunctionEditor {
         this.scales.total.y = d3.scaleLinear().domain([1, 0]).range([0, this.sizes.total.height]);
 
 
+        let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
         let pp = 2;
 
         this.eventListenerRect
-            .attr('x', this.sizes.content.x0 - pp * this.options.content.circleRadius)
-            .attr('y', this.sizes.content.y0 - pp * this.options.content.circleRadius)
-            .attr('width', this.sizes.content.width + pp * 2 * this.options.content.circleRadius)
-            .attr('height', this.sizes.content.height + pp * 2 * this.options.content.circleRadius);
+            .attr('x', this.sizes.content.x0 - pp * circleRadius)
+            .attr('y', this.sizes.content.y0 - pp * circleRadius)
+            .attr('width', this.sizes.content.width + pp * 2 * circleRadius)
+            .attr('height', this.sizes.content.height + pp * 2 * circleRadius);
 
         this.histogramSelectionGroup
             .attr('transform',
@@ -46281,11 +46573,13 @@ class TransferFunctionEditor {
         //+'scale(' + this.scale.x + ', ' + this.scale.y + ')');
         this._refreshTransferFunctionSplinesAndControlPoints();
 
+        let texturePreviewHeightPercentage = TFEditorSettings.Layout.texturePreviewHeightPercentage;
+
         this.canvas
             .style('left', this.sizes.content.x0)
-            .style('top', this.sizes.content.y0 - this.sizes.content.height * this.options.canvas.texturePreviewHeightPercentage)
+            .style('top', this.sizes.content.y0 - this.sizes.content.height * texturePreviewHeightPercentage)
             .style('width', this.sizes.content.width)
-            .style('height', this.sizes.content.height * (1 + this.options.canvas.texturePreviewHeightPercentage));
+            .style('height', this.sizes.content.height * (1 + texturePreviewHeightPercentage));
 
         //    this.colorGradientRect
         //        .attr('x', this.sizes.content.x0)
@@ -46316,20 +46610,16 @@ class TransferFunctionEditor {
                 'scale(' + this.scale.x + ', ' + this.scale.y + ')');
     }
 
-    _getSizes() {
-        let totalWidthPX = this.svgMain.style('width'),
-            totalHeightPX = this.svgMain.style('height');
+    _getSizesFromTotal(totalWidth, totalHeight) {
+        let layout = TFEditorSettings.Layout;
 
-        let totalWidth = parseFloat(totalWidthPX.replace('px', '')),
-            totalHeight = parseFloat(totalHeightPX.replace('px', ''))*0.9;
+        let contentY0 = layout.contentTopPaddingPercentage * totalHeight;
 
-        let contentY0 = this.options.contentTopPaddingPercentage * totalHeight;
-
-        let contentWidth = (1 - this.options.leftAxisWidthPercentage) * totalWidth,
-            contentHeight = (1 - this.options.bottomAxisHeightPercentage - this.options.contentTopPaddingPercentage) * totalHeight;
+        let contentWidth = (1 - layout.leftAxisWidthPercentage) * totalWidth,
+            contentHeight = (1 - layout.bottomAxisHeightPercentage - layout.contentTopPaddingPercentage) * totalHeight;
 
         let bottomAxisY0 = contentY0 + contentHeight,
-            bottomAxisIsovaluesHeight = this.options.isoValueAxisHeightPercentage * totalHeight,
+            bottomAxisIsovaluesHeight = layout.isoValueAxisHeightPercentage * totalHeight,
             bottomAxisColorGradientRectY0 = bottomAxisY0 + bottomAxisIsovaluesHeight,
             bottomAxisColorGradientRectHeight = totalHeight - bottomAxisColorGradientRectY0;
 
@@ -46340,7 +46630,7 @@ class TransferFunctionEditor {
                 height: totalHeight
             },
             content: {
-                x0: this.options.leftAxisWidthPercentage * totalWidth,
+                x0: layout.leftAxisWidthPercentage * totalWidth,
                 y0: contentY0,
                 width: contentWidth,
                 height: contentHeight
@@ -46356,6 +46646,16 @@ class TransferFunctionEditor {
                 }
             }
         };
+    }
+
+    _getSizes() {
+        let totalWidthPX = this.svgMain.style('width'),
+            totalHeightPX = this.svgMain.style('height');
+
+        let totalWidth = parseFloat(totalWidthPX.replace('px', '')),
+            totalHeight = parseFloat(totalHeightPX.replace('px', '')) * 0.9;
+
+        return this._getSizesFromTotal(totalWidth, totalHeight);
 
     }
 
@@ -46466,7 +46766,7 @@ class TransferFunctionEditor {
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -46475,7 +46775,7 @@ class TransferFunctionEditor {
             });
 
         let area = d3.area()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -46512,7 +46812,7 @@ class TransferFunctionEditor {
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -46521,7 +46821,7 @@ class TransferFunctionEditor {
             });
 
         let area = d3.area()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -46554,7 +46854,7 @@ class TransferFunctionEditor {
     _renderControlPointSplines() {
 
         this.splines = d3.line()
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return this.scales.content.x(d[0]);
             })
@@ -46573,9 +46873,10 @@ class TransferFunctionEditor {
         let circles = this.transferFunctionControlPointGroup.selectAll(".circle")
             .data(this.controlPoints);
         let self = this;
+        let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
         circles.enter().append("circle")
-            .attr("r", this.options.content.circleRadius)
+            .attr("r", circleRadius)
             .attr('class', 'tf-editor-control-point')
             .on("mousedown", (d) => {
                 this.selected = this.dragged = d;
@@ -46603,7 +46904,7 @@ class TransferFunctionEditor {
             .classed("selected", (d) => {
                 return d === this.selected;
             })
-            .attr("r", this.options.content.circleRadius);
+            .attr("r", circleRadius);
 
         circles
 
@@ -46671,7 +46972,7 @@ class TransferFunctionEditor {
             });
 
             let splines = d3.line() // Used for opacity TF stuff
-                .curve(this.options.controlPointSplineCurve)
+                .curve(TFEditorSettings.TransferFunctionDisplay.curve)
                 .x((d) => {
                     return x(d[0]);
                 })
@@ -46765,7 +47066,7 @@ class TransferFunctionEditor {
             x: 0,
             y: 0,
             width: canvasNode.width,
-            height: canvasNode.height * this.options.canvas.texturePreviewHeightPercentage
+            height: canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage
         }
     }
 
@@ -46786,7 +47087,7 @@ class TransferFunctionEditor {
         });
 
         let splines = d3.line() // Used for opacity TF stuff
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return x(d[0]);
             })
@@ -46795,7 +47096,7 @@ class TransferFunctionEditor {
             });
 
         let tWidth = canvasNode.width,
-            tHeight = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+            tHeight = canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage;
 
         let x0 = 0,
             x1 = tWidth,
@@ -46865,7 +47166,7 @@ class TransferFunctionEditor {
         });
 
         let splines = d3.line() // Used for opacity TF stuff
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return x(d[0]);
             })
@@ -46873,7 +47174,7 @@ class TransferFunctionEditor {
                 return y(d[1]);
             });
 
-        let offsetY = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+        let offsetY = canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage;
 
         let cWidth = canvasNode.width,
             cHeight = canvasNode.height - offsetY;
@@ -46961,11 +47262,11 @@ class TransferFunctionEditor {
     _renderColorGradientControlPoints(sizes) {
         let triangle = d3.symbol()
             .type(d3.symbolTriangle)
-            .size(this.options.colorGradient.triangleSize);
+            .size(TFEditorSettings.ColorGradientDisplay.triangleSize);
 
         let cross = d3.symbol()
             .type(d3.symbolCross)
-            .size(this.options.colorGradient.crossSize);
+            .size(TFEditorSettings.ColorGradientDisplay.crossSize);
 
         let groups = this.colorGradientControlPointsGroup
             .selectAll('.node')
@@ -46989,7 +47290,7 @@ class TransferFunctionEditor {
         console.log();
         console.log(this.colorGradientRect.node().height);
         let cgRectHeight = parseFloat(this.colorGradientRect.attr('height'));
-        let crossTY = this.options.colorGradient.crossTranslateY;
+        let crossTY = TFEditorSettings.ColorGradientDisplay.crossTranslateY;
 
         let ty = cgRectHeight + crossTY;
 
@@ -47266,7 +47567,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":23,"./color-gradient":44,"d3":3,"jquery":7}],46:[function(require,module,exports){
+},{"../../core/environment":25,"../../core/settings":32,"./color-gradient":47,"d3":3,"jquery":7}],49:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -47443,7 +47744,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":47}],47:[function(require,module,exports){
+},{"./transfer-function":50}],50:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -47474,4 +47775,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":44,"d3":3}]},{},[35]);
+},{"./color-gradient":47,"d3":3}]},{},[38]);
