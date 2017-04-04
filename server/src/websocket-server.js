@@ -1,9 +1,3 @@
-// EVENT TYPES:
-// 'get', get a resource
-//      resource: isovalues
-//
-// 'do', perform an operation
-
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({
     port: 8081
@@ -27,19 +21,43 @@ wss.on('connection', function connection(ws) {
         const type = json.type;
         const doStringify = json.doStringify; // 'json' or 'buffer'
 
+        const resource = json.resource; // JSON object
+        // {type, dataset, field}
+
+        const resourceType = resource.type;
+
         switch (type) {
             case 'get':
-                const resource = json.resource;
-                console.log("GET: " + resource);
+                let toSend = null;
+                if (resource.type === 'dataset-list') {
+                    toSend = ['manix', 'hand'];
+                } else if (resource.type === 'dataset') {
+                    let dataset = resource.dataset;
+                    let field = resource.field;
+
+                    let datasett = theDatasets[dataset];
+                    let fieldd = theDatasets[field];
+
+
+                    console.log("Datasett = " + datasett);
+                    console.log("fieldd = " + fieldd);
+                    console.log("field = " + field);
+
+                    toSend = theDatasets[dataset][field];
+                }
+
+                console.log("GET: " + JSON.stringify(resource));
                 console.log("TYPE: " + json.type);
                 console.log("do stringify? " + doStringify);
                 console.log("Sending object...");
 
-                let toSend = theDatasets.manix[resource];
+                //let toSend = theDatasets.manix[resource];
+
+
                 if (doStringify)
                     toSend = JSON.stringify(toSend);
 
-                //console.log(toSend);
+                console.log(toSend);
                 ws.send(toSend);
                 console.log("Sent object!");
                 break;
