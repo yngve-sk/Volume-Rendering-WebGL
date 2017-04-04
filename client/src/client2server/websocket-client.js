@@ -1,8 +1,9 @@
+/**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
 // 'do', perform an operation
 var toBuffer = require('blob-to-buffer');
-let Environment = require('../core/environment');
+//let Environment = require('../core/environment');
 
 let Main = require('../main');
 
@@ -53,18 +54,6 @@ socket.onmessage = (message) => {
                 messageReceived();
             }
             reader.readAsArrayBuffer(message.data);
-            //let buf = toBuffer(message.data, function (err, buffer) {
-            //    if (err) throw err
-            //    //console.log(cache);
-            //    cache = buffer;
-            //    time = Date.now() - time;
-            //    printTime(message.data.size / 1000000);
-            //    messageReceived(); // Notify message received
-            //    //Environment.VolumeDataset.setIsoValues(cache);
-            //    //delete cache;
-//
-//                //console.log(require('../core/environment'));
-//            });
             break;
         case 'stringjson':
             console.log("parsing string to json...");
@@ -80,7 +69,24 @@ socket.onmessage = (message) => {
 
 
 let messageReceived = null;
-let get = (resource, doStringify, maxWait) => {
+
+/**
+ * Gets the resource from the server
+ *
+ * @method get
+ * @param {Object} resource the resource to request
+ * @param {string} resource.type - resource type
+ * @param {string} resource.dataset
+ * @param {string} resource.field
+ * @param {bool} doStringify
+ * @param {number} maxWait max wait millis
+ * @return {Promise} Promise that'll either resolve or reject
+ */
+function get(resource, doStringify, maxWait) {
+    console.log("GET... ");
+    console.log(resource);
+    console.log(doStringify);
+    console.log(maxWait);
     expectedType = doStringify ? 'stringjson' : 'blob';
     return new Promise(function (resolve, reject) {
         _send({

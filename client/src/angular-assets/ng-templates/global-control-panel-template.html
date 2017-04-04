@@ -2,9 +2,9 @@
     <center>Global Controls</center>
     <sm-accordion class="styled">
         <sm-accordion-group title="'Datasets'">
-            Group #1 Content
+            <dataset-manager-view></dataset-manager-view>
         </sm-accordion-group>
-        <sm-accordion-group title="'Transfer Function & Selections'">
+        <sm-accordion-group title="'Transfer Function & Selections'" ng-click="onOpenTFEditorPane()">
             <tf-widget name="GLOBAL"></tf-widget>
         </sm-accordion-group>
         <sm-accordion-group title="'Camera Settings'">

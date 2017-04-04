@@ -9,6 +9,8 @@ let modes = require('./interaction-modes'),
 let TransferFunctionManager = require('../widgets/transfer-function/transfer-function-manager');
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
 
+let WSClient = require('../client2server/websocket-client');
+
 /** @module Core/Environment */
 
 /**
@@ -71,6 +73,19 @@ class Environment {
                     console.error(event);
                     break;
             }
+        }
+
+        this.notifyDatasetWasLoaded = (name, header, isovalues) => {
+            console.log("notifyDatasetWasLoaded!");
+            this.DatasetManager.addDataset({
+                name: name,
+                header: header,
+                isovalues: isovalues
+            });
+
+
+            // For now pretend only one dataset will be loaded at a time.
+
         }
 
         this.readyElements = []; // Expect call from:
@@ -175,6 +190,8 @@ class Environment {
     _notifyListeners(channel, key) {
         this.listeners[channel][key]();
     }
+
+
 }
 
 let env = new Environment();

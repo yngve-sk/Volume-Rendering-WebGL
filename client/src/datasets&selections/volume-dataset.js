@@ -1,4 +1,4 @@
-
+let d3 = require('d3');
 
 /**
  * Represents one volume dataset, holds the isovalues, gradient, curvature etc.
@@ -10,15 +10,13 @@ class VolumeDataset {
 
     /**
      * Constructs a new volume dataset
+     * @param {Object} header the header info of the dataset
      * @param {Int16Array} isovalues the isovalues, scaled from the range [0, 4095] to [0, 2^15]
      * @constructor
      */
-    constructor(isovalues) {
-        this.header = {
-            rows: -1,
-            cols: -1,
-            slices: -1
-        };
+    constructor(header, isovalues) {
+        this.header = header;
+
 
         this.isovalues = isovalues
         this.histogram = [];
@@ -27,10 +25,6 @@ class VolumeDataset {
         this.gradientMagnitudes = [];
         this.isovaluesAndGradientMagnitudes = [];
 
-        this.boundingBox = {
-            min: null,
-            max: null
-        };
         this.calculateHistogram();
     }
 
@@ -74,15 +68,15 @@ class VolumeDataset {
     /**
      * Calculates the histogram, NOTE: Will scale values down from [0, 2^15]
      * to [0, 4095], length of the histogram will always be 4096, and the max
-     * count value will be 2^15
+     * count value will be 2^15, so each value is divided by 8
      */
     calculateHistogram() {
         let max = d3.max(this.isovalues);
-        this.histogram = new Uint16Array(max + 1);
+        this.histogram = new Uint16Array(4096);
         let iso = -1;
         let i = -1;
         for (i = 0; i < this.isovalues.length; i++) {
-            let isoValue = this.isovalues[i];
+            let isoValue = this.isovalues[i]/8;
             ++this.histogram[isoValue];
         }
     }

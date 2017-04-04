@@ -60,13 +60,17 @@ class DatasetManager {
     /**
      * Adds a dataset
      *
-     *
-     * @param {string} name the name of the dataset, Ex: 'Manix', 'Hand' etc
-     * @param {Int16Array} isovalues The isovalues scaled up to a range of [0, 2^15]
+     * @param {Object} args
+     * @param {string} args.name the name of the dataset, Ex: 'Manix', 'Hand' etc
+     * @param {Object} args.header The header of the dataset
+     * @param {Int16Array} args.isovalues The isovalues scaled up to a range of [0, 2^15]
      */
-    addDataset(name, isovalues) {
-        this.cellID2Dataset['GLOBAL'] = name;
-        this.datasets[name] = new VolumeDataset(isovalues);
+    addDataset(args) {
+        this.cellID2Dataset['GLOBAL'] = args.name;
+        this.datasets[args.name] = new VolumeDataset(args.header, args.isovalues);
+        console.log("Added dataset to dataset manager");
+        console.log(this.datasets[args.name]);
+        console.log(this.datasets);
     }
 
     /**

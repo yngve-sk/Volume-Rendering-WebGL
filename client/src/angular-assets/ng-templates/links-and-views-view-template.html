@@ -1,80 +1,132 @@
-<div id="links-and-views-view" class="ui segment">
-            <table class="ui unstackable celled table">
-                <thead>
-                    <tr>
-                        <th>
-                            <div class="ui icon buttons">
-                                <button class="tiny button" ng-click='addView()'>
+<div id="links-and-views-view" class="">
+    <div class="ui celled grid">
+        <div class="five column row">
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <button class="ui button view-splitter-button id-0" ng-click='addView()'>+</button>
+                    <button class="ui button view-splitter-button id-0" ng-click='removeView()'>-</button>
+                </div>
+                <div id="lvw-add-view" class="split-view-widget"></div>
+            </div>
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <button class="ui button view-splitter-button id-1-on" ng-click="setLinkerState(1, 'LINK-ADD')">+</button>
+                    <button class="ui button view-splitter-button id-1-off" ng-click="setLinkerState(1, 'LINK-REMOVE')">-</button>
+
+                </div>
+                <div id="lvw-link-view-1" class="split-view-widget"></div>
+            </div>
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <button class="ui button view-splitter-button id-2-on" ng-click="setLinkerState(2, 'LINK-ADD')">+</button>
+                    <button class="ui button view-splitter-button id-2-off" ng-click="setLinkerState(2, 'LINK-REMOVE')">-</button>
+                </div>
+                <div id="lvw-link-view-2" class="split-view-widget"></div>
+            </div>
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <button class="ui button view-splitter-button id-3-on" ng-click="setLinkerState(3, 'LINK-ADD')">+</button>
+                    <button class="ui button view-splitter-button id-3-off" ng-click="setLinkerState(3, 'LINK-REMOVE')">-</button>
+
+                </div>
+                <div id="lvw-link-view-3" class="split-view-widget"></div>
+            </div>
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <button class="ui button view-splitter-button id-4-on" ng-click="setLinkerState(4, 'LINK-ADD')">+</button>
+                    <button class="ui button view-splitter-button id-4-off" ng-click="setLinkerState(4, 'LINK-REMOVE')">-</button>
+
+                </div>
+                <div id="lvw-link-view-4" class="split-view-widget"></div>
+            </div>
+        </div>
+    </div>
+
+    <!--table class="ui unstackable celled table">
+        <thead>
+            <tr>
+                <th>
+                    <center>{{addViewText}}</center>
+                    <div class="ui icon left floated buttons">
+                        <button class="tiny button" ng-click='addView()'>
                                     <i class="window restore icon green"></i>Add
                                 </button>
-                                <button class="tiny button" ng-click='removeView()'>
+                        <button class="tiny button" ng-click='removeView()'>
                                     <i class="window close outline icon red"></i>Delete
                                 </button>
-                            </div><br> {{addViewText}}
-                        </th>
-                        <th>
-                            <img class="lvw-header-images" src="images/icons/slicer-and-sphere.png"><br>
-                            <div class="ui icon buttons">
-                                <button class="ui button" ng-click="setLinkerState('SLICER_SPHERE', 'LINK-ADD')">
+                    </div>
+                    <div class="ui vertical divider">
+
+                    </div>
+                    <div id="lvw-add-view"></div>
+                </th>
+                <th>
+                    <img class="lvw-header-images" src="images/icons/slicer-and-sphere.png"><br>
+                    <div class="ui icon buttons">
+                        <button class="ui button" ng-click="setLinkerState('SLICER_SPHERE', 'LINK-ADD')">
                                 <i class="add icon"></i>
                                 <i class="linkify icon"></i>
 
                             </button>
-                                <button class="ui button" ng-click="setLinkerState('SLICER_SPHERE', 'LINK-REMOVE')">
+                        <button class="ui button" ng-click="setLinkerState('SLICER_SPHERE', 'LINK-REMOVE')">
                                 <i class="minus icon"></i>
                                 <i class="linkify icon"></i>
                                     </button>
-                            </div>
-                            <br> {{getLinkerState('SLICER_SPHERE')}}
-
-                        </th>
-                        <th>
-                            <img class="lvw-header-images" src="images/icons/camera-icon.png"><br>
-                            <div class="ui icon buttons">
-                                <button class="ui button" ng-click="setLinkerState('CAMERA', 'LINK-ADD')">
+                    </div>
+                    <br> {{getLinkerState('SLICER_SPHERE')}}
+                    <div id="lvw-link-view-1"></div>
+                </th>
+                <th>
+                    <img class="lvw-header-images" src="images/icons/camera-icon.png"><br>
+                    <div class="ui icon buttons">
+                        <button class="ui button" ng-click="setLinkerState('CAMERA', 'LINK-ADD')">
                                 <i class="add icon"></i>
                                 <i class="linkify icon"></i>
 
                             </button>
-                                <button class="ui button" ng-click="setLinkerState('CAMERA', 'LINK-REMOVE')">
+                        <button class="ui button" ng-click="setLinkerState('CAMERA', 'LINK-REMOVE')">
                                 <i class="minus icon"></i>
                                 <i class="linkify icon"></i>
                                     </button>
-                            </div>
-                            <br> {{getLinkerState('CAMERA')}}
-                        </th>
-                        <th>
-                            <img class="lvw-header-images" src="images/icons/spotlight-icon.png"><br>
-                            <div class="ui icon buttons">
-                                <button class="ui button" ng-click="setLinkerState('LIGHTS', 'LINK-ADD')">
+                    </div>
+                    <br> {{getLinkerState('CAMERA')}}
+                    <div id="lvw-link-view-2"></div>
+                </th>
+                <th>
+                    <img class="lvw-header-images" src="images/icons/spotlight-icon.png"><br>
+                    <div class="ui icon buttons">
+                        <button class="ui button" ng-click="setLinkerState('LIGHTS', 'LINK-ADD')">
                                 <i class="add icon"></i>
                                 <i class="linkify icon"></i>
 
                             </button>
-                                <button class="ui button" ng-click="setLinkerState('LIGHTS', 'LINK-REMOVE')">
+                        <button class="ui button" ng-click="setLinkerState('LIGHTS', 'LINK-REMOVE')">
                                 <i class="minus icon"></i>
                                 <i class="linkify icon"></i>
                                     </button>
-                            </div>
-                            <br> {{getLinkerState('LIGHTS')}}
-                        </th>
-                        <th>
-                            <img class="lvw-header-images" src="images/icons/graph-icon.png"><br>
-                            <div class="ui icon buttons">
-                                <button class="ui button" ng-click="setLinkerState('TRANSFER_FUNCTION', 'LINK-ADD')">
+                    </div>
+                    <br> {{getLinkerState('LIGHTS')}}
+                    <div id="lvw-link-view-3"></div>
+                </th>
+                <th>
+                    <img class="lvw-header-images" src="images/icons/graph-icon.png"><br>
+                    <div class="ui icon buttons">
+                        <button class="ui button" ng-click="setLinkerState('TRANSFER_FUNCTION', 'LINK-ADD')">
                                 <i class="add icon"></i>
                                 <i class="linkify icon"></i>
 
                             </button>
-                                <button class="ui button" ng-click="setLinkerState('TRANSFER_FUNCTION', 'LINK-REMOVE')">
+                        <button class="ui button" ng-click="setLinkerState('TRANSFER_FUNCTION', 'LINK-REMOVE')">
                                 <i class="minus icon"></i>
                                 <i class="linkify icon"></i>
                                     </button>
-                            </div>
-                            <br> {{getLinkerState('TRANSFER_FUNCTION')}}
-                        </th>
-                    </tr>
-                </thead>
+                    </div>
+                    <br> {{getLinkerState('TRANSFER_FUNCTION')}}
+                    <div id="lvw-link-view-4"></div>
+                </th>
+            </tr>
+        </thead>
+        <!--
                 <tbody>
                     <tr>
                         <td>
@@ -94,5 +146,6 @@
                         </td>
                     </tr>
                 </tbody>
-            </table>
-        </div>
+
+    </table-->
+</div>

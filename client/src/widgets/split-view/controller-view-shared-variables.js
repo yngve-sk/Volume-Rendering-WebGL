@@ -1,20 +1,20 @@
 let divIDs = {
     ADD: 'lvw-add-view',
     linkers: {
-        SLICER_SPHERE: 'lvw-link-view-1',
+        TRANSFER_FUNCTION: 'lvw-link-view-1',
         CAMERA: 'lvw-link-view-2',
-        LIGHTS: 'lvw-link-view-3',
-        TRANSFER_FUNCTION: 'lvw-link-view-4'
+        SLICER: 'lvw-link-view-3',
+        SPHERE_AND_LIGHTS: 'lvw-link-view-4'
     }
 };
 
 let add = 'ADD';
 
 let linkers = {
-    'SLICER_SPHERE': 'SLICER_SPHERE',
+    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
     'CAMERA': 'CAMERA',
-    'LIGHTS': 'LIGHTS',
-    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION'
+    'SLICER': 'SLICER',
+    'SPHERE_AND_LIGHTS': 'SPHERE_AND_LIGHTS'
 };
 
 

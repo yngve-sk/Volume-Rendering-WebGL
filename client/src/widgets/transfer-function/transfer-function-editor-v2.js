@@ -4,6 +4,8 @@ let $ = require('jquery');
 let ColorGradient = require('./color-gradient');
 let Environment = require('../../core/environment');
 
+let TFEditorSettings = require('../../core/settings').Widgets.TransferFunction.Editor;
+
 /**
  * Represents the front-end of the transfer function editor.
  * Reads in user actions and writes to underlying objects,
@@ -101,27 +103,29 @@ class TransferFunctionEditor {
         /*     INTERACTION STATES, OPTIONS & MODELREF     */
         /*------------------------------------------------*/
         this.getInteractionMode = getInteractionMode;
+        /*
 
-        this.options = {
-            leftAxisWidthPercentage: 0.07,
-            bottomAxisHeightPercentage: 0.25,
-            isoValueAxisHeightPercentage: 0.110,
-            curve: d3.curveLinear,
-            controlPointSplineCurve: d3.curveLinear,
-            contentTopPaddingPercentage: 0.2,
-            content: {
-                circleRadius: 5.5
-            },
-            canvas: {
-                texturePreviewHeightPercentage: 0.2
-            },
-            colorGradient: {
-                triangleSize: 35,
-                crossSize: 35,
-                trianglesGroupTranslateY: -8,
-                crossTranslateY: 14
-            }
-        };
+                this.options = {
+                    leftAxisWidthPercentage: 0.07,
+                    bottomAxisHeightPercentage: 0.25,
+                    isoValueAxisHeightPercentage: 0.110,
+                    curve: d3.curveLinear,
+                    controlPointSplineCurve: d3.curveLinear,
+                    contentTopPaddingPercentage: 0.2,
+                    content: {
+                        circleRadius: 5.5
+                    },
+                    canvas: {
+                        texturePreviewHeightPercentage: 0.2
+                    },
+                    colorGradient: {
+                        triangleSize: 35,
+                        crossSize: 35,
+                        trianglesGroupTranslateY: -8,
+                        crossTranslateY: 14
+                    }
+                };
+        */
 
         this.originalSize = {
             total: {
@@ -197,6 +201,10 @@ class TransferFunctionEditor {
             this._resize()
         }, false);
 
+        window.addEventListener('resizeTFEditor', () => {
+            this._resize()
+        }, false);
+
         d3.select(window).on("keydown", () => {
             this._keydown();
         });
@@ -254,7 +262,9 @@ class TransferFunctionEditor {
 
         // Used to scale groups and their children,
         //will also be basis for the original coord system.
-        let sizes = this._getSizes();
+        let res = TFEditorSettings.Resolution;
+        let sizes = this._getSizesFromTotal(res.width, res.height);
+
         this.originalSize.total = sizes.total;
         this.originalSize.content = sizes.content;
 
@@ -428,14 +438,15 @@ class TransferFunctionEditor {
         this.scales.total.y = d3.scaleLinear().domain([1, 0]).range([0, this.sizes.total.height]);
 
 
+        let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
         let pp = 2;
 
         this.eventListenerRect
-            .attr('x', this.sizes.content.x0 - pp * this.options.content.circleRadius)
-            .attr('y', this.sizes.content.y0 - pp * this.options.content.circleRadius)
-            .attr('width', this.sizes.content.width + pp * 2 * this.options.content.circleRadius)
-            .attr('height', this.sizes.content.height + pp * 2 * this.options.content.circleRadius);
+            .attr('x', this.sizes.content.x0 - pp * circleRadius)
+            .attr('y', this.sizes.content.y0 - pp * circleRadius)
+            .attr('width', this.sizes.content.width + pp * 2 * circleRadius)
+            .attr('height', this.sizes.content.height + pp * 2 * circleRadius);
 
         this.histogramSelectionGroup
             .attr('transform',
@@ -458,11 +469,13 @@ class TransferFunctionEditor {
         //+'scale(' + this.scale.x + ', ' + this.scale.y + ')');
         this._refreshTransferFunctionSplinesAndControlPoints();
 
+        let texturePreviewHeightPercentage = TFEditorSettings.Layout.texturePreviewHeightPercentage;
+
         this.canvas
             .style('left', this.sizes.content.x0)
-            .style('top', this.sizes.content.y0 - this.sizes.content.height * this.options.canvas.texturePreviewHeightPercentage)
+            .style('top', this.sizes.content.y0 - this.sizes.content.height * texturePreviewHeightPercentage)
             .style('width', this.sizes.content.width)
-            .style('height', this.sizes.content.height * (1 + this.options.canvas.texturePreviewHeightPercentage));
+            .style('height', this.sizes.content.height * (1 + texturePreviewHeightPercentage));
 
         //    this.colorGradientRect
         //        .attr('x', this.sizes.content.x0)
@@ -493,20 +506,16 @@ class TransferFunctionEditor {
                 'scale(' + this.scale.x + ', ' + this.scale.y + ')');
     }
 
-    _getSizes() {
-        let totalWidthPX = this.svgMain.style('width'),
-            totalHeightPX = this.svgMain.style('height');
+    _getSizesFromTotal(totalWidth, totalHeight) {
+        let layout = TFEditorSettings.Layout;
 
-        let totalWidth = parseFloat(totalWidthPX.replace('px', '')),
-            totalHeight = parseFloat(totalHeightPX.replace('px', ''))*0.9;
+        let contentY0 = layout.contentTopPaddingPercentage * totalHeight;
 
-        let contentY0 = this.options.contentTopPaddingPercentage * totalHeight;
-
-        let contentWidth = (1 - this.options.leftAxisWidthPercentage) * totalWidth,
-            contentHeight = (1 - this.options.bottomAxisHeightPercentage - this.options.contentTopPaddingPercentage) * totalHeight;
+        let contentWidth = (1 - layout.leftAxisWidthPercentage) * totalWidth,
+            contentHeight = (1 - layout.bottomAxisHeightPercentage - layout.contentTopPaddingPercentage) * totalHeight;
 
         let bottomAxisY0 = contentY0 + contentHeight,
-            bottomAxisIsovaluesHeight = this.options.isoValueAxisHeightPercentage * totalHeight,
+            bottomAxisIsovaluesHeight = layout.isoValueAxisHeightPercentage * totalHeight,
             bottomAxisColorGradientRectY0 = bottomAxisY0 + bottomAxisIsovaluesHeight,
             bottomAxisColorGradientRectHeight = totalHeight - bottomAxisColorGradientRectY0;
 
@@ -517,7 +526,7 @@ class TransferFunctionEditor {
                 height: totalHeight
             },
             content: {
-                x0: this.options.leftAxisWidthPercentage * totalWidth,
+                x0: layout.leftAxisWidthPercentage * totalWidth,
                 y0: contentY0,
                 width: contentWidth,
                 height: contentHeight
@@ -533,6 +542,16 @@ class TransferFunctionEditor {
                 }
             }
         };
+    }
+
+    _getSizes() {
+        let totalWidthPX = this.svgMain.style('width'),
+            totalHeightPX = this.svgMain.style('height');
+
+        let totalWidth = parseFloat(totalWidthPX.replace('px', '')),
+            totalHeight = parseFloat(totalHeightPX.replace('px', '')) * 0.9;
+
+        return this._getSizesFromTotal(totalWidth, totalHeight);
 
     }
 
@@ -643,7 +662,7 @@ class TransferFunctionEditor {
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -652,7 +671,7 @@ class TransferFunctionEditor {
             });
 
         let area = d3.area()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -689,7 +708,7 @@ class TransferFunctionEditor {
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -698,7 +717,7 @@ class TransferFunctionEditor {
             });
 
         let area = d3.area()
-            .curve(this.options.curve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((isovalue, i) => {
                 return xScale(i);
             })
@@ -731,7 +750,7 @@ class TransferFunctionEditor {
     _renderControlPointSplines() {
 
         this.splines = d3.line()
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return this.scales.content.x(d[0]);
             })
@@ -750,9 +769,10 @@ class TransferFunctionEditor {
         let circles = this.transferFunctionControlPointGroup.selectAll(".circle")
             .data(this.controlPoints);
         let self = this;
+        let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
         circles.enter().append("circle")
-            .attr("r", this.options.content.circleRadius)
+            .attr("r", circleRadius)
             .attr('class', 'tf-editor-control-point')
             .on("mousedown", (d) => {
                 this.selected = this.dragged = d;
@@ -780,7 +800,7 @@ class TransferFunctionEditor {
             .classed("selected", (d) => {
                 return d === this.selected;
             })
-            .attr("r", this.options.content.circleRadius);
+            .attr("r", circleRadius);
 
         circles
 
@@ -848,7 +868,7 @@ class TransferFunctionEditor {
             });
 
             let splines = d3.line() // Used for opacity TF stuff
-                .curve(this.options.controlPointSplineCurve)
+                .curve(TFEditorSettings.TransferFunctionDisplay.curve)
                 .x((d) => {
                     return x(d[0]);
                 })
@@ -942,7 +962,7 @@ class TransferFunctionEditor {
             x: 0,
             y: 0,
             width: canvasNode.width,
-            height: canvasNode.height * this.options.canvas.texturePreviewHeightPercentage
+            height: canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage
         }
     }
 
@@ -963,7 +983,7 @@ class TransferFunctionEditor {
         });
 
         let splines = d3.line() // Used for opacity TF stuff
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return x(d[0]);
             })
@@ -972,7 +992,7 @@ class TransferFunctionEditor {
             });
 
         let tWidth = canvasNode.width,
-            tHeight = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+            tHeight = canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage;
 
         let x0 = 0,
             x1 = tWidth,
@@ -1042,7 +1062,7 @@ class TransferFunctionEditor {
         });
 
         let splines = d3.line() // Used for opacity TF stuff
-            .curve(this.options.controlPointSplineCurve)
+            .curve(TFEditorSettings.TransferFunctionDisplay.curve)
             .x((d) => {
                 return x(d[0]);
             })
@@ -1050,7 +1070,7 @@ class TransferFunctionEditor {
                 return y(d[1]);
             });
 
-        let offsetY = canvasNode.height * this.options.canvas.texturePreviewHeightPercentage;
+        let offsetY = canvasNode.height * TFEditorSettings.Layout.texturePreviewHeightPercentage;
 
         let cWidth = canvasNode.width,
             cHeight = canvasNode.height - offsetY;
@@ -1138,11 +1158,11 @@ class TransferFunctionEditor {
     _renderColorGradientControlPoints(sizes) {
         let triangle = d3.symbol()
             .type(d3.symbolTriangle)
-            .size(this.options.colorGradient.triangleSize);
+            .size(TFEditorSettings.ColorGradientDisplay.triangleSize);
 
         let cross = d3.symbol()
             .type(d3.symbolCross)
-            .size(this.options.colorGradient.crossSize);
+            .size(TFEditorSettings.ColorGradientDisplay.crossSize);
 
         let groups = this.colorGradientControlPointsGroup
             .selectAll('.node')
@@ -1166,7 +1186,7 @@ class TransferFunctionEditor {
         console.log();
         console.log(this.colorGradientRect.node().height);
         let cgRectHeight = parseFloat(this.colorGradientRect.attr('height'));
-        let crossTY = this.options.colorGradient.crossTranslateY;
+        let crossTY = TFEditorSettings.ColorGradientDisplay.crossTranslateY;
 
         let ty = cgRectHeight + crossTY;
 

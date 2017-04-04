@@ -1,45 +1,20 @@
 <div class="tf-controls-container">
     <!-- TOP CONTAINER START -->
-    <div class="tf-top-controls-container">
-        <div class="tf-display-options-container">
-            <!-- TF DISPLAY OPTIONS -->
-            <center>Show...</center>
-            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogram" label="Histogram">
-            </sm-checkbox><br>
-            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogramSelection" label="Selection">
-            </sm-checkbox><br>
-            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showTransferFunction" label="Transfer Function">
-            </sm-checkbox><br>
-            <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.show3DSelectionHistogram" label="3D Sel. Histogram" enabled="false">
-            </sm-checkbox>
 
-        </div>
-
-        <div class="tf-gmag-curv-sliders-container">
-            <!-- G-mag / Curvature weighting on opacity -->
-            <rzslider rz-slider-model="gradientMagSlider.weighting"></rzslider>
-            <center>Surface Weighting</center>
-            <br>
-            <rzslider rz-slider-model="curvatureSlider.weighting"></rzslider>
-            <center>Curvature Weighting</center>
-        </div>
-
-    </div>
     <!-- TOP CONTAINER END -->
 
     <!-- INTERACTION MODE SELECTION START -->
-    <div>
+    <div class="tf-editor-interaction-mode-container">
 
-        <center>TF Interaction Mode</center>
+        <center class="widget-centered-h1">Interaction Mode</center>
         <div class="inline fields">
             <div class="field">
-                <sm-radio name="iMode" model="interactionMode" enabled="false" label="Select" value="1">
+                <sm-radio name="iMode" model="interactionMode" enabled="false" label="Histogram" value="1">
             </div>
             <div class="field">
-                <sm-radio name="iMode" model="interactionMode" label="Edit Transfer Function" value="2">
+                <sm-radio name="iMode" model="interactionMode" label="Transfer Function" value="2">
             </div>
         </div>
-
     </div>
     <!--           <div>
         <div class="ui segment">
@@ -80,7 +55,37 @@
             <!--div class="tf-d3-container ng-id-{{$id}}"></div-->
         </div>
     </div>
+    <div class="tf-top-controls-container">
+        <div class="tf-display-options-container">
+            <!-- TF DISPLAY OPTIONS -->
+            <center class="widget-centered-h2">Show...</center>
+            <div>
+                <div style="float: left">
+                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogram" label="Histogram">
+                    </sm-checkbox><br>
+                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogramSelection" label="Selection">
+                    </sm-checkbox><br>
+                </div>
+                <div style="float: right">
+                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showTransferFunction" label="Transfer Function">
+                    </sm-checkbox><br>
+                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.show3DSelectionHistogram" label="3D Sel. Histogram" enabled="false">
+                    </sm-checkbox>
+                </div>
+            </div>
+        </div>
 
+        <div class="tf-gmag-curv-sliders-container">
+            <!-- G-mag / Curvature weighting on opacity -->
+            <div>
+                <rzslider rz-slider-model="gradientMagSlider.weighting" style="width: 48%"></rzslider>
+                <rzslider rz-slider-model="curvatureSlider.weighting" style="width: 48%"></rzslider>
+            </div>
+            <span style="float: left">Gradient Magnitude<br>Weighting</span>
+            <span style="float: right">Curvature Weighting</span>
+        </div>
+
+    </div>
     <p>Histogram: {{displayOptions.showHistogram}}</p>
     <p>TF: {{displayOptions.showTransferFunction}}</p>
     <p>Selection: {{displayOptions.showSelection}}</p>

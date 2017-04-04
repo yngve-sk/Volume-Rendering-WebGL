@@ -1,0 +1,14 @@
+<div id="dataset-manager-view-container">
+
+    <div id="dataset-manager-view-status">
+        <center>{{loaderText}}</center>
+        <div class="ui centered active inline loader"></div>
+    </div>
+    <center class="widget-centered-h1">Dataset Manager</center>
+    <center>
+        <p id="dataset-manager-status2" style="display:none">Currently loaded: {{selectedDataset}}</p>
+        <sm-dropdown class="selection" model="selectedDataset" items="datasets"></sm-dropdown><br><br>
+        <sm-button ng-click="loadSelectedDataset()">Load Selected Dataset</sm-button><br>
+        <sm-checkbox model="loadAutomatically" label="Load Automatically"></sm-checkbox>
+    </center>
+</div>

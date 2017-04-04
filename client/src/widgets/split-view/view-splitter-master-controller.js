@@ -1,6 +1,7 @@
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let shared = require('./controller-view-shared-variables');
+let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
 
 window.addEventListener('resize', () => {
     dispatch("refresh");
@@ -125,24 +126,21 @@ let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, other
 
 */
 
+
 let viewSettings = {
     divID: '',
-    maxRows: 3,
-    maxColumns: 4,
+    maxRows: BaseSettings.maxRows,
+    maxColumns: BaseSettings.maxColumns,
     aspectRatio: {
-        width: 4,
+        width: 8,
         height: 3
     },
-    showIDs: true,
+    showIDs: BaseSettings.showIDs,
     state: 'ADD',
     canLink: true,
     canAddRemove: false,
-    bottomTopThresholdPercentage: 0.20,
-    colors: {
-        'LINKS': ['red', 'green', 'white', 'purple', 'brown'],
-        'REMOVE': 'red',
-        'ADD': 'green'
-    }
+    bottomTopThresholdPercentage: BaseSettings.bottomTopThresholdPercentage,
+    colors: BaseSettings.colors
 };
 
 let genLinkingView = (divID, settings) => {
