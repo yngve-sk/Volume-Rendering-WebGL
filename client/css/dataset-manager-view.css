@@ -1,0 +1,11 @@
+.dataset-manager-view-container {
+    height: 250px;
+    width: 100%;
+}
+
+.dataset-manager-view-status {
+    width: 50%;
+    margin-left: 25%;
+    padding-bottom: 20px;
+    display: block;
+}

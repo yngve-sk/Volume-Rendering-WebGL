@@ -5,6 +5,22 @@
 @import url("control-panel-accordion-style.css");
 @import url("control-panel-style.css");
 @import url("override-default-misc.css");
+@import url("dataset-manager-view.css");
+
+/* Shared for all widgets, h1 h2 etc */
+
+.widget-centered-h1 {
+    border-bottom: 1px black solid;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+.widget-centered-h2 {
+    border-bottom: 1px grey solid;
+}
+
+
+/* */
 
 #master-container {
     width: 100vw;

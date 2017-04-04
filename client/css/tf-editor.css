@@ -1,6 +1,8 @@
 .tf-editor-container {
     position: relative;
     width: 100%;
+    min-width: 150px;
+    min-height: 100px;
 }
 
 .tf-editor-background-canvas {
@@ -16,22 +18,45 @@
     background: transparent;
 }
 
-.tf-controls-container {
+.tf-editor-interaction-mode-container {}
 
+.tf-editor-interaction-mode-container>div>div.field {
+    display: inline-block;
+}
+
+.tf-editor-interaction-mode-container>div>div.field>div>label {
+    margin: 0px;
+}
+
+.tf-controls-container {
+    min-width: 280px;
 }
 
 .tf-display-options-container {
-    display: inline-block;
-    width: 50%;
-    position: relative;
-    top: -15%;
+    width: 100%;
+    min-width: 255px;
+    height: 80px;
+    background: #eee;
+    border-radius: 6px;
+    padding-left: 5px;
+    padding-right: 3px;
+    border: 1px black dashed;
+    box-sizing: content-box;
 }
 
 .tf-gmag-curv-sliders-container {
     position: relative;
-    top: -11%;
     display: inline-block;
-    width: 50%;
+    width: 100%;
+    border-radius: -13px;
+    padding-left: 5px;
+    padding-right: 3px;
+    padding-bottom: 7px;
+    border-bottom: 4px black solid;
+    margin-top: 6px;
+    padding-top: 2px;
+    border-top: 2px black solid;
+    box-sizing: content-box;
 }
 
 .tf-top-controls-container {
