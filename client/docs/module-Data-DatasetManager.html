@@ -136,7 +136,7 @@
 
 
 
-    <h4 class="name" id="addDataset"><span class="type-signature"></span>addDataset<span class="signature">(name, isovalues)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="addDataset"><span class="type-signature"></span>addDataset<span class="signature">(args)</span><span class="type-signature"></span></h4>
 
 
 
@@ -155,6 +155,48 @@
 
 
     <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>args</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">
+                <h6>Properties</h6>
 
 
 <table class="params">
@@ -202,6 +244,29 @@
 
         <tr>
 
+                <td class="name"><code>header</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">The header of the dataset</td>
+        </tr>
+
+
+
+        <tr>
+
                 <td class="name"><code>isovalues</code></td>
 
 
@@ -219,6 +284,13 @@
 
 
             <td class="description last">The isovalues scaled up to a range of [0, 2^15]</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+            </td>
         </tr>
 
 
@@ -1155,7 +1227,7 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Models.html">Core/Models</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.ModelManager.html">ModelManager</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Models.html">Core/Models</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Settings.html">Settings</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.ModelManager.html">ModelManager</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul>
 </nav>
 
 <br class="clear">
