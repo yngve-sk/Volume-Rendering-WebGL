@@ -1,0 +1,13 @@
+.camera-settings-view-container {
+    height: 255px;
+}
+
+.camera-mode-container {}
+
+.camera-align-axis-buttons-container {}
+
+.camera-zoom-container {}
+
+.camera-mode-container>center>div>div>label {
+    margin: 0;
+}

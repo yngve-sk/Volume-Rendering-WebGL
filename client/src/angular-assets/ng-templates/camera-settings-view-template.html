@@ -1,0 +1,54 @@
+<div class="camera-settings-view-container">
+    <div class="camera-mode-container">
+        <center>
+            <center class="widget-centered-h1">Camera Mode</center>
+            <div class="ui buttons">
+                <sm-radio
+                          class="button"
+                          label="ortho" name="cameraMode"
+                          ng-click="setCameraMode('ortho')">
+                </sm-radio>
+                <sm-radio
+                          class="button"
+                          ng-click="setCameraMode('perspective')" label="perspective" name="cameraMode">
+                </sm-radio>
+
+                <!--
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Perspective</label>
+                </div>
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Orthographic</label>
+                </div>
+-->
+
+            </div>
+
+        </center>
+    </div>
+    <br>
+
+    <div class="camera-align-axis-buttons-container">
+        <center>
+            <center class="widget-centered-h1">Align Camera With Axis</center>
+            <div class="ui buttons">
+                <div class="ui button" ng-click="alignCamera('X')">X</div>
+                <div class="ui button" ng-click="alignCamera('Y')">Y</div>
+                <div class="ui button" ng-click="alignCamera('Z')">Z</div>
+            </div>
+
+        </center>
+    </div>
+    <br>
+    <div class="camera-zoom-container widget-bottom-element">
+        <center class="widget-centered-h1">Zoom</center>
+        <center>
+            <div class="ui big button" ng-click="resetZoom()">Reset Zoom</div>
+            <div class="ui label">
+                100%
+            </div>
+        </center>
+    </div>
+</div>

@@ -6,6 +6,7 @@
 @import url("control-panel-style.css");
 @import url("override-default-misc.css");
 @import url("dataset-manager-view.css");
+@import url("camera-settings-view.css");
 
 /* Shared for all widgets, h1 h2 etc */
 
@@ -17,6 +18,18 @@
 
 .widget-centered-h2 {
     border-bottom: 1px grey solid;
+}
+
+.widget-bottom-element {
+    padding-bottom: 7px;
+    border-bottom: 4px black solid;
+    padding-left: 5px;
+    padding-right: 3px;
+/*
+    margin-top: 6px;
+    padding-top: 2px;
+*/
+    box-sizing: content-box;
 }
 
 

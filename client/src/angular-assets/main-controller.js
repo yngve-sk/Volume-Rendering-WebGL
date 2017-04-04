@@ -27,9 +27,12 @@ app.controller('master-controller', require('./ng-controllers/master-controller'
 //-----    --   --  --  --  - - - - - DIRECTIVES  -----    --   --  --  --  - - - - -//
 //_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_-//
 //          (Directives can contain controllers of their own...)
-app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('linksAndViewsView', require('./ng-directives/links-and-views-view'));
+
+app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('datasetManagerView', require('./ng-directives/dataset-view'));
+app.directive('cameraSettingsView', require('./ng-directives/camera-settings-view'));
+
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));

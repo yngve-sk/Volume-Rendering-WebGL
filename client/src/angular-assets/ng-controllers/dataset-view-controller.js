@@ -100,13 +100,15 @@ let controller = function ($scope, $timeout) {
 
                     })
                     .catch((e) => {
-                        $scope.loaderText = 'Timed out getting isovalues (timeout = ' + Timeouts.getDatasetIsovalues + ')';
+                        $scope.loaderText = 'Timed out getting isovalues (timeout = ' + Timeouts.getDatasetIsovalues + ' ms)';
                         $scope.$apply();
                     })
             })
             .catch((e) => {
-                alert("Timed out getting header...");
-            })
+                $scope.loaderText = 'Timed out getting header... (max wait = ' + Timeouts.getDatasetHeader + ' ms)';
+                $scope.$apply();
+                setLoaderVisibility(false);
+            });
     }
 
 

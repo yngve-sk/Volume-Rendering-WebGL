@@ -42559,9 +42559,12 @@ app.controller('master-controller', require('./ng-controllers/master-controller'
 //-----    --   --  --  --  - - - - - DIRECTIVES  -----    --   --  --  --  - - - - -//
 //_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_--_-//
 //          (Directives can contain controllers of their own...)
-app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('linksAndViewsView', require('./ng-directives/links-and-views-view'));
+
+app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('datasetManagerView', require('./ng-directives/dataset-view'));
+app.directive('cameraSettingsView', require('./ng-directives/camera-settings-view'));
+
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
@@ -42576,7 +42579,31 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":17,"./ng-directives/dataset-view":19,"./ng-directives/global-control-panel-view":20,"./ng-directives/links-and-views-view":21,"./ng-directives/local-control-panel-view":22,"./ng-directives/transfer-function-view":23}],13:[function(require,module,exports){
+},{"./ng-controllers/master-controller":18,"./ng-directives/camera-settings-view":20,"./ng-directives/dataset-view":21,"./ng-directives/global-control-panel-view":22,"./ng-directives/links-and-views-view":23,"./ng-directives/local-control-panel-view":24,"./ng-directives/transfer-function-view":25}],13:[function(require,module,exports){
+let Environment = require('../../core/environment');
+
+let controller = function ($scope, $timeout) {
+
+    $scope.cameraMode = 'perspective';
+
+    $scope.setCameraMode = (mode) => {
+        $scope.cameraMode = mode;
+    }
+
+    $scope.alignCamera = (align) => {
+        console.log("align " + align);
+    }
+
+    $scope.resetZoom = () => {
+        console.log("Reset zoom!");
+    }
+
+    $scope.DOMReady = () => {}
+}
+
+module.exports = controller;
+
+},{"../../core/environment":27}],14:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -42679,13 +42706,15 @@ let controller = function ($scope, $timeout) {
 
                     })
                     .catch((e) => {
-                        $scope.loaderText = 'Timed out getting isovalues (timeout = ' + Timeouts.getDatasetIsovalues + ')';
+                        $scope.loaderText = 'Timed out getting isovalues (timeout = ' + Timeouts.getDatasetIsovalues + ' ms)';
                         $scope.$apply();
                     })
             })
             .catch((e) => {
-                alert("Timed out getting header...");
-            })
+                $scope.loaderText = 'Timed out getting header... (max wait = ' + Timeouts.getDatasetHeader + ' ms)';
+                $scope.$apply();
+                setLoaderVisibility(false);
+            });
     }
 
 
@@ -42701,7 +42730,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":24,"../../core/environment":25,"../../core/settings":32}],14:[function(require,module,exports){
+},{"../../client2server/websocket-client":26,"../../core/environment":27,"../../core/settings":34}],15:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42720,7 +42749,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":24,"../../core/environment":25}],15:[function(require,module,exports){
+},{"../../client2server/websocket-client":26,"../../core/environment":27}],16:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
@@ -42815,7 +42844,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":25,"../../widgets/split-view/controller-view-shared-variables":39,"../../widgets/split-view/view-splitter-master-controller":46}],16:[function(require,module,exports){
+},{"../../core/environment":27,"../../widgets/split-view/controller-view-shared-variables":41,"../../widgets/split-view/view-splitter-master-controller":48}],17:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42828,7 +42857,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":24,"../../core/environment":25}],17:[function(require,module,exports){
+},{"../../client2server/websocket-client":26,"../../core/environment":27}],18:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -42868,7 +42897,7 @@ module.exports = function ($scope) {
 
 };
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -42978,7 +43007,29 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":25,"../../widgets/transfer-function/transfer-function-editor-v2":48,"jquery":7,"spectrum-colorpicker":8}],19:[function(require,module,exports){
+},{"../../core/environment":27,"../../widgets/transfer-function/transfer-function-editor-v2":50,"jquery":7,"spectrum-colorpicker":8}],20:[function(require,module,exports){
+let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: {},
+        replace: true,
+        transclude: true,
+        controller: cameraSettingsViewController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+
+                scope.DOMReady();
+            }, 0);
+        },
+        templateUrl: 'src/angular-assets/ng-templates/camera-settings-view-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/camera-settings-view-controller":13}],21:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -42999,7 +43050,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":13}],20:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":14}],22:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43022,7 +43073,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":14}],21:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":15}],23:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -43044,7 +43095,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":15}],22:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":16}],24:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43066,7 +43117,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":16}],23:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":17}],25:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -43097,7 +43148,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":25,"../ng-controllers/transfer-function-view-controller":18}],24:[function(require,module,exports){
+},{"../../core/environment":27,"../ng-controllers/transfer-function-view-controller":19}],26:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -43208,7 +43259,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":38,"blob-to-buffer":2}],25:[function(require,module,exports){
+},{"../main":40,"blob-to-buffer":2}],27:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -43409,7 +43460,7 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":24,"../core/views/view-manager":34,"../datasets&selections/dataset-manager":35,"../widgets/split-view/view-splitter-master-controller":46,"../widgets/transfer-function/transfer-function":50,"../widgets/transfer-function/transfer-function-manager":49,"./interaction-modes":26}],26:[function(require,module,exports){
+},{"../client2server/websocket-client":26,"../core/views/view-manager":36,"../datasets&selections/dataset-manager":37,"../widgets/split-view/view-splitter-master-controller":48,"../widgets/transfer-function/transfer-function":52,"../widgets/transfer-function/transfer-function-manager":51,"./interaction-modes":28}],28:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -43464,7 +43515,7 @@ module.exports = {
     }
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 let m4 = require('twgl.js').m4;
 
 
@@ -43519,7 +43570,7 @@ class Camera {
 
 module.exports = Camera;
 
-},{"twgl.js":10}],28:[function(require,module,exports){
+},{"twgl.js":10}],30:[function(require,module,exports){
 /** @module:Core/Models/Lights */
 
 /**
@@ -43532,7 +43583,7 @@ class LightModel {
 
 module.exports = LightModel;
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 let SlicerModel = require('./slicer-model');
 let SphereModel = require('./sphere-model');
 let Camera = require('./camera');
@@ -43613,7 +43664,7 @@ class ModelManager {
 
 module.exports = ModelManager;
 
-},{"./camera":27,"./light-model":28,"./slicer-model":30,"./sphere-model":31}],30:[function(require,module,exports){
+},{"./camera":29,"./light-model":30,"./slicer-model":32,"./sphere-model":33}],32:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a slicer.
  * @memberof module:Core/Models
@@ -43630,7 +43681,7 @@ class SlicerModel {
 
 module.exports = SlicerModel;
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -43648,7 +43699,7 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 let d3 = require('d3');
 
 /** @module Settings */
@@ -43769,7 +43820,7 @@ let SETTINGS = {
 
 module.exports = SETTINGS;
 
-},{"d3":3}],33:[function(require,module,exports){
+},{"d3":3}],35:[function(require,module,exports){
 /**
  * Represents a subview, will manage the renderers for each
  * subview, and also hold pointers to the models which the
@@ -43868,7 +43919,7 @@ class Subview {
 
 module.exports = Subview;
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 let d3 = require('d3');
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
@@ -43982,7 +44033,7 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../widgets/split-view/miniature-split-view-overlay":41,"../../widgets/split-view/subcell-layout":44,"../models/model-manager":29,"./subview":33,"d3":3}],35:[function(require,module,exports){
+},{"../../widgets/split-view/miniature-split-view-overlay":43,"../../widgets/split-view/subcell-layout":46,"../models/model-manager":31,"./subview":35,"d3":3}],37:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -44103,7 +44154,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":36,"./volume-dataset":37}],36:[function(require,module,exports){
+},{"./selection":38,"./volume-dataset":39}],38:[function(require,module,exports){
 
 
 /**
@@ -44164,7 +44215,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44251,7 +44302,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],38:[function(require,module,exports){
+},{"d3":3}],40:[function(require,module,exports){
 
 
 
@@ -44270,7 +44321,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":12,"./client2server/websocket-client":24,"./core/environment":25}],39:[function(require,module,exports){
+},{"./angular-assets/main-controller":12,"./client2server/websocket-client":26,"./core/environment":27}],41:[function(require,module,exports){
 let divIDs = {
     ADD: 'lvw-add-view',
     linkers: {
@@ -44297,7 +44348,7 @@ module.exports = {
     add: add
 };
 
-},{}],40:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -44426,7 +44477,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":45,"underscore":11}],41:[function(require,module,exports){
+},{"./unique-index-bag":47,"underscore":11}],43:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44648,7 +44699,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],42:[function(require,module,exports){
+},{"d3":3}],44:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -45186,7 +45237,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":40,"./splitbox":43,"d3":3,"jquery":7,"underscore":11}],43:[function(require,module,exports){
+},{"./link-group":42,"./splitbox":45,"d3":3,"jquery":7,"underscore":11}],45:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -45557,7 +45608,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":45,"underscore":11}],44:[function(require,module,exports){
+},{"./unique-index-bag":47,"underscore":11}],46:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -45749,7 +45800,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],45:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -45791,7 +45842,7 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":11}],46:[function(require,module,exports){
+},{"underscore":11}],48:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let shared = require('./controller-view-shared-variables');
@@ -45964,7 +46015,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/settings":32,"./controller-view-shared-variables":39,"./miniature-split-view":42,"underscore":11}],47:[function(require,module,exports){
+},{"../../core/settings":34,"./controller-view-shared-variables":41,"./miniature-split-view":44,"underscore":11}],49:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -46101,7 +46152,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":9}],48:[function(require,module,exports){
+},{"tinycolor2":9}],50:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -47567,7 +47618,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":25,"../../core/settings":32,"./color-gradient":47,"d3":3,"jquery":7}],49:[function(require,module,exports){
+},{"../../core/environment":27,"../../core/settings":34,"./color-gradient":49,"d3":3,"jquery":7}],51:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -47744,7 +47795,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":50}],50:[function(require,module,exports){
+},{"./transfer-function":52}],52:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -47775,4 +47826,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":47,"d3":3}]},{},[38]);
+},{"./color-gradient":49,"d3":3}]},{},[40]);
