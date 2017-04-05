@@ -47,6 +47,10 @@ class Environment {
             TFModelDidChange: { // channel
                 'GLOBAL': null, // handle
                 'LOCAL': null
+            },
+            DatasetDidChange: {
+                'GLOBAL': null,
+                'LOCAL': null
             }
         }
 
@@ -83,9 +87,9 @@ class Environment {
                 isovalues: isovalues
             });
 
-
             // For now pretend only one dataset will be loaded at a time.
-
+            this._notifyListeners('DatasetDidChange', 'LOCAL');
+            this._notifyListeners('DatasetDidChange', 'GLOBAL');
         }
 
         this.readyElements = []; // Expect call from:
@@ -178,7 +182,8 @@ class Environment {
     /**
      * Binds a handle to listen for events at a given channel
      *
-     * @param {string} channel - Available channels: 'TFModelDidChange', (ez to add more...)
+     * @param {string} channel - Available channels:<br>
+     * 'TFModelDidChange', 'DatasetDidChange' (ez to add more...)
      * @param {string} key - The key of the listener
      * @param {function} handle - callback to be called when appropriate
      * (depends on the nature of the event).

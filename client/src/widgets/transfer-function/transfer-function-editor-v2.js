@@ -55,11 +55,20 @@ class TransferFunctionEditor {
         this.colorGradientObject = null;
         this.controlPoints = null;
 
-        this.notifyModelDidChange = () => {
-            this._updateModel();
+        this.notifyDatasetDidChange = () => {
+            console.log("DatasetDidChange " + EnvironmentTFKey);
+            this._updateDatasetModel();
         }
 
-        Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyModelDidChange);
+        this.notifyTFModelDidChange = () => {
+            this._updateTFModel();
+        }
+
+        Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyTFModelDidChange);
+
+        Environment.listen('DatasetDidChange', EnvironmentTFKey, this.notifyDatasetDidChange);
+
+
 
         /************************************************************/
         /************************************************************/
@@ -229,18 +238,20 @@ class TransferFunctionEditor {
         Environment.get3DViewSelectionsHistogramForTFEditor(this.EnvironmentTFKey)
     }
 
-    _updateModel() {
+    _updateTFModel() {
         this.tfModel = this._getModel();
         this.colorGradientObject = this.tfModel.colorGradient;
         this.controlPoints = this.tfModel.controlPoints;
+    }
 
+    _updateDatasetModel() {
         this.histogram = this._getHistogram();
         this.histogramSelection = this._getHistogramSelections();
         this.viewSelectionHistogram = this._get3DViewSelectionHistogram();
     }
 
     notifyModelDidChange() {
-        this._updateModel();
+        this._updateTFModel();
     }
 
 
@@ -603,6 +614,7 @@ class TransferFunctionEditor {
 
     _refreshTransferFunction() {
         this._clearTransferFunction();
+
         this._renderTransferFunction();
         this._renderColorGradientOntoCanvas();
     }
@@ -631,14 +643,9 @@ class TransferFunctionEditor {
         this._clear();
         let sizes = this._getSizes();
 
-        if (this.displayOptions.showHistogramSelection)
-            this._renderHistogramSelection(sizes);
-
-        if (this.displayOptions.showHistogram)
-            this._renderHistogram(sizes);
-
-        if (this.displayOptions.showTransferFunction)
-            this._renderTransferFunction();
+        this._renderHistogramSelection(sizes);
+        this._renderHistogram(sizes);
+        this._renderTransferFunction();
 
         this._renderColorGradient(sizes);
         this._renderColorGradientOntoCanvas(sizes);
@@ -648,7 +655,10 @@ class TransferFunctionEditor {
     }
 
     _renderHistogramSelection(sizes) {
-        let histogram = this._getHistogram();
+        if (!this.displayOptions.showHistogramSelection)
+            return;
+
+        let histogram = this._getHistogramSelections();
         if (!histogram || histogram.length === 0)
             return;
 
@@ -682,18 +692,21 @@ class TransferFunctionEditor {
 
         this.histogramSelectionGroup
             .append('path')
-            .datum(this.histogramSelectionRef)
+            .datum(histogram)
             .attr('d', line)
             .attr('class', 'tf-editor-3d-selection-histogram-line');
 
         this.histogramSelectionGroup
             .append('path')
-            .datum(this.histogramSelectionRef)
+            .datum(histogram)
             .attr('d', area)
             .attr('class', 'tf-editor-3d-selection-histogram-area');
     }
 
     _renderHistogram(sizes) {
+        if(!this.displayOptions.showHistogram)
+            return;
+
         let histogram = this._getHistogram();
         if (!histogram || histogram.length === 0)
             return;
@@ -740,6 +753,9 @@ class TransferFunctionEditor {
     }
 
     _renderTransferFunction() {
+        if (!this.displayOptions.showTransferFunction)
+            return;
+
         if (this.controlPoints === null || this.controlPoints.length === 0)
             return;
 
@@ -748,6 +764,8 @@ class TransferFunctionEditor {
     }
 
     _renderControlPointSplines() {
+        if (!this.displayOptions.showTransferFunction)
+            return;
 
         this.splines = d3.line()
             .curve(TFEditorSettings.TransferFunctionDisplay.curve)
@@ -766,6 +784,9 @@ class TransferFunctionEditor {
     }
 
     _renderControlPoints() {
+        if (!this.displayOptions.showTransferFunction)
+            return;
+
         let circles = this.transferFunctionControlPointGroup.selectAll(".circle")
             .data(this.controlPoints);
         let self = this;

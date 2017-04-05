@@ -10,7 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "angular": "^1.6.2",
-    "angularjs-slider": "^6.1.0",
     "bufferutil": "^3.0.0",
     "d3": "^4.6.0",
     "gl-matrix": "^2.3.2",

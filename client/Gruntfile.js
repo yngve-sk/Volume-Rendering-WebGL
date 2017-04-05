@@ -7,23 +7,14 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-cssmin');
 
     var srcFiles = [
-    'src/twgl.js',
-    'src/attributes.js',
-    'src/draw.js',
-    'src/framebuffers.js',
-    'src/programs.js',
-    'src/textures.js',
-    'src/typedarrays.js',
-    'src/vertex-arrays.js',
+
   ];
 
     var thirdPartyFiles = [
   ];
 
     var extraFiles = [
-    'src/v3.js',
-    'src/m4.js',
-    'src/primitives.js',
+
   ];
 
     var docsFiles = srcFiles.concat(extraFiles, 'README.md');
