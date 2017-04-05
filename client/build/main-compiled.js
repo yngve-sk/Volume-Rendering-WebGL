@@ -43802,6 +43802,7 @@ class FrameBufferManager {
 }
 
 module.exports = FrameBufferManager;
+
 },{}],35:[function(require,module,exports){
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
@@ -43930,6 +43931,7 @@ class ShaderManager {
 }
 
 module.exports = ShaderManager;
+
 },{}],37:[function(require,module,exports){
 /**
  * Represents a subview, will manage the renderers for each
