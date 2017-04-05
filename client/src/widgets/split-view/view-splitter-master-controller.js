@@ -1,7 +1,26 @@
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
-let shared = require('./controller-view-shared-variables');
+let LinkableModels = require('../../core/linkable-models').Models;
 let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
+
+let divIDs = {
+    ADD: 'lvw-add-view',
+    linkers: {
+        [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
+        [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
+        [LinkableModels.SLICER.name]: 'lvw-link-view-3',
+        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'lvw-link-view-4'
+    }
+};
+
+/** @module ViewSplitterMasterController
+ * @description Bundles together all the {@link module:Widgets/View.MiniatureSplitView} widgets, is responsible
+ * for the communication between the miniature split view widgets and the
+ * environment. Provides an easy way for the environment to fetch the information
+ * it needs from these widgets, such as link groupings and information about the
+ * current layout. Will also notify listeners of certain events, such as
+ * when the layout changes.
+ **/
 
 window.addEventListener('resize', () => {
     dispatch("refresh");
@@ -40,30 +59,56 @@ let changeAddRemoveState = (newState) => {
     views.ADD.changeState(newState);
 }
 
+
+
+/**
+ * Dictionary, mapping model name to a link grouper
+ * @typedef {Object.<string, module:Widgets/DataStructures~LinkGrouper>} ModelLinks
+ * @memberof module:ViewSplitterMasterController
+ **/
+
+/**
+ * Gets all link groupings
+ *
+ * @method getAllLinkGroupings
+ * @return {module:ViewSplitterMasterController.ModelLinks} modelLinks Link groupers per model
+ */
 let getAllLinkGroupings = () => {
     let groupings = {};
 
-    for (key in shared.linkers) {
-        groupings[key] = getLinkGroupingsForProperty(key);
+    for (let key in LinkableModels) {
+        groupings[key] = views.linkers[LinkableModels[key].name];
     }
 
     return groupings;
 }
 
+let getAllLinkModels = () => {
+    let propertyNames = [];
+
+    for (let key in LinkableModels)
+        propertyNames.push(LinkableModels[LinkableModels[key].name]);
+
+    return propertyNames;
+}
+
 let init = (callbacks) => {
-    views.ADD = genAddRemoveView(shared.divIDs.ADD, viewSettings);
+    views.ADD = genAddRemoveView(divIDs.ADD, viewSettings);
     views.ADD.render();
 
     let splitbox = views.ADD.layout;
     splitbox.setChangeListener(callbacks.layoutChanged);
 
-    for (let key in shared.linkers) {
-        let divID = shared.divIDs.linkers[key];
-        views.linkers[key] = genLinkingView(divID, viewSettings);
-        delete views.linkers[key].layout;
-        views.linkers[key].layout = splitbox; // make them all point to the same layout obj
-        views.linkers[key].setLinkChangedCallback(key, callbacks.linkChanged);
-        views.linkers[key].render();
+    for (let key in LinkableModels) {
+        let model = LinkableModels[key];
+        let divID = divIDs.linkers[model.name];
+        views.linkers[model.name] = genLinkingView(divID, viewSettings);
+        delete views.linkers[model.name].layout;
+
+        // make them all point to the same layout obj
+        views.linkers[model.name].layout = splitbox;
+        views.linkers[model.name].setLinkChangedCallback(model.name, callbacks.linkChanged);
+        views.linkers[model.name].render();
     }
 
     console.log("Dispatch refresh");
@@ -81,18 +126,24 @@ let init = (callbacks) => {
     }
 }
 
-let getMasterCellIDForProperty = (key, cellID) => {
+let getAllCellIDs = () => {
+    return getLayout().getActiveCellIDs();
+}
+
+let getMasterCellIDForModel = (key, cellID) => {
     return views.linkers[key].linkGroup.getMasterCellID(cellID);
 }
 
 let read = () => {
     return {
         links: {
-            getMasterCellIDForProperty: getMasterCellIDForProperty,
+            getMasterCellIDForModel: getMasterCellIDForModel,
+            getAllModels: getAllLinkModels
         },
         layout: {
             getLayout: getLayout,
-            getNumberOfSubviews: getNumberOfSubviews
+            getNumberOfSubviews: getNumberOfSubviews,
+            getAllCellIDs: getAllCellIDs
         }
     }
 }

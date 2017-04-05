@@ -28,17 +28,27 @@ class Subview {
 
         // Pointers to models stored in the model manager
         this.models = {
-            volume: null,
-            slicer: null,
-            sphere: null,
-            camera: null,
-            lights: null
+            volume: null, // pointer to iso2color texture obj
+            slicer: null, // pointer to state of slicer obj
+            sphere: null, // pointer to state of sphere obj
+            camera: null, // pointer to camera obj
+            lights: null // pointer to lights obj
         };
 
         this.viewports = {
-            volume: null,
-            slicer: null,
-            sphere: null
+            volume: null, // pointer to volume viewport obj
+            slicer: null, // pointer to slicer viewport obj
+            sphere: null // pointer to sphere viewport obj
+        };
+
+        this.shaders = {
+            volume: null, //pointer to volume current shader
+            slicer: null, //pointer to slicer current shader
+            sphere: null //pointer to sphere current shader
+        }
+
+        this.uniforms = {
+
         };
     }
 
@@ -47,16 +57,16 @@ class Subview {
             camera: this.models.camera,
             viewport: this.viewports.volume
         });
-
-        this.renderers.slicer.render({
-            model: this.models.slicer,
-            viewport: this.viewports.slicer
-        });
-
-        this.renderers.sphere.render({
-            model: this.models.sphere,
-            viewport: this.viewports.sphere
-        });
+        //
+        //        this.renderers.slicer.render({
+        //            model: this.models.slicer,
+        //            viewport: this.viewports.slicer
+        //        });
+        //
+        //        this.renderers.sphere.render({
+        //            model: this.models.sphere,
+        //            viewport: this.viewports.sphere
+        //        });
     }
 
     /**
@@ -80,6 +90,14 @@ class Subview {
      */
     notifyEventDidHappen(subcellName, event) {
         //this.models[subcellName].notifyEventDidHappen(event);
+    }
+
+    setShaders(shaders) {
+        this.shaders = shaders;
+    }
+
+    setShader(key, shader) {
+        this.shaders[key] = shader;
     }
 
     /**

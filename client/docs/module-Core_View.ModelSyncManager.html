@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: Widgets/TransferFunction</title>
+    <title>JSDoc: Class: ModelSyncManager</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: Widgets/TransferFunction</h1>
+    <h1 class="page-title">Class: ModelSyncManager</h1>
 
 
 
@@ -28,12 +28,94 @@
 
 <header>
 
+        <h2>
+            <span class="ancestors"><a href="module-Core_View.html">Core/View</a>.</span>ModelSyncManager</h2>
+
+            <div class="class-description">Keeps track of all models for all views, including one pointer per view,
+pointing to a model, this allows for linking / unlinking views.
+This is what binds the models to the subviews, while still allowing for
+simple linking/unlinking operations.</div>
 
 
 </header>
 
 <article>
     <div class="container-overview">
+
+
+
+
+    <h2>Constructor</h2>
+
+
+    <h4 class="name" id="ModelSyncManager"><span class="type-signature"></span>new ModelSyncManager<span class="signature">()</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Description for undefined
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -46,21 +128,6 @@
 
 
 
-        <h3 class="subsection-title">Classes</h3>
-
-        <dl>
-            <dt><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></dt>
-            <dd></dd>
-
-            <dt><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></dt>
-            <dd></dd>
-
-            <dt><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></dt>
-            <dd></dd>
-
-            <dt><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></dt>
-            <dd></dd>
-        </dl>
 
 
 
@@ -69,43 +136,35 @@
 
 
 
+        <h3 class="subsection-title">Methods</h3>
 
 
 
-        <h3 class="subsection-title">Type Definitions</h3>
 
 
 
-<h4 class="name" id=".CGControlPoint">CGControlPoint</h4>
+    <h4 class="name" id="addModel"><span class="type-signature"></span>addModel<span class="signature">(modelName, ObjConstructor)</span><span class="type-signature"></span></h4>
+
 
 
 
 
 <div class="description">
-    Represents one control point.
+    Adds a model to the sync manager
 </div>
 
 
 
-    <h5>Type:</h5>
-    <ul>
-        <li>
-
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
 
 
 
 
 
-    <h5 class="subsection-title">Properties:</h5>
+
+    <h5>Parameters:</h5>
 
 
-
-<table class="props">
+<table class="params">
     <thead>
     <tr>
 
@@ -127,7 +186,7 @@
 
         <tr>
 
-                <td class="name"><code>color</code></td>
+                <td class="name"><code>modelName</code></td>
 
 
             <td class="type">
@@ -143,20 +202,20 @@
 
 
 
-            <td class="description last">Color of the control points, as HEX</td>
+            <td class="description last">must be a valid model name representing Sphere, Slicer, Camera etc.</td>
         </tr>
 
 
 
         <tr>
 
-                <td class="name"><code>offset</code></td>
+                <td class="name"><code>ObjConstructor</code></td>
 
 
             <td class="type">
 
 
-<span class="param-type">number</span>
+<span class="param-type">Class</span>
 
 
 
@@ -166,12 +225,14 @@
 
 
 
-            <td class="description last">offset of the control point, must be in range [0,100].</td>
+            <td class="description last">Class with blank constructor to construct new objects</td>
         </tr>
 
 
     </tbody>
 </table>
+
+
 
 
 
@@ -218,36 +279,42 @@
 
 
 
-<h4 class="name" id=".DisplayOptions">DisplayOptions</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="addSubview"><span class="type-signature"></span>addSubview<span class="signature">(subviewID)</span><span class="type-signature"></span></h4>
+
 
 
 
 
 <div class="description">
-    Options for what to display in the transfer function editor.
+    Adds a subview and constructs a new instance of each model,
+and points it to its own instance.
 </div>
 
 
 
-    <h5>Type:</h5>
-    <ul>
-        <li>
-
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
 
 
 
 
 
-    <h5 class="subsection-title">Properties:</h5>
+
+    <h5>Parameters:</h5>
 
 
-
-<table class="props">
+<table class="params">
     <thead>
     <tr>
 
@@ -269,13 +336,13 @@
 
         <tr>
 
-                <td class="name"><code>showHistogram</code></td>
+                <td class="name"><code>subviewID</code></td>
 
 
             <td class="type">
 
 
-<span class="param-type">bool</span>
+<span class="param-type">number</span>
 
 
 
@@ -285,81 +352,14 @@
 
 
 
-            <td class="description last">Whether or not to display the histogram</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>showHistogramSelection</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">bool</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">Whether or not to display the histogram selection (will be highlighted @ renderer)</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>show3DSelectionHistogram</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">bool</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">Whether or not to show the histogram values of the selection made in the current renderer view bound to this editor</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>showTransferFunction</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">bool</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">Whether or not to show the transfer function splines and control points</td>
+            <td class="description last"></td>
         </tr>
 
 
     </tbody>
 </table>
+
+
 
 
 
@@ -406,36 +406,43 @@
 
 
 
-<h4 class="name" id=".TextureBounds">TextureBounds</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="getModels"><span class="type-signature"></span>getModels<span class="signature">(subviewID)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+
 
 
 
 
 <div class="description">
-    Represents texture bounds in the Canvas coordinate space
+    Gets a JSON of all the models.
+It answers the question: "Which models is the subview with this ID
+pointing to right now?"
 </div>
 
 
 
-    <h5>Type:</h5>
-    <ul>
-        <li>
-
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
 
 
 
 
 
-    <h5 class="subsection-title">Properties:</h5>
+
+    <h5>Parameters:</h5>
 
 
-
-<table class="props">
+<table class="params">
     <thead>
     <tr>
 
@@ -457,7 +464,7 @@
 
         <tr>
 
-                <td class="name"><code>x</code></td>
+                <td class="name"><code>subviewID</code></td>
 
 
             <td class="type">
@@ -473,81 +480,14 @@
 
 
 
-            <td class="description last">leftmost coordinate.</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>y</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">number</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">upper coordinate (0 = top)</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>width</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">number</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">width of the texture</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>height</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">number</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">height of the texture</td>
+            <td class="description last"></td>
         </tr>
 
 
     </tbody>
 </table>
+
+
 
 
 
@@ -586,6 +526,247 @@
 
 
 </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    models - A dictionary, key: the model name -> value: the model object
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="removeSubview"><span class="type-signature"></span>removeSubview<span class="signature">(subviewID)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Removes a subview with given ID. Deletes all models & pointers
+associated with this subview ID.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>subviewID</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last"></td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="syncWithLinkGroup"><span class="type-signature"></span>syncWithLinkGroup<span class="signature">()</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Synchronizes the model manager, should be called every time the
+link groups change. The class is automatically connected to the
+<a href="module-ViewSplitterMasterController.html"><code>module:ViewSplitterMasterController</code></a> module, this will simply
+re-sync the model pointers.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

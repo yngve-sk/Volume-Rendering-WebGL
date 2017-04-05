@@ -131,7 +131,7 @@ class Environment {
         if (this.GlobalOverrideLocals['TransferFunction'])
             return this.TransferFunctionManager.getTransferFunction('GLOBAL');
 
-        let masterID = this.links.getMasterCellIDForProperty('TransferFunction', cellID);
+        let masterID = this.links.getMasterCellIDForModel('TransferFunction', cellID);
 
         return this.TransferFunctionManager.getTransferFunction(masterID);
     }

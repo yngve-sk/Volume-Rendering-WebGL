@@ -44,11 +44,10 @@ class Subcell {
  * @memberof module:Widgets/View
  */
 class SubcellLayout {
-
     /**
-    * Constructs a new subcell layout
-    * @param {Object} args Multipliers to scale the inner layout. The inner layout has 2 multipliers: SnapThreshold, and standardSize. (NOTE: Maybe make it more dynamic to add more widgets, for now only 2 subcells are hardcoded in here.)
-     * @param {number} args.snapThresholdMultiplier - The threshold to snap the layout to a different scheme. Decides WHEN one of the following conditions arise:
+     *
+     * @typedef {Object} SubcellLayoutConfig Multipliers to scale the inner layout. The inner layout has 2 multipliers: SnapThreshold, and standardSize. (NOTE: Maybe make it more dynamic to add more widgets, for now only 2 subcells are hardcoded in here.)
+     * @property {number} snapThresholdMultiplier - The threshold to snap the layout to a different scheme. Decides WHEN one of the following conditions arise:
      <br>
      (1) : width > snapThreshold * height:
      <br>
@@ -59,12 +58,18 @@ class SubcellLayout {
      <br>
      <br>
      If none of the snap thresholds are met, the standardSize multiplier will decide the layouting
-     @param {number} args.standardSizeMultiplier - Scales the size of the two subcells, which will be put in the lower right corner and have a side length of standardSize*(shortest cell side)/2
+     @property {number} standardSizeMultiplier - Scales the size of the two subcells, which will be put in the lower right corner and have a side length of standardSize*(shortest cell side)/2
+     * @memberof module:Widgets/View
+     **/
+
+    /**
+    * Constructs a new subcell layout
+    * @param {module:Widgets/View.SubcellLayoutConfig} config
     * @constructor
     **/
-    constructor(args) {
-        this.changeLayoutThresholdMultiplier = args.changeLayoutThresholdMultiplier;
-        this.standardSizeMultiplier = args.standardSizeMultiplier;
+    constructor(config) {
+        this.changeLayoutThresholdMultiplier = config.changeLayoutThresholdMultiplier;
+        this.standardSizeMultiplier = config.standardSizeMultiplier;
     }
 
     /**

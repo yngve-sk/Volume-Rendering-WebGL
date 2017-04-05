@@ -1,14 +1,15 @@
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
-let shared = require('../../widgets/split-view/controller-view-shared-variables');
+let LinkableModels = require('../../core/linkable-models').Models;
+//let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
 
 let controller = function ($scope) {
 
     let viewID2LinkerKey = {
-        1: shared.linkers.TRANSFER_FUNCTION,
-        2: shared.linkers.CAMERA,
-        3: shared.linkers.SLICER,
-        4: shared.linkers.SPHERE_AND_LIGHTS,
+        1: [LinkableModels.TRANSFER_FUNCTION.name],
+        2: [LinkableModels.CAMERA.name],
+        3: [LinkableModels.SLICER.name],
+        4: [LinkableModels.SPHERE_AND_LIGHTS.name],
     }
 
     let callbacks = {
@@ -45,10 +46,10 @@ let controller = function ($scope) {
 
     // ADD or REMOVE
     let linkStates = {
-        [shared.linkers.TRANSFER_FUNCTION]: 'LINK-ADD',
-        [shared.linkers.CAMERA]: 'LINK-ADD',
-        [shared.linkers.SLICER]: 'LINK-ADD',
-        [shared.linkers.SPHERE_AND_LIGHTS]: 'LINK-ADD'
+        [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
+        [LinkableModels.CAMERA.name]: 'LINK-ADD',
+        [LinkableModels.SLICER.name]: 'LINK-ADD',
+        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'LINK-ADD'
     };
 
     $scope.isActiveLinker = (id, on) => {

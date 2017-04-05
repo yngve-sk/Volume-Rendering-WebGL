@@ -2,8 +2,12 @@ let d3 = require('d3');
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
 let SubcellLayout = require('../../widgets/split-view/subcell-layout');
-let ModelManager = require('../models/model-manager');
+let ShaderManager = require('./shader-manager');
+let FrameBufferManager = require('./frame-buffer-manager');
+let ModelSyncManager = require('./model-sync-manager');
 
+let Settings = require('../settings').Views.ViewManager,
+    OverlaySettings = Settings.WindowsOverlay;
 
 /** @module Core/View */
 
@@ -21,9 +25,29 @@ class ViewManager {
 
         this.masterContext = this.masterCanvas.getContext('webgl2');
 
-        let eventListenerOverlayCallback = (cellID, subcellName, event) => {
-            //console.log("this.eventListenerOverlayCallback(" + cellID + ", " + subcellName + ", " + event + ")");
+        this.subviews = {
+            0: new Subview(this.masterContext)
+        };
 
+
+        this.modelSyncManager = new ModelSyncManager();
+
+
+        this.uniforms = {
+            'GLOBAL': {},
+            0: {},
+            1: {} // ...
+        };
+
+
+
+
+        // this.modelManager = new ModelManager();
+        this.shaderManager = new ShaderManager();
+        this.frameBufferManager = new FrameBufferManager(); // Wraps a texture
+
+
+        let eventListenerOverlayCallback = (cellID, subcellName, event) => {
             console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
                 event.button);
             this.subviews[cellID].notifyEventDidHappen(subcellName, event)
@@ -34,39 +58,37 @@ class ViewManager {
             coverMe: this.masterCanvas,
             miniatureSplitViewGetter: getAddRemoveView,
             options: {
-                showIDs: true,
-                bottomTopThresholdPercentage: 0.1
+                showIDs: OverlaySettings.Options.showIDs,
+                bottomTopThresholdPercentage: OverlaySettings.Options.bottomTopThresholdPercentage
             },
             subcellLayout: new SubcellLayout({
-                changeLayoutThresholdMultiplier: 1.2,
-                standardSizeMultiplier: 0.7
+                changeLayoutThresholdMultiplier: OverlaySettings.SubcellLayout.changeLayoutThresholdMultiplier,
+                standardSizeMultiplier: OverlaySettings.SubcellLayout.standardSizeMultiplier
             }),
             listener: eventListenerOverlayCallback
         };
 
         this.splitviewOverlay = new MiniatureSplitViewOverlay(overlayConfig);
 
-        this.subviews = {
-            0: new Subview(this.masterContext)
-        };
-        this.modelManager = new ModelManager();
-
-
         window.addEventListener('resize', () => {
             this._resize();
         }, false);
     }
 
+    uniformsDidChangeForSubview(subviewID) {
+
+    }
+
     addNewView(id) {
         this.subviews[id] = new Subview(this.masterContext);
-        this.modelManager.initModelsForCellID(id);
+        this.modelSyncManager.addSubview(id);
 
         this.syncWithLayout();
     }
 
     removeView(id) {
         delete this.subviews[id];
-        this.modelManager.deleteModelsForCellID(id);
+        this.modelSyncManager.removeSubview(id);
 
         this.syncWithLayout();
     }

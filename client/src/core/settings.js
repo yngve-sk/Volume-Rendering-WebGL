@@ -56,14 +56,30 @@ let d3 = require('d3');
  **/
 
 /**
+ * Settings for the windowing overlay object ({@link module:Widgets/View.MiniatureSplitViewOverlay})
+ * @typedef {Object} WindowingOverlaySettings
+ * @property {module:Widgets/View.SubcellLayoutConfig} SubcellLayout
+ * @property {Object} Options
+ * @property {bool} Options.showIDs - Whether or not to render cell IDs @ the overlay
+   @property {number} Options.bottomTopThresholdPercentage - [0, 1]
+ *
+ * @memberof module:Settings
+ **/
+
+/**
 * Holds all settings
 *
 * @property {Object} Widgets Settings for all widgets (SplitView / TransferFunction)
 * @property {Object} Widgets.TransferFunction Settings for transfer functions
 
 * @property {module:Settings.TransferFunctionEditorSettings} Widgets.TransferFunction.Editor
+
 * @property {module:Settings.LinkerAndSplitterViewSettings} Widgets.LinkerAndSplitterView Settings for the linker / splitter views.
-* @property {module:Settings.WSClientSettings}
+
+* @property {module:Settings.WSClientSettings} WSClient Websocket client settings
+
+* @property {Object} Views Settings for subviews & view manager
+* @property {module:Settings.WindowingOverlaySettings} Views.ViewManager.WindowsOverlay Settings for the windowing overlay
 
 */
 let SETTINGS = {
@@ -112,6 +128,20 @@ let SETTINGS = {
             getDatasetIsovalues: 30000
         },
         loadAutomaticallyByDefault: false
+    },
+    Views: {
+        ViewManager: {
+            WindowsOverlay: {
+                Options: {
+                    showIDs: true,
+                    bottomTopThresholdPercentage: 0.1
+                },
+                SubcellLayout: {
+                    changeLayoutThresholdMultiplier: 1.2,
+                    standardSizeMultiplier: 0.7
+                }
+            }
+        }
     }
 }
 

@@ -42730,7 +42730,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":26,"../../core/environment":27,"../../core/settings":34}],15:[function(require,module,exports){
+},{"../../client2server/websocket-client":26,"../../core/environment":27,"../../core/settings":33}],15:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42751,16 +42751,17 @@ module.exports = controller;
 
 },{"../../client2server/websocket-client":26,"../../core/environment":27}],16:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
-let shared = require('../../widgets/split-view/controller-view-shared-variables');
+let LinkableModels = require('../../core/linkable-models').Models;
+//let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
 
 let controller = function ($scope) {
 
     let viewID2LinkerKey = {
-        1: shared.linkers.TRANSFER_FUNCTION,
-        2: shared.linkers.CAMERA,
-        3: shared.linkers.SLICER,
-        4: shared.linkers.SPHERE_AND_LIGHTS,
+        1: [LinkableModels.TRANSFER_FUNCTION.name],
+        2: [LinkableModels.CAMERA.name],
+        3: [LinkableModels.SLICER.name],
+        4: [LinkableModels.SPHERE_AND_LIGHTS.name],
     }
 
     let callbacks = {
@@ -42797,10 +42798,10 @@ let controller = function ($scope) {
 
     // ADD or REMOVE
     let linkStates = {
-        [shared.linkers.TRANSFER_FUNCTION]: 'LINK-ADD',
-        [shared.linkers.CAMERA]: 'LINK-ADD',
-        [shared.linkers.SLICER]: 'LINK-ADD',
-        [shared.linkers.SPHERE_AND_LIGHTS]: 'LINK-ADD'
+        [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
+        [LinkableModels.CAMERA.name]: 'LINK-ADD',
+        [LinkableModels.SLICER.name]: 'LINK-ADD',
+        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'LINK-ADD'
     };
 
     $scope.isActiveLinker = (id, on) => {
@@ -42844,7 +42845,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":27,"../../widgets/split-view/controller-view-shared-variables":41,"../../widgets/split-view/view-splitter-master-controller":48}],17:[function(require,module,exports){
+},{"../../core/environment":27,"../../core/linkable-models":29,"../../widgets/split-view/view-splitter-master-controller":49}],17:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -43007,7 +43008,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":27,"../../widgets/transfer-function/transfer-function-editor-v2":50,"jquery":7,"spectrum-colorpicker":8}],20:[function(require,module,exports){
+},{"../../core/environment":27,"../../widgets/transfer-function/transfer-function-editor-v2":51,"jquery":7,"spectrum-colorpicker":8}],20:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
@@ -43259,7 +43260,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":40,"blob-to-buffer":2}],27:[function(require,module,exports){
+},{"../main":42,"blob-to-buffer":2}],27:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -43411,7 +43412,7 @@ class Environment {
         if (this.GlobalOverrideLocals['TransferFunction'])
             return this.TransferFunctionManager.getTransferFunction('GLOBAL');
 
-        let masterID = this.links.getMasterCellIDForProperty('TransferFunction', cellID);
+        let masterID = this.links.getMasterCellIDForModel('TransferFunction', cellID);
 
         return this.TransferFunctionManager.getTransferFunction(masterID);
     }
@@ -43465,7 +43466,7 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":26,"../core/views/view-manager":36,"../datasets&selections/dataset-manager":37,"../widgets/split-view/view-splitter-master-controller":48,"../widgets/transfer-function/transfer-function":52,"../widgets/transfer-function/transfer-function-manager":51,"./interaction-modes":28}],28:[function(require,module,exports){
+},{"../client2server/websocket-client":26,"../core/views/view-manager":38,"../datasets&selections/dataset-manager":39,"../widgets/split-view/view-splitter-master-controller":49,"../widgets/transfer-function/transfer-function":53,"../widgets/transfer-function/transfer-function-manager":52,"./interaction-modes":28}],28:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -43521,6 +43522,40 @@ module.exports = {
 }
 
 },{}],29:[function(require,module,exports){
+let TransferFunction = require('../widgets/transfer-function/transfer-function');
+let Camera = require('./models/camera');
+let Slicer = require('./models/slicer-model');
+let Sphere = require('./models/sphere-model');
+
+let LinkableModels = {
+    'TRANSFER_FUNCTION': {
+        name: 'TRANSFER_FUNCTION',
+        class: TransferFunction
+    },
+    'CAMERA': {
+        name: 'CAMERA',
+        class: Camera
+    },
+    'SLICER': {
+        name: 'SLICER',
+        class: Slicer
+    },
+    'SPHERE_AND_LIGHTS': {
+        name: 'SPHERE_AND_LIGHTS',
+        class: Sphere
+    }
+};
+
+let modelsList = [];
+for (let key in LinkableModels)
+    modelsList.push(LinkableModels[key].name);
+
+module.exports = {
+    ModelsList: modelsList,
+    Models: LinkableModels
+};
+
+},{"../widgets/transfer-function/transfer-function":53,"./models/camera":30,"./models/slicer-model":31,"./models/sphere-model":32}],30:[function(require,module,exports){
 let m4 = require('twgl.js').m4;
 
 
@@ -43575,101 +43610,7 @@ class Camera {
 
 module.exports = Camera;
 
-},{"twgl.js":10}],30:[function(require,module,exports){
-/** @module:Core/Models/Lights */
-
-/**
- * Models a set of lights to render
- * @memberof module:Core/Models/Lights
- */
-class LightModel {
-    constructor(initialState) {}
-}
-
-module.exports = LightModel;
-
-},{}],31:[function(require,module,exports){
-let SlicerModel = require('./slicer-model');
-let SphereModel = require('./sphere-model');
-let Camera = require('./camera');
-let LightModel = require('./light-model');
-
-/** @module Core/Models */
-
-/**
- * Container for all the models which affect how the final
- * rendering outcome looks. Cameras, lights, spheres and slicers.
- * @memberof module:Core/Models
- */
-class ModelManager {
-
-    /**
-     * Constructs a new model manager, will initiate models for
-     * 'GLOBAL' and cell 0 by default.
-     *
-     * @constructor
-     */
-    constructor() {
-        this.cameras = {
-            GLOBAL: null,
-            0: null,
-            1: null
-        };
-        this.lights = {
-            GLOBAL: null,
-            0: null,
-            1: null
-        };
-        this.spheres = {
-            GLOBAL: null,
-            0: null,
-            1: null
-        };
-        this.slicers = {
-            GLOBAL: null,
-            0: null,
-            1: null
-        };
-    }
-
-    /**
-     * A set of model pointers, each subview must maintain
-     * such a set.
-     * @typedef {Object} ModelSet
-     * @property {module:Core/Models.SlicerModel} slicer
-     * @property {module:Core/Models.SphereModel} sphere
-     * @property {module:Core/Models.Camera} camera
-     * @memberof module:Core/Models
-     **/
-
-
-    /**
-     * Initiates models for a new view
-     *
-     * @param {number} cellID the ID of the view
-     * @returns {module:Core/Models.ModelSet}
-     */
-    initModelsForCellID(cellID) {
-        this.cameras[cellID] = new Camera({
-            fieldOfViewRadians: Math.PI / 6,
-            aspectRatio: 1,
-            zNear: 0.2,
-            zFar: 20
-        });
-    }
-
-    deleteModelsForCellID(cellID) {
-        delete this.cameras[cellID];
-        //delete this.lights[cellID];
-        //delete this.spheres[cellID];
-        //delete this.slicers[cellID];
-    }
-
-}
-
-module.exports = ModelManager;
-
-},{"./camera":29,"./light-model":30,"./slicer-model":32,"./sphere-model":33}],32:[function(require,module,exports){
+},{"twgl.js":10}],31:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a slicer.
  * @memberof module:Core/Models
@@ -43686,7 +43627,7 @@ class SlicerModel {
 
 module.exports = SlicerModel;
 
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -43704,7 +43645,7 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 let d3 = require('d3');
 
 /** @module Settings */
@@ -43763,14 +43704,30 @@ let d3 = require('d3');
  **/
 
 /**
+ * Settings for the windowing overlay object ({@link module:Widgets/View.MiniatureSplitViewOverlay})
+ * @typedef {Object} WindowingOverlaySettings
+ * @property {module:Widgets/View.SubcellLayoutConfig} SubcellLayout
+ * @property {Object} Options
+ * @property {bool} Options.showIDs - Whether or not to render cell IDs @ the overlay
+   @property {number} Options.bottomTopThresholdPercentage - [0, 1]
+ *
+ * @memberof module:Settings
+ **/
+
+/**
 * Holds all settings
 *
 * @property {Object} Widgets Settings for all widgets (SplitView / TransferFunction)
 * @property {Object} Widgets.TransferFunction Settings for transfer functions
 
 * @property {module:Settings.TransferFunctionEditorSettings} Widgets.TransferFunction.Editor
+
 * @property {module:Settings.LinkerAndSplitterViewSettings} Widgets.LinkerAndSplitterView Settings for the linker / splitter views.
-* @property {module:Settings.WSClientSettings}
+
+* @property {module:Settings.WSClientSettings} WSClient Websocket client settings
+
+* @property {Object} Views Settings for subviews & view manager
+* @property {module:Settings.WindowingOverlaySettings} Views.ViewManager.WindowsOverlay Settings for the windowing overlay
 
 */
 let SETTINGS = {
@@ -43819,13 +43776,161 @@ let SETTINGS = {
             getDatasetIsovalues: 30000
         },
         loadAutomaticallyByDefault: false
+    },
+    Views: {
+        ViewManager: {
+            WindowsOverlay: {
+                Options: {
+                    showIDs: true,
+                    bottomTopThresholdPercentage: 0.1
+                },
+                SubcellLayout: {
+                    changeLayoutThresholdMultiplier: 1.2,
+                    standardSizeMultiplier: 0.7
+                }
+            }
+        }
     }
 }
 
 
 module.exports = SETTINGS;
 
-},{"d3":3}],35:[function(require,module,exports){
+},{"d3":3}],34:[function(require,module,exports){
+class FrameBufferManager {
+
+}
+
+module.exports = FrameBufferManager;
+},{}],35:[function(require,module,exports){
+let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
+
+let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
+let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
+let AllModels = require('../linkable-models').Models;
+
+/**
+ * Keeps track of all models for all views, including one pointer per view,
+ * pointing to a model, this allows for linking / unlinking views.
+ * This is what binds the models to the subviews, while still allowing for
+ * simple linking/unlinking operations.
+ * @memberof module:Core/View
+ */
+class ModelSyncManager {
+
+    /**
+     * Description for undefined
+     * @class undefined
+     * @constructor
+     */
+    constructor() {
+        this.classes = {};
+
+        this.defaultModels = {};
+
+        this.linkedModels = {};
+
+        // Note how it "magically" pulls models directly from
+        // the linkable-models file.
+        for (let key in AllModels) {
+            let model = AllModels[key];
+            this.addModel(model.name, model.class);
+        }
+    }
+
+    /**
+     * Adds a model to the sync manager
+     *
+     * @param {string} modelName must be a valid model name representing Sphere, Slicer, Camera etc.
+     * @param {Class} ObjConstructor Class with blank constructor to construct new objects
+     */
+    addModel(modelName, Class) {
+        let subviewIDs = getAllCellIDs();
+        this.classes[modelName] = Class;
+
+        this.defaultModels[modelName] = {};
+        for (let subviewID of subviewIDs) {
+
+            // Initialize a new object
+            this.defaultModels[modelName][subviewID] = new Class();
+
+            // Initially point a subview to itself.
+            this.linkedModels[modelName][subviewID] = subviewID;
+        }
+    }
+
+    /**
+     * Gets a JSON of all the models.
+     * It answers the question: "Which models is the subview with this ID
+     * pointing to right now?"
+     *
+     * @param {number} subviewID
+     * @returns {Object} models - A dictionary, key: the model name -> value: the model object
+     */
+    getModels(subviewID) {
+        let models = {};
+
+        for (let modelName in this.defaultModels) {
+            models[modelName] = null;
+            let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+            models[modelName] = this.defaultModels[activeModelSubviewID];
+        }
+
+        return models;
+    }
+
+    /**
+     * Removes a subview with given ID. Deletes all models & pointers
+     * associated with this subview ID.
+     *
+     * @param {number} subviewID
+     */
+    removeSubview(subviewID) {
+        delete this.defaultModels[subviewID];
+        delete this.linkedModels[subviewID];
+    }
+
+    /**
+     * Adds a subview and constructs a new instance of each model,
+     * and points it to its own instance.
+     *
+     * @param {number} subviewID
+     */
+    addSubview(subviewID) {
+        for (let modelName in this.defaultModels) {
+            // Construct a new object for the subview
+            this.defaultModels[modelName][subviewID] = new this.classes[modelName]();
+
+            // link to itself initially
+            this.linkedModels[modelName][subviewID] = subviewID;
+        }
+    }
+
+    /**
+     * Synchronizes the model manager, should be called every time the
+     * link groups change. The class is automatically connected to the
+     * {@link module:ViewSplitterMasterController} module, this will simply
+     * re-sync the model pointers.
+     **/
+    syncWithLinkGroup() {
+        let subviewIDs = getAllCellIDs();
+
+        for (let modelKey in this.defaultModels)
+            for (let subviewID of subviewIDs)
+                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(subviewID);
+
+    }
+}
+
+module.exports = ModelSyncManager;
+
+},{"../../widgets/split-view/view-splitter-master-controller":49,"../linkable-models":29}],36:[function(require,module,exports){
+class ShaderManager {
+
+}
+
+module.exports = ShaderManager;
+},{}],37:[function(require,module,exports){
 /**
  * Represents a subview, will manage the renderers for each
  * subview, and also hold pointers to the models which the
@@ -43856,17 +43961,27 @@ class Subview {
 
         // Pointers to models stored in the model manager
         this.models = {
-            volume: null,
-            slicer: null,
-            sphere: null,
-            camera: null,
-            lights: null
+            volume: null, // pointer to iso2color texture obj
+            slicer: null, // pointer to state of slicer obj
+            sphere: null, // pointer to state of sphere obj
+            camera: null, // pointer to camera obj
+            lights: null // pointer to lights obj
         };
 
         this.viewports = {
-            volume: null,
-            slicer: null,
-            sphere: null
+            volume: null, // pointer to volume viewport obj
+            slicer: null, // pointer to slicer viewport obj
+            sphere: null // pointer to sphere viewport obj
+        };
+
+        this.shaders = {
+            volume: null, //pointer to volume current shader
+            slicer: null, //pointer to slicer current shader
+            sphere: null //pointer to sphere current shader
+        }
+
+        this.uniforms = {
+
         };
     }
 
@@ -43875,16 +43990,16 @@ class Subview {
             camera: this.models.camera,
             viewport: this.viewports.volume
         });
-
-        this.renderers.slicer.render({
-            model: this.models.slicer,
-            viewport: this.viewports.slicer
-        });
-
-        this.renderers.sphere.render({
-            model: this.models.sphere,
-            viewport: this.viewports.sphere
-        });
+        //
+        //        this.renderers.slicer.render({
+        //            model: this.models.slicer,
+        //            viewport: this.viewports.slicer
+        //        });
+        //
+        //        this.renderers.sphere.render({
+        //            model: this.models.sphere,
+        //            viewport: this.viewports.sphere
+        //        });
     }
 
     /**
@@ -43910,6 +44025,14 @@ class Subview {
         //this.models[subcellName].notifyEventDidHappen(event);
     }
 
+    setShaders(shaders) {
+        this.shaders = shaders;
+    }
+
+    setShader(key, shader) {
+        this.shaders[key] = shader;
+    }
+
     /**
      * Sets the viewport render targets for this subview,
      * (the {@link module:Core/View.ViewManager} is
@@ -43924,13 +44047,17 @@ class Subview {
 
 module.exports = Subview;
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 let d3 = require('d3');
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
 let SubcellLayout = require('../../widgets/split-view/subcell-layout');
-let ModelManager = require('../models/model-manager');
+let ShaderManager = require('./shader-manager');
+let FrameBufferManager = require('./frame-buffer-manager');
+let ModelSyncManager = require('./model-sync-manager');
 
+let Settings = require('../settings').Views.ViewManager,
+    OverlaySettings = Settings.WindowsOverlay;
 
 /** @module Core/View */
 
@@ -43948,9 +44075,29 @@ class ViewManager {
 
         this.masterContext = this.masterCanvas.getContext('webgl2');
 
-        let eventListenerOverlayCallback = (cellID, subcellName, event) => {
-            //console.log("this.eventListenerOverlayCallback(" + cellID + ", " + subcellName + ", " + event + ")");
+        this.subviews = {
+            0: new Subview(this.masterContext)
+        };
 
+
+        this.modelSyncManager = new ModelSyncManager();
+
+
+        this.uniforms = {
+            'GLOBAL': {},
+            0: {},
+            1: {} // ...
+        };
+
+
+
+
+        // this.modelManager = new ModelManager();
+        this.shaderManager = new ShaderManager();
+        this.frameBufferManager = new FrameBufferManager(); // Wraps a texture
+
+
+        let eventListenerOverlayCallback = (cellID, subcellName, event) => {
             console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
                 event.button);
             this.subviews[cellID].notifyEventDidHappen(subcellName, event)
@@ -43961,39 +44108,37 @@ class ViewManager {
             coverMe: this.masterCanvas,
             miniatureSplitViewGetter: getAddRemoveView,
             options: {
-                showIDs: true,
-                bottomTopThresholdPercentage: 0.1
+                showIDs: OverlaySettings.Options.showIDs,
+                bottomTopThresholdPercentage: OverlaySettings.Options.bottomTopThresholdPercentage
             },
             subcellLayout: new SubcellLayout({
-                changeLayoutThresholdMultiplier: 1.2,
-                standardSizeMultiplier: 0.7
+                changeLayoutThresholdMultiplier: OverlaySettings.SubcellLayout.changeLayoutThresholdMultiplier,
+                standardSizeMultiplier: OverlaySettings.SubcellLayout.standardSizeMultiplier
             }),
             listener: eventListenerOverlayCallback
         };
 
         this.splitviewOverlay = new MiniatureSplitViewOverlay(overlayConfig);
 
-        this.subviews = {
-            0: new Subview(this.masterContext)
-        };
-        this.modelManager = new ModelManager();
-
-
         window.addEventListener('resize', () => {
             this._resize();
         }, false);
     }
 
+    uniformsDidChangeForSubview(subviewID) {
+
+    }
+
     addNewView(id) {
         this.subviews[id] = new Subview(this.masterContext);
-        this.modelManager.initModelsForCellID(id);
+        this.modelSyncManager.addSubview(id);
 
         this.syncWithLayout();
     }
 
     removeView(id) {
         delete this.subviews[id];
-        this.modelManager.deleteModelsForCellID(id);
+        this.modelSyncManager.removeSubview(id);
 
         this.syncWithLayout();
     }
@@ -44038,7 +44183,7 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../widgets/split-view/miniature-split-view-overlay":43,"../../widgets/split-view/subcell-layout":46,"../models/model-manager":31,"./subview":35,"d3":3}],37:[function(require,module,exports){
+},{"../../widgets/split-view/miniature-split-view-overlay":44,"../../widgets/split-view/subcell-layout":47,"../settings":33,"./frame-buffer-manager":34,"./model-sync-manager":35,"./shader-manager":36,"./subview":37,"d3":3}],39:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -44159,7 +44304,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":38,"./volume-dataset":39}],38:[function(require,module,exports){
+},{"./selection":40,"./volume-dataset":41}],40:[function(require,module,exports){
 
 
 /**
@@ -44220,7 +44365,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44307,7 +44452,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],40:[function(require,module,exports){
+},{"d3":3}],42:[function(require,module,exports){
 
 
 
@@ -44326,34 +44471,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":12,"./client2server/websocket-client":26,"./core/environment":27}],41:[function(require,module,exports){
-let divIDs = {
-    ADD: 'lvw-add-view',
-    linkers: {
-        TRANSFER_FUNCTION: 'lvw-link-view-1',
-        CAMERA: 'lvw-link-view-2',
-        SLICER: 'lvw-link-view-3',
-        SPHERE_AND_LIGHTS: 'lvw-link-view-4'
-    }
-};
-
-let add = 'ADD';
-
-let linkers = {
-    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
-    'CAMERA': 'CAMERA',
-    'SLICER': 'SLICER',
-    'SPHERE_AND_LIGHTS': 'SPHERE_AND_LIGHTS'
-};
-
-
-module.exports = {
-    divIDs: divIDs,
-    linkers: linkers,
-    add: add
-};
-
-},{}],42:[function(require,module,exports){
+},{"./angular-assets/main-controller":12,"./client2server/websocket-client":26,"./core/environment":27}],43:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -44482,7 +44600,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":47,"underscore":11}],43:[function(require,module,exports){
+},{"./unique-index-bag":48,"underscore":11}],44:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44704,7 +44822,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],44:[function(require,module,exports){
+},{"d3":3}],45:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -45242,7 +45360,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":42,"./splitbox":45,"d3":3,"jquery":7,"underscore":11}],45:[function(require,module,exports){
+},{"./link-group":43,"./splitbox":46,"d3":3,"jquery":7,"underscore":11}],46:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -45613,7 +45731,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":47,"underscore":11}],46:[function(require,module,exports){
+},{"./unique-index-bag":48,"underscore":11}],47:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -45660,11 +45778,10 @@ class Subcell {
  * @memberof module:Widgets/View
  */
 class SubcellLayout {
-
     /**
-    * Constructs a new subcell layout
-    * @param {Object} args Multipliers to scale the inner layout. The inner layout has 2 multipliers: SnapThreshold, and standardSize. (NOTE: Maybe make it more dynamic to add more widgets, for now only 2 subcells are hardcoded in here.)
-     * @param {number} args.snapThresholdMultiplier - The threshold to snap the layout to a different scheme. Decides WHEN one of the following conditions arise:
+     *
+     * @typedef {Object} SubcellLayoutConfig Multipliers to scale the inner layout. The inner layout has 2 multipliers: SnapThreshold, and standardSize. (NOTE: Maybe make it more dynamic to add more widgets, for now only 2 subcells are hardcoded in here.)
+     * @property {number} snapThresholdMultiplier - The threshold to snap the layout to a different scheme. Decides WHEN one of the following conditions arise:
      <br>
      (1) : width > snapThreshold * height:
      <br>
@@ -45675,12 +45792,18 @@ class SubcellLayout {
      <br>
      <br>
      If none of the snap thresholds are met, the standardSize multiplier will decide the layouting
-     @param {number} args.standardSizeMultiplier - Scales the size of the two subcells, which will be put in the lower right corner and have a side length of standardSize*(shortest cell side)/2
+     @property {number} standardSizeMultiplier - Scales the size of the two subcells, which will be put in the lower right corner and have a side length of standardSize*(shortest cell side)/2
+     * @memberof module:Widgets/View
+     **/
+
+    /**
+    * Constructs a new subcell layout
+    * @param {module:Widgets/View.SubcellLayoutConfig} config
     * @constructor
     **/
-    constructor(args) {
-        this.changeLayoutThresholdMultiplier = args.changeLayoutThresholdMultiplier;
-        this.standardSizeMultiplier = args.standardSizeMultiplier;
+    constructor(config) {
+        this.changeLayoutThresholdMultiplier = config.changeLayoutThresholdMultiplier;
+        this.standardSizeMultiplier = config.standardSizeMultiplier;
     }
 
     /**
@@ -45805,7 +45928,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -45847,11 +45970,30 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":11}],48:[function(require,module,exports){
+},{"underscore":11}],49:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
-let shared = require('./controller-view-shared-variables');
+let LinkableModels = require('../../core/linkable-models').Models;
 let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
+
+let divIDs = {
+    ADD: 'lvw-add-view',
+    linkers: {
+        [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
+        [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
+        [LinkableModels.SLICER.name]: 'lvw-link-view-3',
+        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'lvw-link-view-4'
+    }
+};
+
+/** @module ViewSplitterMasterController
+ * @description Bundles together all the {@link module:Widgets/View.MiniatureSplitView} widgets, is responsible
+ * for the communication between the miniature split view widgets and the
+ * environment. Provides an easy way for the environment to fetch the information
+ * it needs from these widgets, such as link groupings and information about the
+ * current layout. Will also notify listeners of certain events, such as
+ * when the layout changes.
+ **/
 
 window.addEventListener('resize', () => {
     dispatch("refresh");
@@ -45890,30 +46032,56 @@ let changeAddRemoveState = (newState) => {
     views.ADD.changeState(newState);
 }
 
+
+
+/**
+ * Dictionary, mapping model name to a link grouper
+ * @typedef {Object.<string, module:Widgets/DataStructures~LinkGrouper>} ModelLinks
+ * @memberof module:ViewSplitterMasterController
+ **/
+
+/**
+ * Gets all link groupings
+ *
+ * @method getAllLinkGroupings
+ * @return {module:ViewSplitterMasterController.ModelLinks} modelLinks Link groupers per model
+ */
 let getAllLinkGroupings = () => {
     let groupings = {};
 
-    for (key in shared.linkers) {
-        groupings[key] = getLinkGroupingsForProperty(key);
+    for (let key in LinkableModels) {
+        groupings[key] = views.linkers[LinkableModels[key].name];
     }
 
     return groupings;
 }
 
+let getAllLinkModels = () => {
+    let propertyNames = [];
+
+    for (let key in LinkableModels)
+        propertyNames.push(LinkableModels[LinkableModels[key].name]);
+
+    return propertyNames;
+}
+
 let init = (callbacks) => {
-    views.ADD = genAddRemoveView(shared.divIDs.ADD, viewSettings);
+    views.ADD = genAddRemoveView(divIDs.ADD, viewSettings);
     views.ADD.render();
 
     let splitbox = views.ADD.layout;
     splitbox.setChangeListener(callbacks.layoutChanged);
 
-    for (let key in shared.linkers) {
-        let divID = shared.divIDs.linkers[key];
-        views.linkers[key] = genLinkingView(divID, viewSettings);
-        delete views.linkers[key].layout;
-        views.linkers[key].layout = splitbox; // make them all point to the same layout obj
-        views.linkers[key].setLinkChangedCallback(key, callbacks.linkChanged);
-        views.linkers[key].render();
+    for (let key in LinkableModels) {
+        let model = LinkableModels[key];
+        let divID = divIDs.linkers[model.name];
+        views.linkers[model.name] = genLinkingView(divID, viewSettings);
+        delete views.linkers[model.name].layout;
+
+        // make them all point to the same layout obj
+        views.linkers[model.name].layout = splitbox;
+        views.linkers[model.name].setLinkChangedCallback(model.name, callbacks.linkChanged);
+        views.linkers[model.name].render();
     }
 
     console.log("Dispatch refresh");
@@ -45931,18 +46099,24 @@ let init = (callbacks) => {
     }
 }
 
-let getMasterCellIDForProperty = (key, cellID) => {
+let getAllCellIDs = () => {
+    return getLayout().getActiveCellIDs();
+}
+
+let getMasterCellIDForModel = (key, cellID) => {
     return views.linkers[key].linkGroup.getMasterCellID(cellID);
 }
 
 let read = () => {
     return {
         links: {
-            getMasterCellIDForProperty: getMasterCellIDForProperty,
+            getMasterCellIDForModel: getMasterCellIDForModel,
+            getAllModels: getAllLinkModels
         },
         layout: {
             getLayout: getLayout,
-            getNumberOfSubviews: getNumberOfSubviews
+            getNumberOfSubviews: getNumberOfSubviews,
+            getAllCellIDs: getAllCellIDs
         }
     }
 }
@@ -46020,7 +46194,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/settings":34,"./controller-view-shared-variables":41,"./miniature-split-view":44,"underscore":11}],49:[function(require,module,exports){
+},{"../../core/linkable-models":29,"../../core/settings":33,"./miniature-split-view":45,"underscore":11}],50:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -46157,7 +46331,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":9}],50:[function(require,module,exports){
+},{"tinycolor2":9}],51:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -47644,7 +47818,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":27,"../../core/settings":34,"./color-gradient":49,"d3":3,"jquery":7}],51:[function(require,module,exports){
+},{"../../core/environment":27,"../../core/settings":33,"./color-gradient":50,"d3":3,"jquery":7}],52:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -47821,7 +47995,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":52}],52:[function(require,module,exports){
+},{"./transfer-function":53}],53:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -47852,4 +48026,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":49,"d3":3}]},{},[40]);
+},{"./color-gradient":50,"d3":3}]},{},[42]);
