@@ -34,7 +34,7 @@ class Environment {
         // The links must also be refreshed because a view may be obsolete.
         this.layout = LinksAndLayout.read().layout; // Reads layout from view splitter
 
-        this.ViewManager = new ViewManager(this, LinksAndLayout.getAddRemoveView);
+        this.ViewManager = null; // Depends on links&view view
         this.TransferFunctionManager = new TransferFunctionManager(this);
 
         this.GlobalOverrideLocals = {
@@ -59,7 +59,9 @@ class Environment {
 
         // called when a link group for the given property changes
         this.notifyLinkChanged = (propertyKey) => {
-            console.log("ENV, link changed @ propertyKey " + propertyKey);
+            console.log("LINK CHANGED!");
+            console.log(propertyKey);
+            this.ViewManager.linkChanged(propertyKey);
         }
 
         // called when the layout changes
@@ -87,6 +89,8 @@ class Environment {
                 isovalues: isovalues
             });
 
+            this.ViewManager.datasetDidChange();
+
             // For now pretend only one dataset will be loaded at a time.
             this._notifyListeners('DatasetDidChange', 'LOCAL');
             this._notifyListeners('DatasetDidChange', 'GLOBAL');
@@ -94,14 +98,58 @@ class Environment {
 
         this.readyElements = []; // Expect call from:
         // LinksAndViewsController, TransferFunctionController
+
+        window.addEventListener('keydown', (event) => {
+            console.log("Key down: " + event.key);
+            switch (event.key) {
+                case '1':
+                    console.log("Refreshing...");
+                    this.ViewManager.refresh();
+                    break;
+                case '2':
+                    break;
+                case '3':
+                    break;
+                case '4':
+                    break;
+                case '5':
+                    break;
+                case '6':
+                    break;
+                case '7':
+                    break;
+                case '8':
+                    break;
+                case '9':
+                    break;
+                case 'q':
+                    break;
+
+            }
+        });
     }
 
+
+    /**
+     * Called from a controller when it is done initializing its
+     * DOM and underlying model. Some objects need other objects
+     * to be initialized, before they themselves can be initialized.
+     * This function allows for shimming it.
+     *
+     * @param {string} from name of the controller
+     */
     ready(from) {
         console.log("READY from " + from);
         this.readyElements.push(from);
 
-        if (this.readyElements.length === 2) {
-            this.ViewManager.syncWithLayout();
+        switch (from) {
+            case 'LinksAndViewsController':
+                this.ViewManager = new ViewManager(this, LinksAndLayout.getAddRemoveView);
+                break;
+            case 'TransferFunctionController':
+                break;
+            default:
+                break;
         }
     }
 
@@ -177,6 +225,10 @@ class Environment {
     getTransferFunctionForTFEditor(tfEditorKey) {
         this.TransferFunctionManager.test();
         return this.TransferFunctionManager.getTransferFunctionForTFEditorKey(tfEditorKey);
+    }
+
+    getActiveDataset(cellID) {
+        return this.DatasetManager.getDataset(cellID);
     }
 
     /**

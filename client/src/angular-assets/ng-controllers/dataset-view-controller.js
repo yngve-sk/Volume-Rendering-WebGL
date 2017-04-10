@@ -38,6 +38,7 @@ let controller = function ($scope, $timeout) {
             setLoaderVisibility(false);
             $scope.datasets = list;
             $scope.selectedDataset = list[0];
+            $scope.$apply();
 
             if ($scope.loadAutomatically)
                 $scope.loadSelectedDataset();

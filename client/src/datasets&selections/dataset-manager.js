@@ -73,6 +73,10 @@ class DatasetManager {
         console.log(this.datasets);
     }
 
+    getDataset(cellID) {
+        return this.datasets[this.cellID2Dataset[cellID]];
+    }
+
     /**
      * Removes the dataset
      *

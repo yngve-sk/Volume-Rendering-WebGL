@@ -5,11 +5,11 @@
  */
 class Subcell {
     /**
-    * Constructs a new subcell.
-    *
-    * @param {module:Widgets/View.SubcellInfo} info
-    * @constructor
-    */
+     * Constructs a new subcell.
+     *
+     * @param {module:Widgets/View.SubcellInfo} info
+     * @constructor
+     */
     constructor(info) {
         this.name = info.name;
         this.x0 = info.x0;
@@ -20,22 +20,63 @@ class Subcell {
     }
 
     /**
-    * Offsets the coordinates of this subcell by the parent coordinates,
-    * thus converting it to viewport coordinates ready for rendering.
-    *
-    * @param {Object} parentOffset The upper left point of the parent cell
-    * @param {number} parentOffset.x
-    * @param {number} parentOffset.y
-    */
+     * Offsets the coordinates of this subcell by the parent coordinates,
+     * thus converting it to viewport coordinates ready for rendering.
+     *
+     * @param {Object} parentOffset The upper left point of the parent cell
+     * @param {number} parentOffset.x
+     * @param {number} parentOffset.y
+     */
     toViewportCoordinates(parentOffset) {
-        return {
+        return new Subcell({
             name: this.name,
             x0: this.x0 + parentOffset.x,
             y0: this.y0 + parentOffset.y,
             width: this.width,
             height: this.height,
             z: this.z // May be redundant
-        };
+        });
+    }
+
+    /**
+     * Normalizes the subcell layout to [0,1] coords within parents coordinate system
+     *
+     * @param {number} parentWidth
+     * @param {number} parentHeight
+     *
+     */
+    normalize(parentWidth, parentHeight) {
+        let x = this.x0 / parentWidth,
+            y = this.y0 / parentHeight,
+            h = this.height / parentHeight,
+            w = this.width / parentWidth;
+
+        return new Subcell({
+            name: this.name,
+            x0: x,
+            y0: 1.0 - y - h, // Flip Y axis but keep locations
+            width: w,
+            height: h,
+            z: this.z // May be redundant
+        });
+    }
+
+    /**
+     * Denormalizes the subcell layout from [0,1] coords to new parent coords.
+     * NOTE: Assumes the current state is [0,1] coords.
+     *
+     * @param {number} parentWidth
+     * @param {number} parentHeight
+     */
+    denormalize(parentWidth, parentHeight) {
+        return new Subcell({
+            name: this.name,
+            x0: this.x0 * parentWidth,
+            y0: this.y0 * parentHeight,
+            width: this.width * parentWidth,
+            height: this.height * parentHeight,
+            z: this.z // May be redundant
+        });
     }
 }
 
@@ -63,10 +104,10 @@ class SubcellLayout {
      **/
 
     /**
-    * Constructs a new subcell layout
-    * @param {module:Widgets/View.SubcellLayoutConfig} config
-    * @constructor
-    **/
+     * Constructs a new subcell layout
+     * @param {module:Widgets/View.SubcellLayoutConfig} config
+     * @constructor
+     **/
     constructor(config) {
         this.changeLayoutThresholdMultiplier = config.changeLayoutThresholdMultiplier;
         this.standardSizeMultiplier = config.standardSizeMultiplier;

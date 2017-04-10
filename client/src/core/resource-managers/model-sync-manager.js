@@ -4,6 +4,7 @@ let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
 let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
 let AllModels = require('../linkable-models').Models;
 
+
 /**
  * Keeps track of all models for all views, including one pointer per view,
  * pointing to a model, this allows for linking / unlinking views.
@@ -18,7 +19,8 @@ class ModelSyncManager {
      * @class undefined
      * @constructor
      */
-    constructor() {
+    constructor(gl) {
+        this.gl = gl; // Some models need the GL context / canvas to initialize properly
         this.classes = {};
 
         this.defaultModels = {};
@@ -43,11 +45,13 @@ class ModelSyncManager {
         let subviewIDs = getAllCellIDs();
         this.classes[modelName] = Class;
 
-        this.defaultModels[modelName] = {};
+        this.defaultModels[modelName] = {}; // Init empty obj
+        this.linkedModels[modelName] = {}; // Init empty obj
+
         for (let subviewID of subviewIDs) {
 
             // Initialize a new object
-            this.defaultModels[modelName][subviewID] = new Class();
+            this.defaultModels[modelName][subviewID] = new Class(this.gl);
 
             // Initially point a subview to itself.
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -62,16 +66,21 @@ class ModelSyncManager {
      * @param {number} subviewID
      * @returns {Object} models - A dictionary, key: the model name -> value: the model object
      */
-    getModels(subviewID) {
+    getActiveModels(subviewID) {
         let models = {};
 
         for (let modelName in this.defaultModels) {
             models[modelName] = null;
             let activeModelSubviewID = this.linkedModels[modelName][subviewID];
-            models[modelName] = this.defaultModels[activeModelSubviewID];
+            models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
         }
 
         return models;
+    }
+
+    getActiveModel(modelName, subviewID) {
+        let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+        return this.defaultModels[modelName][activeModelSubviewID];
     }
 
     /**
@@ -94,7 +103,7 @@ class ModelSyncManager {
     addSubview(subviewID) {
         for (let modelName in this.defaultModels) {
             // Construct a new object for the subview
-            this.defaultModels[modelName][subviewID] = new this.classes[modelName]();
+            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl);
 
             // link to itself initially
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -112,8 +121,29 @@ class ModelSyncManager {
 
         for (let modelKey in this.defaultModels)
             for (let subviewID of subviewIDs)
-                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(subviewID);
+                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
 
+    }
+
+    updateSyncForModelKey(modelKey) {
+        let subviewIDs = getAllCellIDs();
+
+        for (let subviewID of subviewIDs) {
+            this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
+        }
+    }
+
+    _getModel(modelName, subviewID) {
+        return this.defaultModels[modelName][subviewID];
+    }
+
+    _getModels(subviewID) {
+        let models = {};
+        for (let modelKey in this.defaultModels) {
+            modelKey[modelKey] = this.defaultModels[modelKey][subviewID];
+        }
+
+        return models;
     }
 }
 

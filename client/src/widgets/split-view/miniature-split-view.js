@@ -52,11 +52,11 @@ class MiniatureSplitView {
      **/
 
     /**
-    * Constructs a new miniature split view
-    * @class
-    * @param {module:Widgets/View.MiniatureSplitViewConfiguration} args configuration
-    * @constructor
-    */
+     * Constructs a new miniature split view
+     * @class
+     * @param {module:Widgets/View.MiniatureSplitViewConfiguration} args configuration
+     * @constructor
+     */
     constructor(args) {
         this.properties = {
             divID: args.divID,
@@ -453,6 +453,7 @@ class MiniatureSplitView {
                 break;
             case 'LINK-REMOVE':
                 this.linkGrouper.ungroupMember(this.layout.getCellID(row, col));
+                this.linkDidChange();
                 break;
         }
 

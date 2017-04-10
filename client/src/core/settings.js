@@ -112,7 +112,7 @@ let SETTINGS = {
         LinkerAndSplitterView: {
             maxRows: 3,
             maxColumns: 4,
-            showIDs: false,
+            showIDs: true,
             bottomTopThresholdPercentage: 0.20,
             colors: {
                 'LINKS': ['red', 'green', 'white', 'blue', 'brown', 'gold'],

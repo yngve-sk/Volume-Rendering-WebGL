@@ -164,7 +164,7 @@ class SplitBox {
     }
 
     getActiveCellIDs() {
-        return cellIDs.getIndicesInUse();
+        return this.cellIDs.getIndicesInUse();
     }
 
     getNumberOfNonEmptyRows() {

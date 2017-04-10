@@ -39,8 +39,8 @@ let getLinkGroupingsForProperty = (key) => {
     return views.linkers[key].linkGroup.getLinks();
 }
 
-let getLayout = function () {
-    return views.ADD.layout.bind(this);
+let getLayout = () => {
+    return views.ADD.layout;
 }
 
 let getAddRemoveView = () => {
@@ -131,7 +131,7 @@ let getAllCellIDs = () => {
 }
 
 let getMasterCellIDForModel = (key, cellID) => {
-    return views.linkers[key].linkGroup.getMasterCellID(cellID);
+    return views.linkers[key].linkGrouper.getMasterCellID(cellID);
 }
 
 let read = () => {

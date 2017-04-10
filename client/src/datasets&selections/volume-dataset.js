@@ -2,7 +2,7 @@ let d3 = require('d3');
 
 /**
  * Represents one volume dataset, holds the isovalues, gradient, curvature etc.
- * Most of the heavy CPU calculations should be done @ server side though
+ * Most of the heavy CPU calculations should be done @ server side even though
  * it is possible to do most of it in the browser.
  * @memberof module:Data
  */

@@ -704,7 +704,7 @@ class TransferFunctionEditor {
     }
 
     _renderHistogram(sizes) {
-        if(!this.displayOptions.showHistogram)
+        if (!this.displayOptions.showHistogram)
             return;
 
         let histogram = this._getHistogram();
@@ -714,10 +714,14 @@ class TransferFunctionEditor {
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
+        // Displace to make it work as log-scale
+        yDomain[0] += 1;
+        yDomain[1] += 1;
+
         let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
-        let yScale = d3.scaleLinear().domain(yDomain).range(yRange),
+        let yScale = d3.scaleLog().domain(yDomain).range(yRange),
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
@@ -726,7 +730,11 @@ class TransferFunctionEditor {
                 return xScale(i);
             })
             .y((isovalue, i) => {
-                return yScale(isovalue);
+                let y = yScale(isovalue + 1);
+                if (y === Infinity) {
+                    console.log("y is inf... wtf?");
+                }
+                return y;
             });
 
         let area = d3.area()
@@ -735,7 +743,12 @@ class TransferFunctionEditor {
                 return xScale(i);
             })
             .y1((isovalue, i) => {
-                return yScale(isovalue);
+                let y = yScale(isovalue + 1);
+                if (y === Infinity) {
+                    console.log("y is inf... wtf?");
+                }
+
+                return yScale(y);
             })
             .y0(yRange[0]);
 

@@ -4,19 +4,19 @@ let Slicer = require('./models/slicer-model');
 let Sphere = require('./models/sphere-model');
 
 let LinkableModels = {
-    'TRANSFER_FUNCTION': {
+    TRANSFER_FUNCTION: {
         name: 'TRANSFER_FUNCTION',
         class: TransferFunction
     },
-    'CAMERA': {
+    CAMERA: {
         name: 'CAMERA',
         class: Camera
     },
-    'SLICER': {
+    SLICER: {
         name: 'SLICER',
         class: Slicer
     },
-    'SPHERE_AND_LIGHTS': {
+    SPHERE_AND_LIGHTS: {
         name: 'SPHERE_AND_LIGHTS',
         class: Sphere
     }

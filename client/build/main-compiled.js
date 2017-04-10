@@ -139,7 +139,7 @@ module.exports = function blobToBuffer (blob, cb) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":4}],3:[function(require,module,exports){
+},{"buffer":5}],3:[function(require,module,exports){
 // https://d3js.org Version 4.6.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16597,6 +16597,18 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 },{}],4:[function(require,module,exports){
+module.exports = function(strings) {
+  if (typeof strings === 'string') strings = [strings]
+  var exprs = [].slice.call(arguments,1)
+  var parts = []
+  for (var i = 0; i < strings.length-1; i++) {
+    parts.push(strings[i], exprs[i] || '')
+  }
+  parts.push(strings[i])
+  return parts.join('')
+}
+
+},{}],5:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -18389,7 +18401,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":1,"ieee754":5,"isarray":6}],5:[function(require,module,exports){
+},{"base64-js":1,"ieee754":6,"isarray":7}],6:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -18475,14 +18487,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.1.1
  * https://jquery.com/
@@ -28704,7 +28716,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // Spectrum Colorpicker v1.8.0
 // https://github.com/bgrins/spectrum
 // Author: Brian Grinstead
@@ -31029,7 +31041,7 @@ return jQuery;
 
 });
 
-},{"jquery":7}],9:[function(require,module,exports){
+},{"jquery":8}],10:[function(require,module,exports){
 // TinyColor v1.4.1
 // https://github.com/bgrins/TinyColor
 // Brian Grinstead, MIT License
@@ -32226,7 +32238,7 @@ else {
 
 })(Math);
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /*!
  * @license twgl.js 3.2.2 Copyright (c) 2015, Gregg Tavares All Rights Reserved.
  * Available via the MIT license.
@@ -40979,7 +40991,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ ])
 });
 ;
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -42529,7 +42541,7 @@ return /******/ (function(modules) { // webpackBootstrap
   }
 }.call(this));
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 let app = angular.module('WebGLVolumeRendererClient', ['semantic-ui', 'rzModule']);
 
 /* format for controllers:
@@ -42579,7 +42591,7 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":18,"./ng-directives/camera-settings-view":20,"./ng-directives/dataset-view":21,"./ng-directives/global-control-panel-view":22,"./ng-directives/links-and-views-view":23,"./ng-directives/local-control-panel-view":24,"./ng-directives/transfer-function-view":25}],13:[function(require,module,exports){
+},{"./ng-controllers/master-controller":19,"./ng-directives/camera-settings-view":21,"./ng-directives/dataset-view":22,"./ng-directives/global-control-panel-view":23,"./ng-directives/links-and-views-view":24,"./ng-directives/local-control-panel-view":25,"./ng-directives/transfer-function-view":26}],14:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
@@ -42603,7 +42615,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":27}],14:[function(require,module,exports){
+},{"../../core/environment":28}],15:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -42644,6 +42656,7 @@ let controller = function ($scope, $timeout) {
             setLoaderVisibility(false);
             $scope.datasets = list;
             $scope.selectedDataset = list[0];
+            $scope.$apply();
 
             if ($scope.loadAutomatically)
                 $scope.loadSelectedDataset();
@@ -42730,7 +42743,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":26,"../../core/environment":27,"../../core/settings":33}],15:[function(require,module,exports){
+},{"../../client2server/websocket-client":27,"../../core/environment":28,"../../core/settings":41}],16:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42749,7 +42762,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":26,"../../core/environment":27}],16:[function(require,module,exports){
+},{"../../client2server/websocket-client":27,"../../core/environment":28}],17:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let LinkableModels = require('../../core/linkable-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
@@ -42845,7 +42858,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":27,"../../core/linkable-models":29,"../../widgets/split-view/view-splitter-master-controller":49}],17:[function(require,module,exports){
+},{"../../core/environment":28,"../../core/linkable-models":30,"../../widgets/split-view/view-splitter-master-controller":55}],18:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42858,7 +42871,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":26,"../../core/environment":27}],18:[function(require,module,exports){
+},{"../../client2server/websocket-client":27,"../../core/environment":28}],19:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -42898,7 +42911,7 @@ module.exports = function ($scope) {
 
 };
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -43008,7 +43021,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":27,"../../widgets/transfer-function/transfer-function-editor-v2":51,"jquery":7,"spectrum-colorpicker":8}],20:[function(require,module,exports){
+},{"../../core/environment":28,"../../widgets/transfer-function/transfer-function-editor-v2":57,"jquery":8,"spectrum-colorpicker":9}],21:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
@@ -43030,7 +43043,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/camera-settings-view-controller":13}],21:[function(require,module,exports){
+},{"../ng-controllers/camera-settings-view-controller":14}],22:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -43051,7 +43064,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":14}],22:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":15}],23:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43074,7 +43087,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":15}],23:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":16}],24:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -43096,7 +43109,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":16}],24:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":17}],25:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43118,7 +43131,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":17}],25:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":18}],26:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -43149,7 +43162,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":27,"../ng-controllers/transfer-function-view-controller":19}],26:[function(require,module,exports){
+},{"../../core/environment":28,"../ng-controllers/transfer-function-view-controller":20}],27:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -43260,7 +43273,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":42,"blob-to-buffer":2}],27:[function(require,module,exports){
+},{"../main":48,"blob-to-buffer":2}],28:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -43297,7 +43310,7 @@ class Environment {
         // The links must also be refreshed because a view may be obsolete.
         this.layout = LinksAndLayout.read().layout; // Reads layout from view splitter
 
-        this.ViewManager = new ViewManager(this, LinksAndLayout.getAddRemoveView);
+        this.ViewManager = null; // Depends on links&view view
         this.TransferFunctionManager = new TransferFunctionManager(this);
 
         this.GlobalOverrideLocals = {
@@ -43322,7 +43335,9 @@ class Environment {
 
         // called when a link group for the given property changes
         this.notifyLinkChanged = (propertyKey) => {
-            console.log("ENV, link changed @ propertyKey " + propertyKey);
+            console.log("LINK CHANGED!");
+            console.log(propertyKey);
+            this.ViewManager.linkChanged(propertyKey);
         }
 
         // called when the layout changes
@@ -43350,6 +43365,8 @@ class Environment {
                 isovalues: isovalues
             });
 
+            this.ViewManager.datasetDidChange();
+
             // For now pretend only one dataset will be loaded at a time.
             this._notifyListeners('DatasetDidChange', 'LOCAL');
             this._notifyListeners('DatasetDidChange', 'GLOBAL');
@@ -43357,14 +43374,58 @@ class Environment {
 
         this.readyElements = []; // Expect call from:
         // LinksAndViewsController, TransferFunctionController
+
+        window.addEventListener('keydown', (event) => {
+            console.log("Key down: " + event.key);
+            switch (event.key) {
+                case '1':
+                    console.log("Refreshing...");
+                    this.ViewManager.refresh();
+                    break;
+                case '2':
+                    break;
+                case '3':
+                    break;
+                case '4':
+                    break;
+                case '5':
+                    break;
+                case '6':
+                    break;
+                case '7':
+                    break;
+                case '8':
+                    break;
+                case '9':
+                    break;
+                case 'q':
+                    break;
+
+            }
+        });
     }
 
+
+    /**
+     * Called from a controller when it is done initializing its
+     * DOM and underlying model. Some objects need other objects
+     * to be initialized, before they themselves can be initialized.
+     * This function allows for shimming it.
+     *
+     * @param {string} from name of the controller
+     */
     ready(from) {
         console.log("READY from " + from);
         this.readyElements.push(from);
 
-        if (this.readyElements.length === 2) {
-            this.ViewManager.syncWithLayout();
+        switch (from) {
+            case 'LinksAndViewsController':
+                this.ViewManager = new ViewManager(this, LinksAndLayout.getAddRemoveView);
+                break;
+            case 'TransferFunctionController':
+                break;
+            default:
+                break;
         }
     }
 
@@ -43442,6 +43503,10 @@ class Environment {
         return this.TransferFunctionManager.getTransferFunctionForTFEditorKey(tfEditorKey);
     }
 
+    getActiveDataset(cellID) {
+        return this.DatasetManager.getDataset(cellID);
+    }
+
     /**
      * Binds a handle to listen for events at a given channel
      *
@@ -43466,7 +43531,7 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":26,"../core/views/view-manager":38,"../datasets&selections/dataset-manager":39,"../widgets/split-view/view-splitter-master-controller":49,"../widgets/transfer-function/transfer-function":53,"../widgets/transfer-function/transfer-function-manager":52,"./interaction-modes":28}],28:[function(require,module,exports){
+},{"../client2server/websocket-client":27,"../core/views/view-manager":43,"../datasets&selections/dataset-manager":44,"../widgets/split-view/view-splitter-master-controller":55,"../widgets/transfer-function/transfer-function":59,"../widgets/transfer-function/transfer-function-manager":58,"./interaction-modes":29}],29:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -43521,26 +43586,26 @@ module.exports = {
     }
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
 let Camera = require('./models/camera');
 let Slicer = require('./models/slicer-model');
 let Sphere = require('./models/sphere-model');
 
 let LinkableModels = {
-    'TRANSFER_FUNCTION': {
+    TRANSFER_FUNCTION: {
         name: 'TRANSFER_FUNCTION',
         class: TransferFunction
     },
-    'CAMERA': {
+    CAMERA: {
         name: 'CAMERA',
         class: Camera
     },
-    'SLICER': {
+    SLICER: {
         name: 'SLICER',
         class: Slicer
     },
-    'SPHERE_AND_LIGHTS': {
+    SPHERE_AND_LIGHTS: {
         name: 'SPHERE_AND_LIGHTS',
         class: Sphere
     }
@@ -43555,9 +43620,10 @@ module.exports = {
     Models: LinkableModels
 };
 
-},{"../widgets/transfer-function/transfer-function":53,"./models/camera":30,"./models/slicer-model":31,"./models/sphere-model":32}],30:[function(require,module,exports){
+},{"../widgets/transfer-function/transfer-function":59,"./models/camera":31,"./models/slicer-model":32,"./models/sphere-model":33}],31:[function(require,module,exports){
 let m4 = require('twgl.js').m4;
-
+let Transformations = require('./transformations');
+let InitialProjectionSettings = null; // TODO define in ext file, possibly settings!
 
 /**
  * Simple wrapper around twgl.js m4 functionality,
@@ -43565,7 +43631,7 @@ let m4 = require('twgl.js').m4;
  * @memberof module:Core/Models
  */
 class Camera {
-    constructor(initialProjectionSettings) {
+    constructor(gl) {
         this.eye = [1, 4, -6];
         this.target = [0, 0, 0];
         this.up = [0, 1, 0];
@@ -43576,9 +43642,16 @@ class Camera {
         //      zNear
         //      zFar
         // }
-        this.projectionSettings = initialProjectionSettings;
+        this.projectionSettings = {
+            fieldOfViewRadians: Math.PI / 6,
+            aspectRatio: gl.canvas.clientWidth / gl.canvas.clientHeight,
+            zNear: 0.5,
+            zFar: 10
+        };
 
         this.projection = null; // Must be set so it takes into account width/height
+        //this.setPerspective();
+        this.modelTransformation = new Transformations();
         this.setPerspective();
     }
 
@@ -43603,14 +43676,37 @@ class Camera {
         return m4.inverse(this.getLookAt());
     }
 
+    getViewInverseMatrix() {
+        return this.getLookAt();
+    }
+
+    getWorldMatrix() {
+        return this.modelTransformation.getTransformation();
+    }
+
     getViewProjectionMatrix() {
         return m4.multiply(this.getPerspectiveMatrix(), this.getViewMatrix());
+    }
+
+    getWorldInverseTranspose() {
+        return m4.transpose(m4.inverse(this.getWorldMatrix()));
+    }
+
+    getWorldViewProjectionMatrix() {
+        let modelToWorld = this.modelTransformation.getTransformation();
+        let worldToProjection = this.getViewProjectionMatrix();
+        return m4.multiply(worldToProjection, modelToWorld);
+
+    }
+
+    getModelTransformation() {
+        return this.modelTransformation;
     }
 }
 
 module.exports = Camera;
 
-},{"twgl.js":10}],31:[function(require,module,exports){
+},{"./transformations":34,"twgl.js":11}],32:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a slicer.
  * @memberof module:Core/Models
@@ -43627,7 +43723,7 @@ class SlicerModel {
 
 module.exports = SlicerModel;
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -43645,7 +43741,784 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
+let twgl = require('twgl.js');
+let m4 = twgl.m4,
+    v3 = twgl.v3;
+
+class Transformations {
+    constructor() {
+        this.rotation = m4.identity();
+        this.translation = m4.identity();
+        this.scale = m4.identity();
+
+        this.transformation = m4.identity();
+    }
+
+    getTransformation() {
+        m4.multiply(this.scale, this.rotation, this.transformation);
+        m4.multiply(this.translation, this.transformation, this.transformation);
+        return this.transformation;
+    }
+
+    rotateFromEye(rx, ry, eyePos, up) {
+        // TODO something is wrong here, fix.
+        let yAxis = up; // Already normalized
+
+        // Center is assumed to be (0,0,0)
+        let eyeToCenter = v3.mulScalar(v3.normalize(eyePos), -1);
+
+        let xAxis = v3.normalize(v3.cross(yAxis, eyeToCenter));
+
+        m4.axisRotate(this.rotation, yAxis, rx, this.rotation);
+        m4.axisRotate(this.rotation, xAxis, ry, this.rotation);
+    }
+
+    rotateX(radians) {
+        m4.rotateX(this.rotation, radians, this.rotation);
+    }
+
+    rotateY(radians) {
+        m4.rotateY(this.rotation, radians, this.rotation);
+    }
+
+    rotateZ(radians) {
+        m4.rotateZ(this.rotation, radians, this.rotation);
+    }
+
+    translate(dx, dy, dz) {
+        console.log("translating...");
+        m4.translate(this.translation, [dx, dy, dz], this.translation);
+    }
+
+    scale(sxy) {
+        m4.scale(this.scale, [sxy, sxy, 0], this.scale);
+    }
+}
+
+module.exports = Transformations;
+
+},{"twgl.js":11}],35:[function(require,module,exports){
+let twgl = require('twgl.js');
+let m4 = twgl.m4;
+
+/** @module Core/Renderer */
+
+/**
+ * Simple wrapper class, can be configured to perform
+ * a sequence of render steps.
+ * @memberof module:Core/Renderer
+ */
+class ConfigurableRenderer {
+
+    /**
+     * Initializes a new renderer with the given
+     * initial configuration.
+     *
+     * @class undefined
+     * @param {module:Core/Renderer.RendererConfiguration} initialConfig
+     * @constructor
+     */
+    constructor(gl, initialConfig) {
+        this.steps = [];
+        this.gl = gl;
+        this.viewport = null;
+
+        if (initialConfig !== undefined)
+            this.configure(initialConfig);
+    }
+
+    setViewport(viewport) {
+        this.viewport = viewport;
+    }
+
+    /**
+     * Syncs the renderer with the given configuration
+     *
+     * @param {module:Core/Renderer.RendererConfiguration} config
+     */
+    configure(config) {
+        //this.gl = config.gl;
+        if (config.viewport)
+            this.viewport = config.viewport;
+
+        this.steps = config.steps;
+        this.uniforms = config.uniforms
+    }
+
+    _applyViewport() {
+        this.gl.viewport(
+            this.viewport.x0,
+            this.viewport.y0,
+            this.viewport.width,
+            this.viewport.height);
+    }
+
+    /**
+     * Renders as instructed by the current configuration
+     */
+    render() {
+        let gl = this.gl;
+
+        //let step0 = this.steps[0];
+        //let programInfo = step0.programInfo,
+        //    program = programInfo.program;
+        //let bufferInfo = step0.bufferInfo;
+        //
+        //twgl.bindFramebufferInfo(gl, step0.frameBufferInfo);
+        //
+        //gl.enable(gl.DEPTH_TEST);
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //gl.enable(gl.CULL_FACE);
+        //
+        //let applyViewport = () => {
+        //    gl.viewport(
+        //        this.viewport.x0,
+        //        this.viewport.y0,
+        //        this.viewport.width,
+        //        this.viewport.height);
+        //}
+        //
+        //var projection = m4.perspective(30 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.5, 10);
+        //var eye = [1, 4, -6];
+        //var target = [0, 0, 0];
+        //var up = [0, 1, 0];
+        //
+        //var camera = m4.lookAt(eye, target, up);
+        //var view = m4.inverse(camera);
+        //var viewProjection = m4.multiply(projection, view);
+        //var world = m4.rotationY(0);
+        //
+        ////uniforms.u_viewInverse = camera;
+        ////uniforms.u_world = world;
+        ////uniforms.u_worldInverseTranspose = m4.transpose(m4.inverse(world));
+        //
+        //let tmp_u_worldViewProjection = m4.multiply(viewProjection, world);
+        //
+        //this.uniforms.u_WorldViewProjection = tmp_u_worldViewProjection;
+        //
+        //
+        //gl.useProgram(program);
+        //
+        //gl.cullFace(gl.BACK);
+        //
+        //twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+        //twgl.setUniforms(programInfo, this.uniforms);
+        //
+        //
+        //applyViewport();
+        //
+        //gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+
+
+        for (let step of this.steps) {
+            let programInfo = step.programInfo;
+
+            //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+            gl.useProgram(programInfo.program);
+            this._applyViewport();
+
+
+
+            if (step.glSettings) {
+                for (let func in step.glSettings) {
+                    // Ex: {cullFace: 'BACK'} evalues into:
+                    // gl[cullFace](gl[BACK]) which is the same as
+                    // gl.cullFace(gl.BACK)
+                    gl[func](gl[step.glSettings[func]]);
+                }
+            }
+
+            twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
+            //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
+            twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
+
+            //            if (step.frameBufferInfo) {
+            //                twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+            //                //twgl.drawBufferInfo(gl, step.bufferInfo);
+            //                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //
+            //            } else {
+            //                gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+            //                //twgl.drawBufferInfo(gl, step.bufferInfo);
+            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //            }
+        }
+    }
+}
+
+module.exports = ConfigurableRenderer;
+/**
+ * Configuration of the webGL context in JSON format
+ * @typedef {Object.<string,string>} GLConfiguration
+ * @example
+  {
+   'cullFace': 'BACK',
+   'clear' : 'COLOR_BUFFER_BIT'
+}
+  //
+ *
+ * @memberof module:Core/Renderer
+ **/
+
+/**
+ * Configurations for one rendering step.
+ *
+ * @typedef {Object} RenderingStep
+ * @property {twgl.ProgramInfo} programInfo Holds the shader program (see twgl library docs)
+ * @property {twgl.FramebufferInfo} frameBufferInfo Holds the frame buffer, pass in null to set target to screen. (see twgl library docs)
+ * @property {twgl.BufferInfo} bufferInfo Holds the shape to render, usually the bounding box (see twgl library docs)
+ * @property {Object} uniforms JSON object corresponding to the uniforms in the shader.
+ * @property {module:Core/Renderer.GLConfiguration} glSettings specify a set of openGL settings as key-value pairs in a JSON. These settings will be applied before the rendering is done.
+ * @memberof module:Core/Renderer
+ **/
+
+/**
+ *
+ * @typedef {Object} RendererConfiguration
+ * @property {WebGL2Context} gl WebGL2 target context to render to
+ * @property {module:Core/View.Viewport} viewport The target viewport to render to
+ * @property {module:Core/Renderer.RenderingStep[]} steps Array of rendering steps
+ *
+ * @memberof module:Core/Renderer
+ **/
+
+},{"twgl.js":11}],36:[function(require,module,exports){
+let twgl = require('twgl.js');
+let createCuboidVertices = require('../../geometry/box');
+
+class BufferManager {
+    constructor(gl) {
+        this.gl = gl;
+        this.bufferObjects = {};
+    }
+
+    createBoundingBoxBufferInfo(name, width, height, depth) {
+        let arrays = createCuboidVertices(width, height, depth);
+        this.bufferObjects[name] = twgl.createBufferInfoFromArrays(this.gl, arrays);
+    }
+
+    getBufferInfo(name) {
+        return this.bufferObjects[name];
+    }
+}
+
+module.exports = BufferManager;
+
+},{"../../geometry/box":47,"twgl.js":11}],37:[function(require,module,exports){
+let twgl = require('twgl.js');
+
+/**
+ * Manages and creates frame buffers and textures.
+ *
+ * @memberof module:Core/Renderer
+ */
+class FrameBufferAndTextureManager {
+    /**
+     * @param {WebGL2Context} gl the webGL context the framebuffer manager is tied to
+     * @constructor
+     */
+    constructor(gl) {
+        this.gl = gl;
+        this.framebuffers = {
+
+        };
+
+        this.textures = {
+
+        };
+    }
+
+
+    /**
+     *
+     * @typedef {Object} FramebufferDetail
+     * @property {string|number} name name of the frame buffer
+     * @property {number} width width of the texture attachment
+     * @property {number} height height of the texture attachment
+     *
+     * @memberof module:Core/Renderer
+     **/
+
+    getTexture(name) {
+        if (!this.textures[name])
+            alert('Texture with name: ' + name + ' is NOT registered...');
+        return this.textures[name];
+    }
+
+    getFrameBuffer(name) {
+        if (!this.framebuffers[name])
+            alert('FB  with name: ' + name + ' is NOT registered...');
+
+        return this.framebuffers[name];
+    }
+
+    /**
+     * Creates a frame buffer holding a 2D texture
+     *
+     * @param {module:Core/Renderer.FramebufferDetail} detail
+     */
+    create2DTextureFB(detail) {
+        let gl = this.gl;
+        this.textures[detail.name] = twgl.createTexture(gl, {
+            target: gl.TEXTURE_2D,
+            width: detail.width,
+            height: detail.height,
+            min: gl.LINEAR,
+            mag: gl.LINEAR,
+            internalFormat: gl.RGBA,
+            format: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            wrap: gl.CLAMP_TO_EDGE,
+            premultiplyAlpha: false,
+            auto: true,
+            src: null
+        });
+
+        let framebuffer = twgl.createFramebufferInfo(gl, [{
+            attach: gl.COLOR_ATTACTMENT0,
+            format: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            target: gl.FRAMEBUFFER,
+            level: 0,
+            attachment: this.textures[detail.name]
+        }]);
+
+        this.framebuffers[detail.name] = framebuffer;
+        return this.framebuffer;
+    }
+
+
+
+    /**
+     * @typedef {Object} GridPos2Isovalue3DTextureDetail
+     * @property {string} name name of the texture (used when fetching it)
+     * @property {number} cols number of cols
+     * @property {number} rows number of rows
+     * @property {number} slices number of slices
+     * @property {Int16Array} isovalues the isovalue array
+     *
+     * @memberof module:Core/Renderer
+     **/
+
+    /**
+     * Creates a 3D texture from an isovalue array
+     *
+     * @param {module:Core/Renderer.GridPos2Isovalue3DTextureDetail} detail
+     */
+    createGridPos2Isovalue3DTexture(detail) {
+        let gl = this.gl;
+        this.textures[detail.name] =
+            twgl.createTexture(gl, {
+                target: gl.TEXTURE_3D,
+                width: detail.cols,
+                height: detail.rows,
+                depth: detail.slices,
+                internalFormat: gl.R16I, // format when sampling from shader
+                format: gl.RED_INTEGER, // format of data
+                type: gl.SHORT, // type of data
+                src: detail.isovalues,
+                wrapS: gl.CLAMP_TO_EDGE,
+                wrapT: gl.CLAMP_TO_EDGE,
+                wrapR: gl.CLAMP_TO_EDGE,
+                premultiplyAlpha: false
+            });
+    }
+}
+
+module.exports = FrameBufferAndTextureManager;
+
+},{"twgl.js":11}],38:[function(require,module,exports){
+let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
+
+let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
+let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
+let AllModels = require('../linkable-models').Models;
+
+
+/**
+ * Keeps track of all models for all views, including one pointer per view,
+ * pointing to a model, this allows for linking / unlinking views.
+ * This is what binds the models to the subviews, while still allowing for
+ * simple linking/unlinking operations.
+ * @memberof module:Core/View
+ */
+class ModelSyncManager {
+
+    /**
+     * Description for undefined
+     * @class undefined
+     * @constructor
+     */
+    constructor(gl) {
+        this.gl = gl; // Some models need the GL context / canvas to initialize properly
+        this.classes = {};
+
+        this.defaultModels = {};
+
+        this.linkedModels = {};
+
+        // Note how it "magically" pulls models directly from
+        // the linkable-models file.
+        for (let key in AllModels) {
+            let model = AllModels[key];
+            this.addModel(model.name, model.class);
+        }
+    }
+
+    /**
+     * Adds a model to the sync manager
+     *
+     * @param {string} modelName must be a valid model name representing Sphere, Slicer, Camera etc.
+     * @param {Class} ObjConstructor Class with blank constructor to construct new objects
+     */
+    addModel(modelName, Class) {
+        let subviewIDs = getAllCellIDs();
+        this.classes[modelName] = Class;
+
+        this.defaultModels[modelName] = {}; // Init empty obj
+        this.linkedModels[modelName] = {}; // Init empty obj
+
+        for (let subviewID of subviewIDs) {
+
+            // Initialize a new object
+            this.defaultModels[modelName][subviewID] = new Class(this.gl);
+
+            // Initially point a subview to itself.
+            this.linkedModels[modelName][subviewID] = subviewID;
+        }
+    }
+
+    /**
+     * Gets a JSON of all the models.
+     * It answers the question: "Which models is the subview with this ID
+     * pointing to right now?"
+     *
+     * @param {number} subviewID
+     * @returns {Object} models - A dictionary, key: the model name -> value: the model object
+     */
+    getActiveModels(subviewID) {
+        let models = {};
+
+        for (let modelName in this.defaultModels) {
+            models[modelName] = null;
+            let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+            models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
+        }
+
+        return models;
+    }
+
+    getActiveModel(modelName, subviewID) {
+        let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+        return this.defaultModels[modelName][activeModelSubviewID];
+    }
+
+    /**
+     * Removes a subview with given ID. Deletes all models & pointers
+     * associated with this subview ID.
+     *
+     * @param {number} subviewID
+     */
+    removeSubview(subviewID) {
+        delete this.defaultModels[subviewID];
+        delete this.linkedModels[subviewID];
+    }
+
+    /**
+     * Adds a subview and constructs a new instance of each model,
+     * and points it to its own instance.
+     *
+     * @param {number} subviewID
+     */
+    addSubview(subviewID) {
+        for (let modelName in this.defaultModels) {
+            // Construct a new object for the subview
+            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl);
+
+            // link to itself initially
+            this.linkedModels[modelName][subviewID] = subviewID;
+        }
+    }
+
+    /**
+     * Synchronizes the model manager, should be called every time the
+     * link groups change. The class is automatically connected to the
+     * {@link module:ViewSplitterMasterController} module, this will simply
+     * re-sync the model pointers.
+     **/
+    syncWithLinkGroup() {
+        let subviewIDs = getAllCellIDs();
+
+        for (let modelKey in this.defaultModels)
+            for (let subviewID of subviewIDs)
+                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
+
+    }
+
+    updateSyncForModelKey(modelKey) {
+        let subviewIDs = getAllCellIDs();
+
+        for (let subviewID of subviewIDs) {
+            this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
+        }
+    }
+
+    _getModel(modelName, subviewID) {
+        return this.defaultModels[modelName][subviewID];
+    }
+
+    _getModels(subviewID) {
+        let models = {};
+        for (let modelKey in this.defaultModels) {
+            modelKey[modelKey] = this.defaultModels[modelKey][subviewID];
+        }
+
+        return models;
+    }
+}
+
+module.exports = ModelSyncManager;
+
+},{"../../widgets/split-view/view-splitter-master-controller":55,"../linkable-models":30}],39:[function(require,module,exports){
+let glsl = require('glslify');
+let twgl = require('twgl.js');
+
+let BASE_PATH = '../shaders/',
+    SHADER_V = 'shader.v.glsl',
+    SHADER_F = 'shader.f.glsl';
+
+let SHADER_FOLDERS = {
+    BasicVolume: 'BasicVolume',
+    PositionToRGB: 'PositionToRGB'
+};
+
+// Naming convention: u_TheUniformName
+let SHADER_UNIFORM_NAMES = {
+    u_WorldViewProjection: 'u_WorldViewProjection',
+    u_IsoValueToColorOpacity: 'u_IsoValueToColorOpacity',
+    u_TexCoordToRayOrigin: 'u_TexCoordToRayOrigin',
+    u_TexCoordToRayEndPoint: 'u_TexCoordToRayEndPoint',
+    u_BoundingBoxNormalized: 'u_BoundingBoxNormalized',
+    u_BaseSamplingRate: 'u_BaseSamplingRate'
+
+};
+
+// Naming convention: a_attributeName
+let VSHADER_ATTR_NAMES = {
+    a_position: 'a_position',
+};
+
+// Naming convention: v_attributeName, i.e shit passed from v-shader to f-shader!
+let FSHADER_ATTR_NAMES = {
+    v_bbPosition: 'v_bbPosition',
+    v_projectedPosition: 'v_projectedPosition'
+};
+
+let BUILTIN_PROGRAMS = {
+    BasicVolume: 'BasicVolume',
+    PositionToRGB: 'PositionToRGB',
+    DebugCube: 'DebugCube'
+};
+
+
+/**
+ * Manages all shaders, maintains a list of shader sources
+ * and will create shader programs from whatever combination
+ * of shader sources (note: they must be compatible)
+ *
+ * @memberof module:Core/Renderer
+ **/
+class ShaderManager {
+    /**
+     * Constructs a new shader manager
+     * @param {WebGL2Context} gl the webGL context to bind the shader programs to
+     * @constructor
+     */
+    constructor(gl) {
+        this.gl = gl;
+        this.programs = {};
+
+        this.vertexShaders = {};
+        this.fragmentShaders = {};
+
+        // Must be done manually like this due to glslify
+        // It does a static code analysis and injects the GLSL
+        // file contents as strings, prior to running browserify
+        // itself.
+        // TLDR: Cannot use glslify dynamically.
+        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\n\nin vec4 a_position;\nout vec4 v_position;\nout vec4 v_projectedPosition;\n\nvoid main() {\n    vec4 projectedPosition = u_WorldViewProjection * a_position;\n\n    v_position = a_position;\n    v_projectedPosition = projectedPosition;\n\n    gl_Position = projectedPosition;\n}\n"]);
+        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1604150559(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\n\nin vec4 v_position; // Same as ray start position\nin vec4 v_projectedPosition;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    vec3 gridPosition = World2NormalizedBBCoord_0_to_1_1604150559(modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    return float(iso) / 32736.0;\n}\n\nvoid main() {\n    // Transform from [-1,1] to [0,1]\n    vec2 texCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projectedPosition);\n\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, texCoord).xyz;\n    vec3 frontFaceGridPos = World2NormalizedBBCoord_0_to_1_1604150559(v_position.xyz, u_BoundingBoxNormalized);\n    vec3 front2Back = (backfaceGridPos.xyz - frontFaceGridPos);\n    \n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    \n    // 2. Start ray casting from pos, blend in alpha and such, output target is texture\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = frontFaceGridPos;//(v_position.xyz + vec3(1.0))/2.0; // [-1,1] -> [0,1]\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n \n    float isovalue; // normalized\n    float isovalueNormalized; // OK!\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a;\n        color = isoRGBA.rgb;\n        //\n        //alpha *= (1.0 - accumulatedAlpha);\n        //alpha *= alphaScaleFactor;\n\n        // Accumulate color and opacity\n        //accumulatedColor += color * alpha;\n        //accumulatedAlpha += alpha;\n        \n        alphaIn = isoRGBA.a;\n        alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    vec3 isovalueLookup = currentPos - vec3(0.5);\n    ///vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    //isovalue = isoAndGradientMag.r;\n    vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    vec3 colorTestRGB = colorTest.rgb;\n    float colorTestA = colorTest.a;\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha); // Block...\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nuniform mat4 u_worldViewProjection;\n\nin vec4 a_position; // The position of the vertex in space [-1,1]\n//out vec4 v_bbPosition;\n\nvoid main() {\n    // Displace to fit RGB color space\n    //v_bbPosition = a_position;\n    gl_Position = u_worldViewProjection * a_position;\n}\n"]);
+        this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\n//in vec4 v_bbPosition;\n//uniform vec3 u_BoundingBoxNormalized;\n\nout vec4 outColor;\n\nvoid main() {\n    //vec3 gridCoord3D_0_to_1 = World2NormalizedBBCoord_0_to_1(\n    //    v_bbPosition.xyz, \n    //    u_BoundingBoxNormalized\n    //);\n    \n    outColor = vec4(0.8,0.8,0.8,1.0);//vec4(gridCoord3D_0_to_1, 1.0);\n}\n"]);
+
+        this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_worldViewProjection;\nuniform vec3 u_lightWorldPos;\nuniform mat4 u_world;\nuniform mat4 u_viewInverse;\nuniform mat4 u_worldInverseTranspose;\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\nvoid main() {\nv_texCoord = a_texcoord;\nv_position = (u_worldViewProjection * a_position);\nv_normal = (u_worldInverseTranspose * vec4(a_normal, 0)).xyz;\nv_surfaceToLight = u_lightWorldPos - (u_world * a_position).xyz;\nv_surfaceToView = (u_viewInverse[3] - (u_world * a_position)).xyz;\ngl_Position = v_position;\n}"]);
+        this.fragmentShaders['DebugCube'] = glsl(["#version 300 es \n\n            precision mediump float;\n            precision mediump sampler2D;\n#define GLSLIFY 1\n\n            \n            in vec4 v_position;\n            in vec2 v_texCoord;\n            in vec3 v_normal;\n            in vec3 v_surfaceToLight;\n            in vec3 v_surfaceToView;\n            \n            uniform vec4 u_lightColor;\n            uniform vec4 u_ambient;\n            uniform sampler2D u_diffuse;\n            uniform vec4 u_specular;\n            uniform float u_shininess;\n            uniform float u_specularFactor;\n            \n            vec4 lit(float l ,float h, float m) {\n            return vec4(1.0,\n            max(l, 0.0),\n            (l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n            1.0);\n            }\n\n            out vec4 outColor;\n            \n            void main() {\n            vec4 diffuseColor = texture(u_diffuse, v_texCoord);\n            vec3 a_normal = normalize(v_normal);\n            vec3 surfaceToLight = normalize(v_surfaceToLight);\n            vec3 surfaceToView = normalize(v_surfaceToView);\n            vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n            vec4 litR = lit(dot(a_normal, surfaceToLight),\n            dot(a_normal, halfVector), u_shininess);\n            outColor = vec4((\n            u_lightColor * (diffuseColor * litR.y + diffuseColor * u_ambient +\n            u_specular * litR.z * u_specularFactor)).rgb,\n            diffuseColor.a);\n            \n            }"]);
+
+        this._initBuiltinPrograms();
+    }
+
+    _initBuiltinPrograms() {
+        for (let program in BUILTIN_PROGRAMS)
+            this.createProgramFromShaders({
+                name: program,
+                vShaderName: program,
+                fShaderName: program
+            });
+    }
+
+
+    /**
+     * Creates program from shaders, and returns the program
+     *
+     * @param {module:Core/Renderer.ShaderProgramDetail} detail
+     * @return {twgl.ProgramInfo} program info (see twgl.js docs)
+     *
+     */
+    createProgramFromShaders(detail) {
+        let shaders = [
+                this.vertexShaders[detail.vShaderName],
+                this.fragmentShaders[detail.fShaderName]
+            ];
+
+        this.programs[detail.name] = twgl.createProgramInfo(
+            this.gl, [
+                this.vertexShaders[detail.vShaderName],
+                this.fragmentShaders[detail.fShaderName]
+            ]);
+    }
+
+    getProgramInfo(name) {
+        return this.programs[name];
+    }
+
+    getListOfPrograms() {
+        return this.programs.keys();
+    }
+
+    getAvailableShadersSets() {
+        return SHADER_FOLDERS;
+    }
+
+}
+
+module.exports = ShaderManager;
+/**
+ *
+ * @typedef {Object} ShaderProgramDetail
+ * @property {string} name name of the shader program
+ * @property {string} vShaderName vertex shader name
+ * @property {string} fShaderName fragment shader name
+ *
+ * @memberof module:Core/Renderer
+ **/
+
+},{"glslify":4,"twgl.js":11}],40:[function(require,module,exports){
+/**
+ * Manages uniforms, maintains getter functions for all
+ * uniforms, both private and shared (subview-wise)
+ * @memberof module:Core/Renderer
+ */
+class UniformManager {
+    /**
+     * Constructs a new uniform manager
+     * @class undefined
+     * @constructor
+     */
+    constructor() {
+        // shared = SAME VALUE across all subviews
+        this.shared = { // format: {uniformName: () -> value}
+
+        };
+
+        // unique = POSSIBLY DIFFERENT value across subviews
+        this.unique = { // format: {uniformName: (subviewID) -> value}
+
+        };
+
+        // Each subview will point to one of the uniform-sets here.
+        this.uniforms = { // format: {subviewID: UniformsJSON}
+
+        };
+    };
+
+    addShared(name, getter) {
+        this.shared[name] = getter;
+    }
+
+    addUnique(name, getter) {
+        this.unique[name] = getter;
+    }
+
+    uniqueUniformDidChange(name, subviewID) {
+        // Simply re-fetch it via the getter
+        this._setUniform(subviewID, name, this._getUniqueUniform(name, subviewID));
+    }
+
+    sharedUniformDidChange(name) {
+        let newValue = this._getSharedUniform(name);
+
+        // Refresh it for all subview IDs
+        for (let subviewID in this.uniforms)
+            this._setUniform(subviewID, name, newValue);
+    }
+
+    updateAll() {
+        for (let uniformName in this.shared)
+            this.sharedUniformDidChange(uniformName);
+
+
+        for (let uniformName in this.unique)
+            for (let subviewID in this.uniforms)
+                this.uniqueUniformDidChange(uniformName, subviewID);
+    }
+
+    addSubview(subviewID) {
+        this._bundleUniformsForSubview(subviewID);
+    }
+
+    /**
+     * Gets a JSON of uniforms for the given subview ID.
+     * This is a JSON so changes made to the uniform will
+     * appear in the object fetched via this method.
+     *
+     * @param {number} subviewID
+     */
+    getUniformBundle(subviewID) {
+        return this.uniforms[subviewID];
+    }
+
+    _bundleUniformsForSubview(subviewID) {
+        let bundle = {};
+
+        // 1. Inject shared
+        for (let uniformName in this.shared)
+            bundle[uniformName] = this._getSharedUniform(uniformName);
+
+        // 2. Inject unique
+        for (let uniformName in this.unique)
+            bundle[uniformName] = this._getUniqueUniform(uniformName, subviewID);
+
+        this.uniforms[subviewID] = bundle;
+    }
+
+    _getUniqueUniform(uniformName, subviewID) {
+        return this.unique[uniformName](subviewID);
+    }
+
+    _getSharedUniform(uniformName) {
+        return this.shared[uniformName]();
+    }
+
+    _setUniform(subviewID, uniformName, value) {
+        this.uniforms[subviewID][uniformName] = value;
+    }
+}
+
+module.exports = UniformManager;
+
+},{}],41:[function(require,module,exports){
 let d3 = require('d3');
 
 /** @module Settings */
@@ -43760,7 +44633,7 @@ let SETTINGS = {
         LinkerAndSplitterView: {
             maxRows: 3,
             maxColumns: 4,
-            showIDs: false,
+            showIDs: true,
             bottomTopThresholdPercentage: 0.20,
             colors: {
                 'LINKS': ['red', 'green', 'white', 'blue', 'brown', 'gold'],
@@ -43796,143 +44669,9 @@ let SETTINGS = {
 
 module.exports = SETTINGS;
 
-},{"d3":3}],34:[function(require,module,exports){
-class FrameBufferManager {
+},{"d3":3}],42:[function(require,module,exports){
+let ConfigurableRenderer = require('../rendering/configurable-renderer');
 
-}
-
-module.exports = FrameBufferManager;
-
-},{}],35:[function(require,module,exports){
-let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
-
-let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
-let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
-let AllModels = require('../linkable-models').Models;
-
-/**
- * Keeps track of all models for all views, including one pointer per view,
- * pointing to a model, this allows for linking / unlinking views.
- * This is what binds the models to the subviews, while still allowing for
- * simple linking/unlinking operations.
- * @memberof module:Core/View
- */
-class ModelSyncManager {
-
-    /**
-     * Description for undefined
-     * @class undefined
-     * @constructor
-     */
-    constructor() {
-        this.classes = {};
-
-        this.defaultModels = {};
-
-        this.linkedModels = {};
-
-        // Note how it "magically" pulls models directly from
-        // the linkable-models file.
-        for (let key in AllModels) {
-            let model = AllModels[key];
-            this.addModel(model.name, model.class);
-        }
-    }
-
-    /**
-     * Adds a model to the sync manager
-     *
-     * @param {string} modelName must be a valid model name representing Sphere, Slicer, Camera etc.
-     * @param {Class} ObjConstructor Class with blank constructor to construct new objects
-     */
-    addModel(modelName, Class) {
-        let subviewIDs = getAllCellIDs();
-        this.classes[modelName] = Class;
-
-        this.defaultModels[modelName] = {};
-        for (let subviewID of subviewIDs) {
-
-            // Initialize a new object
-            this.defaultModels[modelName][subviewID] = new Class();
-
-            // Initially point a subview to itself.
-            this.linkedModels[modelName][subviewID] = subviewID;
-        }
-    }
-
-    /**
-     * Gets a JSON of all the models.
-     * It answers the question: "Which models is the subview with this ID
-     * pointing to right now?"
-     *
-     * @param {number} subviewID
-     * @returns {Object} models - A dictionary, key: the model name -> value: the model object
-     */
-    getModels(subviewID) {
-        let models = {};
-
-        for (let modelName in this.defaultModels) {
-            models[modelName] = null;
-            let activeModelSubviewID = this.linkedModels[modelName][subviewID];
-            models[modelName] = this.defaultModels[activeModelSubviewID];
-        }
-
-        return models;
-    }
-
-    /**
-     * Removes a subview with given ID. Deletes all models & pointers
-     * associated with this subview ID.
-     *
-     * @param {number} subviewID
-     */
-    removeSubview(subviewID) {
-        delete this.defaultModels[subviewID];
-        delete this.linkedModels[subviewID];
-    }
-
-    /**
-     * Adds a subview and constructs a new instance of each model,
-     * and points it to its own instance.
-     *
-     * @param {number} subviewID
-     */
-    addSubview(subviewID) {
-        for (let modelName in this.defaultModels) {
-            // Construct a new object for the subview
-            this.defaultModels[modelName][subviewID] = new this.classes[modelName]();
-
-            // link to itself initially
-            this.linkedModels[modelName][subviewID] = subviewID;
-        }
-    }
-
-    /**
-     * Synchronizes the model manager, should be called every time the
-     * link groups change. The class is automatically connected to the
-     * {@link module:ViewSplitterMasterController} module, this will simply
-     * re-sync the model pointers.
-     **/
-    syncWithLinkGroup() {
-        let subviewIDs = getAllCellIDs();
-
-        for (let modelKey in this.defaultModels)
-            for (let subviewID of subviewIDs)
-                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(subviewID);
-
-    }
-}
-
-module.exports = ModelSyncManager;
-
-},{"../../widgets/split-view/view-splitter-master-controller":49,"../linkable-models":29}],36:[function(require,module,exports){
-class ShaderManager {
-
-}
-
-module.exports = ShaderManager;
-
-},{}],37:[function(require,module,exports){
 /**
  * Represents a subview, will manage the renderers for each
  * subview, and also hold pointers to the models which the
@@ -43952,22 +44691,29 @@ class Subview {
      * @param {Object} models.lights the lighting model
      * @constructor
      */
-    constructor(webGLContext, models) {
+    constructor(webGLContext) {
         this.gl = webGLContext;
 
+        //        // Pointers to models stored in the model manager
+        //        this.models = {
+        //            volume: null, // pointer to iso2color texture obj
+        //            slicer: null, // pointer to state of slicer obj
+        //            sphere: null, // pointer to state of sphere obj
+        //            camera: null, // pointer to camera obj
+        //            lights: null // pointer to lights obj
+        //        };
+        this.uniforms = null;
+
+        this.needsUpdate = {
+            volume: true,
+            slicer: false,
+            sphere: false
+        }
+
         this.renderers = {
-            volume: null,
+            volume: new ConfigurableRenderer(this.gl),
             slicer: null,
             sphere: null
-        };
-
-        // Pointers to models stored in the model manager
-        this.models = {
-            volume: null, // pointer to iso2color texture obj
-            slicer: null, // pointer to state of slicer obj
-            sphere: null, // pointer to state of sphere obj
-            camera: null, // pointer to camera obj
-            lights: null // pointer to lights obj
         };
 
         this.viewports = {
@@ -43975,23 +44721,11 @@ class Subview {
             slicer: null, // pointer to slicer viewport obj
             sphere: null // pointer to sphere viewport obj
         };
-
-        this.shaders = {
-            volume: null, //pointer to volume current shader
-            slicer: null, //pointer to slicer current shader
-            sphere: null //pointer to sphere current shader
-        }
-
-        this.uniforms = {
-
-        };
     }
 
     render() {
-        this.renderers.volume.render({
-            camera: this.models.camera,
-            viewport: this.viewports.volume
-        });
+        if (this.needsUpdate.volume)
+            this.renderers.volume.render();
         //
         //        this.renderers.slicer.render({
         //            model: this.models.slicer,
@@ -44035,6 +44769,14 @@ class Subview {
         this.shaders[key] = shader;
     }
 
+    setUniforms(uniforms) {
+        this.uniforms = uniforms;
+    }
+
+    configureRenderer(rendererName, config) {
+        this.renderers[rendererName].configure(config);
+    }
+
     /**
      * Sets the viewport render targets for this subview,
      * (the {@link module:Core/View.ViewManager} is
@@ -44044,22 +44786,38 @@ class Subview {
      */
     setViewports(viewports) {
         this.viewports = viewports;
+        for (let vp of viewports) {
+            if (this.renderers[vp.name])
+                this.renderers[vp.name].setViewport(vp);
+        }
     }
 }
 
 module.exports = Subview;
 
-},{}],38:[function(require,module,exports){
+},{"../rendering/configurable-renderer":35}],43:[function(require,module,exports){
 let d3 = require('d3');
+
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
 let SubcellLayout = require('../../widgets/split-view/subcell-layout');
-let ShaderManager = require('./shader-manager');
-let FrameBufferManager = require('./frame-buffer-manager');
-let ModelSyncManager = require('./model-sync-manager');
+
+let Models = require('../linkable-models').Models;
+
+let ShaderManager = require('../resource-managers/shader-manager');
+let FBAndTextureManager = require('../resource-managers/frame-buffer-and-texture-manager');
+let ModelSyncManager = require('../resource-managers/model-sync-manager');
+let UniformManager = require('../resource-managers/uniform-manager');
+let BufferManager = require('../resource-managers/buffer-manager');
+
 
 let Settings = require('../settings').Views.ViewManager,
     OverlaySettings = Settings.WindowsOverlay;
+
+let twgl = require('twgl.js');
+let createCuboidVertices = require('../../geometry/box');
+
+let glsl = require('glslify');
 
 /** @module Core/View */
 
@@ -44075,34 +44833,52 @@ class ViewManager {
         this.canvasContainer = d3.select('#webgl-canvas-container');
         this.masterCanvas = document.getElementById('webgl-master-canvas');
 
-        this.masterContext = this.masterCanvas.getContext('webgl2');
+        this.masterContext = this.masterCanvas.getContext('webgl2', {
+            premultipliedAlpha: false,
+            alpha: true,
+            depth: true
+        });
+
+        this.masterContext.getExtension('EXT_color_buffer_float');
+
+        twgl.setDefaults({
+            attribPrefix: "a_"
+        });
 
         this.subviews = {
-            0: new Subview(this.masterContext)
+            //0: new Subview(this.masterContext)
         };
 
+        twgl.resizeCanvasToDisplaySize(this.masterContext.canvas);
 
-        this.modelSyncManager = new ModelSyncManager();
+
+        this.modelSyncManager = new ModelSyncManager(this.masterContext);
+        this.shaderManager = new ShaderManager(this.masterContext);
+        this.FBAndTextureManager = new FBAndTextureManager(this.masterContext);
+        this.uniformManager = new UniformManager();
+        this.bufferManager = new BufferManager(this.masterContext);
+        this.boundingBoxBuffer = null; // Dependent on dataset
 
 
-        this.uniforms = {
-            'GLOBAL': {},
-            0: {},
-            1: {} // ...
+        var arrays = {
+            position: [1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1],
+            normal: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1],
+            texcoord: [1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+            indices: [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23],
         };
+        this.boundingBoxBuffer2 = twgl.createBufferInfoFromArrays(this.masterContext, arrays);
 
-
-
-
-        // this.modelManager = new ModelManager();
-        this.shaderManager = new ShaderManager();
-        this.frameBufferManager = new FrameBufferManager(); // Wraps a texture
+        //twgl.bindFramebufferInfo(this.masterContext);
 
 
         let eventListenerOverlayCallback = (cellID, subcellName, event) => {
             console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
                 event.button);
-            this.subviews[cellID].notifyEventDidHappen(subcellName, event)
+
+            if (this.subviews[cellID])
+                this.subviews[cellID].notifyEventDidHappen(subcellName, event)
+            else
+                console.log("Subview not initialized yet (active dataset required)");
         }
 
         let overlayConfig = {
@@ -44125,6 +44901,334 @@ class ViewManager {
         window.addEventListener('resize', () => {
             this._resize();
         }, false);
+
+        this._debugDoRefresh = true;
+
+        setTimeout(() => {
+            this._init();
+        }, 1000);
+    }
+
+    /**
+     * Initializes frame buffers, textures, shader programs and binds uniform managers
+     * to models. To be on the safe side - everything in the environment must be
+     * initialized before this is initialized. (Including dataset)
+     */
+    _init() {
+        this._initDebug();
+        //        this._genBoundingBoxBuffer();
+        //        this._genFrameBuffersAndTextureTargets();
+        //        this._genTextures();
+        //        this._bindUniformManager();
+        //        this.addNewView(0);
+        //this._generateBasicVolumeConfigForSubview(0);
+    }
+
+    _initDebug() {
+        let gl = this.masterContext;
+        let m4 = twgl.m4;
+        let programInfo = this.shaderManager.getProgramInfo('DebugCube');
+
+        let tex = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+        255, 255, 255, 255,
+        192, 192, 192, 255,
+        192, 192, 192, 255,
+        255, 255, 255, 255,
+      ],
+        });
+
+
+        let uniforms = {
+            u_lightWorldPos: [1, 8, -10],
+            u_lightColor: [1, 0.8, 0.8, 1],
+            u_ambient: [0, 0, 0, 1],
+            u_specular: [1, 1, 1, 1],
+            u_shininess: 50,
+            u_specularFactor: 1,
+            u_diffuse: tex,
+        };
+
+        // Adding shared ones WORK
+        /*
+                this.uniformManager.addShared('u_lightWorldPos', () => {
+                    return uniforms.u_lightWorldPos
+                });
+                this.uniformManager.addShared('u_lightColor', () => {
+                    return uniforms.u_lightColor
+                });
+                this.uniformManager.addShared('u_ambient', () => {
+                    return uniforms.u_ambient
+                });
+                this.uniformManager.addShared('u_specular', () => {
+                    return uniforms.u_specular
+                });
+                this.uniformManager.addShared('u_shininess', () => {
+                    return uniforms.u_shininess
+                });
+                this.uniformManager.addShared('u_specularFactor', () => {
+                    return uniforms.u_specularFactor
+                });
+                this.uniformManager.addShared('u_diffuse', () => {
+                    return uniforms.u_diffuse
+                });
+                this.uniformManager.addShared('u_viewInverse', () => {
+                    return uniforms.u_viewInverse;
+                });
+                this.uniformManager.addShared('u_world', () => {
+                    return uniforms.u_world;
+                });
+                this.uniformManager.addShared('u_worldInverseTranspose', () => {
+                    return uniforms.u_worldInverseTranspose;
+                });
+                this.uniformManager.addShared('u_worldViewProjection', () => {
+                    return uniforms.u_worldViewProjection;
+                });
+        */
+
+        // Adding some as shared, some as unique (should work)
+        this.uniformManager.addUnique('u_lightWorldPos', (subviewID) => {
+            return uniforms.u_lightWorldPos
+        });
+        this.uniformManager.addUnique('u_lightColor', (subviewID) => {
+            return uniforms.u_lightColor
+        });
+        this.uniformManager.addShared('u_ambient', () => {
+            return uniforms.u_ambient
+        });
+        this.uniformManager.addShared('u_specular', () => {
+            return uniforms.u_specular
+        });
+        this.uniformManager.addShared('u_shininess', () => {
+            return uniforms.u_shininess
+        });
+        this.uniformManager.addShared('u_specularFactor', () => {
+            return uniforms.u_specularFactor
+        });
+        this.uniformManager.addShared('u_diffuse', () => {
+            return uniforms.u_diffuse
+        });
+        this.uniformManager.addUnique('u_viewInverse', (subviewID) => {
+            //return uniforms.u_viewInverse;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
+        });
+        this.uniformManager.addUnique('u_world', (subviewID) => {
+            //return uniforms.u_world;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
+        });
+        this.uniformManager.addUnique('u_worldInverseTranspose', (subviewID) => {
+            //return uniforms.u_worldInverseTranspose;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
+        });
+        this.uniformManager.addUnique('u_worldViewProjection', (subviewID) => {
+            //return uniforms.u_worldViewProjection;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
+        });
+
+        // Works!
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.9);
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+
+        //this.modelSyncManager.addSubview('GLOBAL');
+        //let cam = this.modelSyncManager.getActiveModel('CAMERA', 'GLOBAL');
+        //this.uniformManager.addSubview('GLOBAL');
+        //let self = this;
+
+        // TODO
+        // 1. move camera logic to camera obj itself, and rotation. <- OK
+        // 2. when that works, use camera through model sync manager <- OK
+        // 3. Add buffer manager and use that to generate buffer info
+        // 4. Move the light model to model sync manager
+
+        //twgl.resizeCanvasToDisplaySize(gl.canvas);
+        //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        //let cam = new Camera(gl);
+
+        function render() {
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.CULL_FACE);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            //            var camera = m4.lookAt(eye, target, up);
+            //            var view = m4.inverse(camera);
+            //            var viewProjection = m4.multiply(projection, view);
+            //            var world = m4.rotationY(time);
+
+            //            var camera = cam.getLookAt();
+            //            var view = cam.getViewMatrix();
+            //            var viewProjection = cam.getViewProjectionMatrix();
+
+            cam.getModelTransformation().rotateY(0.007);
+            cam.getModelTransformation().rotateX(0.007);
+            cam.getModelTransformation().rotateZ(-0.007);
+            //            var world = cam.getWorldMatrix();
+            // Works!
+
+            //            uniforms.u_viewInverse = camera;
+            //            uniforms.u_world = world;
+            //            uniforms.u_worldInverseTranspose = m4.transpose(m4.inverse(world));
+            //            uniforms.u_worldViewProjection = m4.multiply(viewProjection, world);
+
+            gl.useProgram(programInfo.program);
+            twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+            self.uniformManager.updateAll();
+            let uniformBundle = self.uniformManager.getUniformBundle('GLOBAL');
+
+            twgl.setUniforms(programInfo, uniformBundle);
+            gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+
+            requestAnimationFrame(render);
+        }
+        // requestAnimationFrame(render);
+        //this._generateDebugConfigurationForSubview('GLOBAL');
+        this.addNewView(0);
+        this.refresh();
+    }
+
+    _genFrameBuffersAndTextureTargets() {
+        this.FBAndTextureManager.create2DTextureFB({
+            gl: this.masterContext,
+            name: 'FrontFace',
+            //            width: 300,
+            //            height: 150
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            gl: this.masterContext,
+            name: 'BackFace',
+            //            width: 300,
+            //            height: 150
+        });
+    }
+
+    datasetDidChange() {
+        this._init();
+    }
+
+    _genTextures() {
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        if (!dataset)
+            return;
+
+        let h = dataset.header;
+
+        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+            cols: h.cols,
+            rows: h.rows,
+            slices: h.slices,
+            isovalues: dataset.isovalues
+        });
+    }
+
+    _bindUniformManager() {
+        // 1. Set up getters
+        // shared
+        this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
+            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
+            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
+        });
+        this.uniformManager.addShared('u_TexCoordToRayOrigin', () => {
+            return this.FBAndTextureManager.getTexture('FrontFace');
+        });
+        this.uniformManager.addShared('u_TexCoordToRayEndPoint', () => {
+            return this.FBAndTextureManager.getTexture('BackFace');
+        });
+        this.uniformManager.addShared('u_ModelXYZToIsoValue', () => {
+            return this.FBAndTextureManager.getTexture('u_ModelXYZToIsoValue');
+        });
+        this.uniformManager.addShared('u_AlphaCorrectionExponent', () => {
+            // New sampling rate / base sampling rate.
+            // Let it be 1 for now since sampling rate is not dynamic.
+            return 1;
+        });
+        this.uniformManager.addShared('u_SamplingRate', () => {
+            let h = this.env.getActiveDataset('GLOBAL').header;
+            let m = Math.max(h.cols, h.rows, h.slices);
+
+            return 1.0 / m;
+        });
+
+        // unique
+        this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getMVPMatrix();
+        })
+
+    }
+
+    _generateDebugConfigurationForSubview(subviewID) {
+        let DebugConfig = {
+            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                }
+            ]
+        };
+
+        return DebugConfig;
+    }
+
+    linkChanged(modelKey) {
+        this.modelSyncManager.updateSyncForModelKey(modelKey);
+    }
+
+    _generateBasicVolumeConfigForSubview(subviewID) {
+        let BasicVolumeConfig = {
+            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    glSettings: {
+                        cullFace: 'FRONT'
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
+                    frameBufferInfo: null, // Render to screen
+                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    /*NEEDED UNIFORMS:
+                    u_WorldViewProjection,    <- Depends on camera for model
+                    u_BoundingBoxNormalized   <- In dataset header
+                    u_TexCoordToRayOrigin     <- In texture belonging to FB
+                    u_TexCoordToRayEndPoint   <- In texture belonging to FB
+                    u_ModelXYZToIsoValue      <- Get from texture (shared for all)
+                    u_IsoValueToColorOpacity  <- Texture for TF obj the model is pointing to
+                    u_AlphaCorrectionExponent <- Precalculated float
+                    u_SamplingRate            <- 1 voxel per step, i.e 1/max(w,h,d)
+                    */
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                },
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
+
+    updateUniformsForModel(subviewID, modelName) {
+
     }
 
     uniformsDidChangeForSubview(subviewID) {
@@ -44134,6 +45238,10 @@ class ViewManager {
     addNewView(id) {
         this.subviews[id] = new Subview(this.masterContext);
         this.modelSyncManager.addSubview(id);
+        this.uniformManager.addSubview(id);
+        //        let config = this._generateBasicVolumeConfigForSubview(id);
+        let config = this._generateDebugConfigurationForSubview(id);
+        this.subviews[id].configureRenderer('volume', config);
 
         this.syncWithLayout();
     }
@@ -44150,14 +45258,25 @@ class ViewManager {
      * viewports down to each respective subview.
      */
     syncWithLayout() {
-        // NOTE: These ((viewports)) can be used directly for rendering
-        // I.e they need no transformations whatsoever.
 
-        let viewports = this.splitviewOverlay.render();
+        let normalizedViewports = this.splitviewOverlay.render();
         // TODO sync aspect ratio ... HMH!
 
+        let canv = this.masterContext.canvas;
+        let width = canv.width,
+            height = canv.height;
+
+        let canvasViewports = {};
+
+        for (let subviewID in normalizedViewports) {
+            canvasViewports[subviewID] = normalizedViewports[subviewID].map(
+                (normalized) => {
+                    return normalized.denormalize(width, height);
+                });
+        }
+
         for (let subviewID in this.subviews) {
-            this.subviews[subviewID].setViewports(viewports[subviewID]);
+            this.subviews[subviewID].setViewports(canvasViewports[subviewID]);
         }
     }
 
@@ -44165,27 +45284,67 @@ class ViewManager {
         this.syncWithLayout();
     }
 
+    _genBoundingBoxBuffer() {
+        let dataset = this.env.getActiveDataset('GLOBAL');
+
+        let bb = dataset.header.normalizedBB;
+
+        let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
+
+        // TODO move logic for this shit to a manager
+        this.boundingBoxBuffer = twgl.createBufferInfoFromArrays(this.masterContext, {
+            position: vertices.position,
+            indices: vertices.indices,
+            normal: vertices.normal,
+            texcoord: vertices.texcoord
+        });
+    }
+
+    _debugRotateCube(subviewID) {
+        let cam = this.modelSyncManager.getActiveModel('CAMERA', subviewID);
+
+        if (subviewID % 6 === 0)
+            cam.getModelTransformation().rotateZ(-0.007);
+        else if (subviewID % 2 === 0)
+            cam.getModelTransformation().rotateY(0.007);
+        else if (subviewID % 3 === 0)
+            cam.getModelTransformation().rotateX(0.007);
+
+
+        this.uniformManager.updateAll();
+    }
+
     refresh() {
-        for (let viewID in this.views) {
-            let view = this.views[viewID];
+        let gl = this.masterContext;
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        for (let viewID in this.subviews) {
+            let view = this.subviews[viewID];
+            this._debugRotateCube(viewID);
 
             if (!view)
                 continue;
 
-            view.refresh();
+            view.render();
         }
+
+        // if (this._debugDoRefresh)
+        window.requestAnimationFrame(this.refresh.bind(this));
     }
 
     __DEBUGRefreshView0() {
         console.log("__DEBUGRefreshView0()");
-        this.views[0].refresh();
+        this.subviews[0].refresh();
     }
 }
 
 
 module.exports = ViewManager;
 
-},{"../../widgets/split-view/miniature-split-view-overlay":44,"../../widgets/split-view/subcell-layout":47,"../settings":33,"./frame-buffer-manager":34,"./model-sync-manager":35,"./shader-manager":36,"./subview":37,"d3":3}],39:[function(require,module,exports){
+},{"../../geometry/box":47,"../../widgets/split-view/miniature-split-view-overlay":50,"../../widgets/split-view/subcell-layout":53,"../linkable-models":30,"../resource-managers/buffer-manager":36,"../resource-managers/frame-buffer-and-texture-manager":37,"../resource-managers/model-sync-manager":38,"../resource-managers/shader-manager":39,"../resource-managers/uniform-manager":40,"../settings":41,"./subview":42,"d3":3,"glslify":4,"twgl.js":11}],44:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -44261,6 +45420,10 @@ class DatasetManager {
         console.log(this.datasets);
     }
 
+    getDataset(cellID) {
+        return this.datasets[this.cellID2Dataset[cellID]];
+    }
+
     /**
      * Removes the dataset
      *
@@ -44306,7 +45469,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":40,"./volume-dataset":41}],40:[function(require,module,exports){
+},{"./selection":45,"./volume-dataset":46}],45:[function(require,module,exports){
 
 
 /**
@@ -44367,12 +45530,12 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],41:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
  * Represents one volume dataset, holds the isovalues, gradient, curvature etc.
- * Most of the heavy CPU calculations should be done @ server side though
+ * Most of the heavy CPU calculations should be done @ server side even though
  * it is possible to do most of it in the browser.
  * @memberof module:Data
  */
@@ -44454,7 +45617,144 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],42:[function(require,module,exports){
+},{"d3":3}],47:[function(require,module,exports){
+  /**
+   * Array of the indices of corners of each face of a cube.
+   * @type {Array.<number[]>}
+   */
+  var CUBE_FACE_INDICES = [
+    [3, 7, 5, 1],  // right
+    [6, 2, 0, 4],  // left
+    [6, 7, 3, 2],  // ??
+    [0, 1, 5, 4],  // ??
+    [7, 6, 4, 5],  // front
+    [2, 3, 1, 0],  // back
+  ];
+
+
+/**
+   * Add `push` to a typed array. It just keeps a 'cursor'
+   * and allows use to `push` values into the array so we
+   * don't have to manually compute offsets
+   * @param {TypedArray} typedArray TypedArray to augment
+   * @param {number} numComponents number of components.
+   */
+  function augmentTypedArray(typedArray, numComponents) {
+    var cursor = 0;
+    typedArray.push = function() {
+      for (var ii = 0; ii < arguments.length; ++ii) {
+        var value = arguments[ii];
+        if (value instanceof Array || (value.buffer && value.buffer instanceof ArrayBuffer)) {
+          for (var jj = 0; jj < value.length; ++jj) {
+            typedArray[cursor++] = value[jj];
+          }
+        } else {
+          typedArray[cursor++] = value;
+        }
+      }
+    };
+    typedArray.reset = function(opt_index) {
+      cursor = opt_index || 0;
+    };
+    typedArray.numComponents = numComponents;
+    Object.defineProperty(typedArray, 'numElements', {
+      get: function() {
+        return this.length / this.numComponents | 0;
+      },
+    });
+    return typedArray;
+  }
+
+
+
+function createAugmentedTypedArray(numComponents, numElements, opt_type) {
+    var Type = opt_type || Float32Array;
+    return augmentTypedArray(new Type(numComponents * numElements), numComponents);
+  }
+
+
+/**
+ * Creates the vertices and indices for a cube.
+ *
+ * The cube is created around the origin. (-size / 2, size / 2).
+ *
+ * @param {number} [size] width, height and depth of the cube.
+ * @return {Object.<string, TypedArray>} The created vertices.
+ * @memberOf module:twgl/primitives
+ */
+function createCuboidVertices(width, height, depth) {
+    width = width || 1;
+    height = height || 1;
+    depth = depth || 1;
+
+    let kx = width / 2,
+        ky = height / 2,
+        kz = depth / 2;
+
+    var cornerVertices = [
+      [-kx, -ky, -kz],
+      [+kx, -ky, -kz],
+      [-kx, +ky, -kz],
+      [+kx, +ky, -kz],
+      [-kx, -ky, +kz],
+      [+kx, -ky, +kz],
+      [-kx, +ky, +kz],
+      [+kx, +ky, +kz],
+    ];
+
+    var faceNormals = [
+      [+1, +0, +0],
+      [-1, +0, +0],
+      [+0, +1, +0],
+      [+0, -1, +0],
+      [+0, +0, +1],
+      [+0, +0, -1],
+    ];
+
+    var uvCoords = [
+      [1, 0],
+      [0, 0],
+      [0, 1],
+      [1, 1],
+    ];
+
+    var numVertices = 6 * 4;
+    var positions = createAugmentedTypedArray(3, numVertices);
+    var normals = createAugmentedTypedArray(3, numVertices);
+    var texcoords = createAugmentedTypedArray(2, numVertices);
+    var indices = createAugmentedTypedArray(3, 6 * 2, Uint16Array);
+
+    for (var f = 0; f < 6; ++f) {
+        var faceIndices = CUBE_FACE_INDICES[f];
+        for (var v = 0; v < 4; ++v) {
+            var position = cornerVertices[faceIndices[v]];
+            var normal = faceNormals[f];
+            var uv = uvCoords[v];
+
+            // Each face needs all four vertices because the normals and texture
+            // coordinates are not all the same.
+            positions.push(position);
+            normals.push(normal);
+            texcoords.push(uv);
+
+        }
+        // Two triangles make a square face.
+        var offset = 4 * f;
+        indices.push(offset + 0, offset + 1, offset + 2);
+        indices.push(offset + 0, offset + 2, offset + 3);
+    }
+
+    return {
+        position: positions,
+        normal: normals,
+        texcoord: texcoords,
+        indices: indices,
+    };
+}
+
+module.exports = createCuboidVertices;
+
+},{}],48:[function(require,module,exports){
 
 
 
@@ -44473,7 +45773,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":12,"./client2server/websocket-client":26,"./core/environment":27}],43:[function(require,module,exports){
+},{"./angular-assets/main-controller":13,"./client2server/websocket-client":27,"./core/environment":28}],49:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -44602,7 +45902,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":48,"underscore":11}],44:[function(require,module,exports){
+},{"./unique-index-bag":54,"underscore":12}],50:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -44748,14 +46048,19 @@ class MiniatureSplitViewOverlay {
                 cellHeight: cellHeight
             });
 
+
             // Create a copy of the subcells array transformed into
             // direct viewport coordinates.
-            rendererCells[cellID] = subcells.map((subcell) => {
-                return subcell.toViewportCoordinates({
-                    x: parseFloat(cellX0),
-                    y: parseFloat(cellY0)
+            rendererCells[cellID] = subcells.map(
+                (subcell) => { // To HTML viewport coords
+                    return subcell.toViewportCoordinates({
+                        x: parseFloat(cellX0),
+                        y: parseFloat(cellY0)
+                    });
+                }).map( // To normalized [0,1] coords
+                (subcell) => {
+                    return subcell.normalize(widthTotal, heightTotal);
                 });
-            });
 
             group.selectAll('.subview-subcell').data(subcells).enter()
                 .append('g') // Enclose in group for d3.mouse(this) to work
@@ -44824,7 +46129,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],45:[function(require,module,exports){
+},{"d3":3}],51:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -44879,11 +46184,11 @@ class MiniatureSplitView {
      **/
 
     /**
-    * Constructs a new miniature split view
-    * @class
-    * @param {module:Widgets/View.MiniatureSplitViewConfiguration} args configuration
-    * @constructor
-    */
+     * Constructs a new miniature split view
+     * @class
+     * @param {module:Widgets/View.MiniatureSplitViewConfiguration} args configuration
+     * @constructor
+     */
     constructor(args) {
         this.properties = {
             divID: args.divID,
@@ -45280,6 +46585,7 @@ class MiniatureSplitView {
                 break;
             case 'LINK-REMOVE':
                 this.linkGrouper.ungroupMember(this.layout.getCellID(row, col));
+                this.linkDidChange();
                 break;
         }
 
@@ -45362,7 +46668,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":43,"./splitbox":46,"d3":3,"jquery":7,"underscore":11}],46:[function(require,module,exports){
+},{"./link-group":49,"./splitbox":52,"d3":3,"jquery":8,"underscore":12}],52:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -45529,7 +46835,7 @@ class SplitBox {
     }
 
     getActiveCellIDs() {
-        return cellIDs.getIndicesInUse();
+        return this.cellIDs.getIndicesInUse();
     }
 
     getNumberOfNonEmptyRows() {
@@ -45733,7 +47039,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":48,"underscore":11}],47:[function(require,module,exports){
+},{"./unique-index-bag":54,"underscore":12}],53:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -45741,11 +47047,11 @@ module.exports = SplitBox;
  */
 class Subcell {
     /**
-    * Constructs a new subcell.
-    *
-    * @param {module:Widgets/View.SubcellInfo} info
-    * @constructor
-    */
+     * Constructs a new subcell.
+     *
+     * @param {module:Widgets/View.SubcellInfo} info
+     * @constructor
+     */
     constructor(info) {
         this.name = info.name;
         this.x0 = info.x0;
@@ -45756,22 +47062,63 @@ class Subcell {
     }
 
     /**
-    * Offsets the coordinates of this subcell by the parent coordinates,
-    * thus converting it to viewport coordinates ready for rendering.
-    *
-    * @param {Object} parentOffset The upper left point of the parent cell
-    * @param {number} parentOffset.x
-    * @param {number} parentOffset.y
-    */
+     * Offsets the coordinates of this subcell by the parent coordinates,
+     * thus converting it to viewport coordinates ready for rendering.
+     *
+     * @param {Object} parentOffset The upper left point of the parent cell
+     * @param {number} parentOffset.x
+     * @param {number} parentOffset.y
+     */
     toViewportCoordinates(parentOffset) {
-        return {
+        return new Subcell({
             name: this.name,
             x0: this.x0 + parentOffset.x,
             y0: this.y0 + parentOffset.y,
             width: this.width,
             height: this.height,
             z: this.z // May be redundant
-        };
+        });
+    }
+
+    /**
+     * Normalizes the subcell layout to [0,1] coords within parents coordinate system
+     *
+     * @param {number} parentWidth
+     * @param {number} parentHeight
+     *
+     */
+    normalize(parentWidth, parentHeight) {
+        let x = this.x0 / parentWidth,
+            y = this.y0 / parentHeight,
+            h = this.height / parentHeight,
+            w = this.width / parentWidth;
+
+        return new Subcell({
+            name: this.name,
+            x0: x,
+            y0: 1.0 - y - h, // Flip Y axis but keep locations
+            width: w,
+            height: h,
+            z: this.z // May be redundant
+        });
+    }
+
+    /**
+     * Denormalizes the subcell layout from [0,1] coords to new parent coords.
+     * NOTE: Assumes the current state is [0,1] coords.
+     *
+     * @param {number} parentWidth
+     * @param {number} parentHeight
+     */
+    denormalize(parentWidth, parentHeight) {
+        return new Subcell({
+            name: this.name,
+            x0: this.x0 * parentWidth,
+            y0: this.y0 * parentHeight,
+            width: this.width * parentWidth,
+            height: this.height * parentHeight,
+            z: this.z // May be redundant
+        });
     }
 }
 
@@ -45799,10 +47146,10 @@ class SubcellLayout {
      **/
 
     /**
-    * Constructs a new subcell layout
-    * @param {module:Widgets/View.SubcellLayoutConfig} config
-    * @constructor
-    **/
+     * Constructs a new subcell layout
+     * @param {module:Widgets/View.SubcellLayoutConfig} config
+     * @constructor
+     **/
     constructor(config) {
         this.changeLayoutThresholdMultiplier = config.changeLayoutThresholdMultiplier;
         this.standardSizeMultiplier = config.standardSizeMultiplier;
@@ -45930,7 +47277,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],48:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -45972,7 +47319,7 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":11}],49:[function(require,module,exports){
+},{"underscore":12}],55:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let LinkableModels = require('../../core/linkable-models').Models;
@@ -46014,8 +47361,8 @@ let getLinkGroupingsForProperty = (key) => {
     return views.linkers[key].linkGroup.getLinks();
 }
 
-let getLayout = function () {
-    return views.ADD.layout.bind(this);
+let getLayout = () => {
+    return views.ADD.layout;
 }
 
 let getAddRemoveView = () => {
@@ -46106,7 +47453,7 @@ let getAllCellIDs = () => {
 }
 
 let getMasterCellIDForModel = (key, cellID) => {
-    return views.linkers[key].linkGroup.getMasterCellID(cellID);
+    return views.linkers[key].linkGrouper.getMasterCellID(cellID);
 }
 
 let read = () => {
@@ -46196,7 +47543,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/linkable-models":29,"../../core/settings":33,"./miniature-split-view":45,"underscore":11}],50:[function(require,module,exports){
+},{"../../core/linkable-models":30,"../../core/settings":41,"./miniature-split-view":51,"underscore":12}],56:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -46333,7 +47680,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":9}],51:[function(require,module,exports){
+},{"tinycolor2":10}],57:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -47040,7 +48387,7 @@ class TransferFunctionEditor {
     }
 
     _renderHistogram(sizes) {
-        if(!this.displayOptions.showHistogram)
+        if (!this.displayOptions.showHistogram)
             return;
 
         let histogram = this._getHistogram();
@@ -47050,10 +48397,14 @@ class TransferFunctionEditor {
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
+        // Displace to make it work as log-scale
+        yDomain[0] += 1;
+        yDomain[1] += 1;
+
         let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
-        let yScale = d3.scaleLinear().domain(yDomain).range(yRange),
+        let yScale = d3.scaleLog().domain(yDomain).range(yRange),
             xScale = d3.scaleLinear().domain(xDomain).range(xRange);
 
         let line = d3.line()
@@ -47062,7 +48413,11 @@ class TransferFunctionEditor {
                 return xScale(i);
             })
             .y((isovalue, i) => {
-                return yScale(isovalue);
+                let y = yScale(isovalue + 1);
+                if (y === Infinity) {
+                    console.log("y is inf... wtf?");
+                }
+                return y;
             });
 
         let area = d3.area()
@@ -47071,7 +48426,12 @@ class TransferFunctionEditor {
                 return xScale(i);
             })
             .y1((isovalue, i) => {
-                return yScale(isovalue);
+                let y = yScale(isovalue + 1);
+                if (y === Infinity) {
+                    console.log("y is inf... wtf?");
+                }
+
+                return yScale(y);
             })
             .y0(yRange[0]);
 
@@ -47820,7 +49180,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":27,"../../core/settings":33,"./color-gradient":50,"d3":3,"jquery":7}],52:[function(require,module,exports){
+},{"../../core/environment":28,"../../core/settings":41,"./color-gradient":56,"d3":3,"jquery":8}],58:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -47997,7 +49357,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":53}],53:[function(require,module,exports){
+},{"./transfer-function":59}],59:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -48028,4 +49388,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":50,"d3":3}]},{},[42]);
+},{"./color-gradient":56,"d3":3}]},{},[48]);

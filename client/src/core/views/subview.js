@@ -1,3 +1,5 @@
+let ConfigurableRenderer = require('../rendering/configurable-renderer');
+
 /**
  * Represents a subview, will manage the renderers for each
  * subview, and also hold pointers to the models which the
@@ -17,22 +19,29 @@ class Subview {
      * @param {Object} models.lights the lighting model
      * @constructor
      */
-    constructor(webGLContext, models) {
+    constructor(webGLContext) {
         this.gl = webGLContext;
 
+        //        // Pointers to models stored in the model manager
+        //        this.models = {
+        //            volume: null, // pointer to iso2color texture obj
+        //            slicer: null, // pointer to state of slicer obj
+        //            sphere: null, // pointer to state of sphere obj
+        //            camera: null, // pointer to camera obj
+        //            lights: null // pointer to lights obj
+        //        };
+        this.uniforms = null;
+
+        this.needsUpdate = {
+            volume: true,
+            slicer: false,
+            sphere: false
+        }
+
         this.renderers = {
-            volume: null,
+            volume: new ConfigurableRenderer(this.gl),
             slicer: null,
             sphere: null
-        };
-
-        // Pointers to models stored in the model manager
-        this.models = {
-            volume: null, // pointer to iso2color texture obj
-            slicer: null, // pointer to state of slicer obj
-            sphere: null, // pointer to state of sphere obj
-            camera: null, // pointer to camera obj
-            lights: null // pointer to lights obj
         };
 
         this.viewports = {
@@ -40,23 +49,11 @@ class Subview {
             slicer: null, // pointer to slicer viewport obj
             sphere: null // pointer to sphere viewport obj
         };
-
-        this.shaders = {
-            volume: null, //pointer to volume current shader
-            slicer: null, //pointer to slicer current shader
-            sphere: null //pointer to sphere current shader
-        }
-
-        this.uniforms = {
-
-        };
     }
 
     render() {
-        this.renderers.volume.render({
-            camera: this.models.camera,
-            viewport: this.viewports.volume
-        });
+        if (this.needsUpdate.volume)
+            this.renderers.volume.render();
         //
         //        this.renderers.slicer.render({
         //            model: this.models.slicer,
@@ -100,6 +97,14 @@ class Subview {
         this.shaders[key] = shader;
     }
 
+    setUniforms(uniforms) {
+        this.uniforms = uniforms;
+    }
+
+    configureRenderer(rendererName, config) {
+        this.renderers[rendererName].configure(config);
+    }
+
     /**
      * Sets the viewport render targets for this subview,
      * (the {@link module:Core/View.ViewManager} is
@@ -109,6 +114,10 @@ class Subview {
      */
     setViewports(viewports) {
         this.viewports = viewports;
+        for (let vp of viewports) {
+            if (this.renderers[vp.name])
+                this.renderers[vp.name].setViewport(vp);
+        }
     }
 }
 

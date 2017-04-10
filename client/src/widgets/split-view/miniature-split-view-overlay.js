@@ -143,14 +143,19 @@ class MiniatureSplitViewOverlay {
                 cellHeight: cellHeight
             });
 
+
             // Create a copy of the subcells array transformed into
             // direct viewport coordinates.
-            rendererCells[cellID] = subcells.map((subcell) => {
-                return subcell.toViewportCoordinates({
-                    x: parseFloat(cellX0),
-                    y: parseFloat(cellY0)
+            rendererCells[cellID] = subcells.map(
+                (subcell) => { // To HTML viewport coords
+                    return subcell.toViewportCoordinates({
+                        x: parseFloat(cellX0),
+                        y: parseFloat(cellY0)
+                    });
+                }).map( // To normalized [0,1] coords
+                (subcell) => {
+                    return subcell.normalize(widthTotal, heightTotal);
                 });
-            });
 
             group.selectAll('.subview-subcell').data(subcells).enter()
                 .append('g') // Enclose in group for d3.mouse(this) to work
