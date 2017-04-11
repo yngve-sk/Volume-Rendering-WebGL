@@ -57,3 +57,10 @@
     height: 25px;
     align-content: center;
 }
+
+/* Style of cells that are master cells of link group
+ *  (i.e all other cells inherit the property from them)
+ */
+.linkgroup-master-cell {
+    filter: url('#linkgroup-master-cell-filter');
+}

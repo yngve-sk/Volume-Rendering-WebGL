@@ -44223,6 +44223,19 @@ class ModelSyncManager {
     removeSubview(subviewID) {
         delete this.defaultModels[subviewID];
         delete this.linkedModels[subviewID];
+
+        // Reset any subviews that was pointing to this subview
+//        let subviewIDs = getAllCellIDs();
+//        for (let theSubviewID of subviewIDs) {
+//            for (let modelName in this.linkedModels) {
+//                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+//                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+//                }
+//            }
+//        }
+
+
+        this.syncWithLinkGroup();
     }
 
     /**
@@ -44723,6 +44736,11 @@ class Subview {
         };
     }
 
+    getAspectRatio() {
+        let total = this.viewports.volume;
+        return total.width / total.height;
+    }
+
     render() {
         if (this.needsUpdate.volume)
             this.renderers.volume.render();
@@ -44789,6 +44807,7 @@ class Subview {
         for (let vp of viewports) {
             if (this.renderers[vp.name])
                 this.renderers[vp.name].setViewport(vp);
+            this.viewports[vp.name] = vp;
         }
     }
 }
@@ -45026,9 +45045,12 @@ class ViewManager {
             //return uniforms.u_worldViewProjection;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
         });
+        this.uniformManager.addUnique('u_aspectratio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
 
         // Works!
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.9);
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         //this.modelSyncManager.addSubview('GLOBAL');
@@ -45236,14 +45258,17 @@ class ViewManager {
     }
 
     addNewView(id) {
+
         this.subviews[id] = new Subview(this.masterContext);
+        this.syncWithLayout();
+
         this.modelSyncManager.addSubview(id);
         this.uniformManager.addSubview(id);
+
         //        let config = this._generateBasicVolumeConfigForSubview(id);
         let config = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', config);
 
-        this.syncWithLayout();
     }
 
     removeView(id) {
@@ -45251,6 +45276,7 @@ class ViewManager {
         this.modelSyncManager.removeSubview(id);
 
         this.syncWithLayout();
+        //this.uniformManager.updateAll();
     }
 
     /**
@@ -45808,6 +45834,14 @@ class LinkGrouper {
         return theLinks;
     }
 
+    getMasterCellIDs() {
+        let ids = [];
+        for(let linkGroup of this.links)
+            ids.push(linkGroup[0]);
+
+        return ids;
+    }
+
 
     /**
      * Gets the master cell for this cellIDs group.
@@ -46288,6 +46322,36 @@ class MiniatureSplitView {
                 self.hideHalfRect();
             });
 
+        let masterCellIDs = this.linkGrouper.getMasterCellIDs();
+
+        let defs = svg.append("defs");
+
+        // create filter with id #drop-shadow
+        // height=130% so that the shadow is not clipped
+        // <!-- adapted from jsfiddle snippet: https://jsfiddle.net/w8r/yx0y1jLc/ -->
+        // Will be applied to master cell
+        let filterHTML = `<filter id="linkgroup-master-cell-filter">
+
+			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
+			<feOffset dy="3" dx="3"></feOffset>
+			<feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="white" flood-opacity="1"></feFlood>
+		   <feComposite in2="shadowDiff" operator="in"></feComposite>
+		   <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
+
+
+          <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
+			<feOffset dy="-7" dx="-7"></feOffset>
+			<feComposite in2="firstfilter" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="black" flood-opacity="1"></feFlood>
+			<feComposite in2="shadowDiff" operator="in"></feComposite>
+			<feComposite in2="firstfilter" operator="over"></feComposite>
+  </filter>`;
+        defs.node().innerHTML = filterHTML;
+
+
         svg.selectAll('.splitview-rect')
             .data(this.layout.flattenedLayoutPercentages)
             .enter().append('rect')
@@ -46305,6 +46369,11 @@ class MiniatureSplitView {
             })
             .attr('height', function (d) {
                 return d.heightN * height;
+            })
+            .classed('linkgroup-master-cell', (d) => {
+                let isMaster = this.properties.canLink && _.contains(masterCellIDs, d.cellID);
+                //console.log("CellID " + d.cellID + " is master? " + isMaster);
+                return isMaster;
             })
             .on('mousemove', function (d) {
                 if (current-- > 0)
@@ -46543,6 +46612,7 @@ class MiniatureSplitView {
                 //console.log("Removed cell @ ID: " + id);
                 this.dispatcher('unlinkCellID', [id]);
                 this.dispatcher('refresh', []);
+                this.linkDidChange();
                 return;
             case 'LINK-ADD':
                 if (this.layout.getNumberOfActiveCells() === 1)
@@ -46582,6 +46652,9 @@ class MiniatureSplitView {
                 this.properties.state = 'LINK-ADD';
                 this.flushLinkCache();
                 this.linkDidChange();
+
+                //this.highlightMasterCells();
+
                 break;
             case 'LINK-REMOVE':
                 this.linkGrouper.ungroupMember(this.layout.getCellID(row, col));

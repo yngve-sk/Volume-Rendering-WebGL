@@ -228,9 +228,12 @@ class ViewManager {
             //return uniforms.u_worldViewProjection;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
         });
+        this.uniformManager.addUnique('u_aspectratio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
 
         // Works!
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.9);
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         //this.modelSyncManager.addSubview('GLOBAL');
@@ -438,14 +441,17 @@ class ViewManager {
     }
 
     addNewView(id) {
+
         this.subviews[id] = new Subview(this.masterContext);
+        this.syncWithLayout();
+
         this.modelSyncManager.addSubview(id);
         this.uniformManager.addSubview(id);
+
         //        let config = this._generateBasicVolumeConfigForSubview(id);
         let config = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', config);
 
-        this.syncWithLayout();
     }
 
     removeView(id) {
@@ -453,6 +459,7 @@ class ViewManager {
         this.modelSyncManager.removeSubview(id);
 
         this.syncWithLayout();
+        //this.uniformManager.updateAll();
     }
 
     /**

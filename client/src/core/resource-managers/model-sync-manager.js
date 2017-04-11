@@ -92,6 +92,19 @@ class ModelSyncManager {
     removeSubview(subviewID) {
         delete this.defaultModels[subviewID];
         delete this.linkedModels[subviewID];
+
+        // Reset any subviews that was pointing to this subview
+//        let subviewIDs = getAllCellIDs();
+//        for (let theSubviewID of subviewIDs) {
+//            for (let modelName in this.linkedModels) {
+//                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+//                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+//                }
+//            }
+//        }
+
+
+        this.syncWithLinkGroup();
     }
 
     /**

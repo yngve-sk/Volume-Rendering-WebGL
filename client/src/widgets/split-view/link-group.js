@@ -32,6 +32,14 @@ class LinkGrouper {
         return theLinks;
     }
 
+    getMasterCellIDs() {
+        let ids = [];
+        for(let linkGroup of this.links)
+            ids.push(linkGroup[0]);
+
+        return ids;
+    }
+
 
     /**
      * Gets the master cell for this cellIDs group.

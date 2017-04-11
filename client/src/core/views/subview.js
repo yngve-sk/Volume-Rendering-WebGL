@@ -51,6 +51,11 @@ class Subview {
         };
     }
 
+    getAspectRatio() {
+        let total = this.viewports.volume;
+        return total.width / total.height;
+    }
+
     render() {
         if (this.needsUpdate.volume)
             this.renderers.volume.render();
@@ -117,6 +122,7 @@ class Subview {
         for (let vp of viewports) {
             if (this.renderers[vp.name])
                 this.renderers[vp.name].setViewport(vp);
+            this.viewports[vp.name] = vp;
         }
     }
 }

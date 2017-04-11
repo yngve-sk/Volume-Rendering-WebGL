@@ -156,6 +156,36 @@ class MiniatureSplitView {
                 self.hideHalfRect();
             });
 
+        let masterCellIDs = this.linkGrouper.getMasterCellIDs();
+
+        let defs = svg.append("defs");
+
+        // create filter with id #drop-shadow
+        // height=130% so that the shadow is not clipped
+        // <!-- adapted from jsfiddle snippet: https://jsfiddle.net/w8r/yx0y1jLc/ -->
+        // Will be applied to master cell
+        let filterHTML = `<filter id="linkgroup-master-cell-filter">
+
+			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
+			<feOffset dy="3" dx="3"></feOffset>
+			<feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="white" flood-opacity="1"></feFlood>
+		   <feComposite in2="shadowDiff" operator="in"></feComposite>
+		   <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
+
+
+          <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
+			<feOffset dy="-7" dx="-7"></feOffset>
+			<feComposite in2="firstfilter" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="black" flood-opacity="1"></feFlood>
+			<feComposite in2="shadowDiff" operator="in"></feComposite>
+			<feComposite in2="firstfilter" operator="over"></feComposite>
+  </filter>`;
+        defs.node().innerHTML = filterHTML;
+
+
         svg.selectAll('.splitview-rect')
             .data(this.layout.flattenedLayoutPercentages)
             .enter().append('rect')
@@ -173,6 +203,11 @@ class MiniatureSplitView {
             })
             .attr('height', function (d) {
                 return d.heightN * height;
+            })
+            .classed('linkgroup-master-cell', (d) => {
+                let isMaster = this.properties.canLink && _.contains(masterCellIDs, d.cellID);
+                //console.log("CellID " + d.cellID + " is master? " + isMaster);
+                return isMaster;
             })
             .on('mousemove', function (d) {
                 if (current-- > 0)
@@ -411,6 +446,7 @@ class MiniatureSplitView {
                 //console.log("Removed cell @ ID: " + id);
                 this.dispatcher('unlinkCellID', [id]);
                 this.dispatcher('refresh', []);
+                this.linkDidChange();
                 return;
             case 'LINK-ADD':
                 if (this.layout.getNumberOfActiveCells() === 1)
@@ -450,6 +486,9 @@ class MiniatureSplitView {
                 this.properties.state = 'LINK-ADD';
                 this.flushLinkCache();
                 this.linkDidChange();
+
+                //this.highlightMasterCells();
+
                 break;
             case 'LINK-REMOVE':
                 this.linkGrouper.ungroupMember(this.layout.getCellID(row, col));
