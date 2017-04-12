@@ -132,25 +132,25 @@ class ViewManager {
      * initialized before this is initialized. (Including dataset)
      */
     _init() {
-        this._initDebug();
-        //        this._genBoundingBoxBuffer();
-        //        this._genFrameBuffersAndTextureTargets();
-        //        this._genTextures();
-        //        this._bindUniformManager();
-        //        this.addNewView(0);
-        //this._generateBasicVolumeConfigForSubview(0);
+        //        this._initDebug();
+
+        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
+        this._bindUniformManager();
+
+        // Works!
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+
+        this.addNewView(0);
+        this.refresh();
     }
 
     _initDebug() {
-        let gl = this.masterContext;
-        let m4 = twgl.m4;
-        let programInfo = this.shaderManager.getProgramInfo('DebugCube');
-
         this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
         this._bindUniformManagerDebug();
 
         // Works!
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         this.addNewView(0);
@@ -162,7 +162,7 @@ class ViewManager {
             uniforms: this.uniformManager.getUniformBundle(subviewID),
             steps: [
                 {
-                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
+                    programInfo: this.shaderManager.getProgramInfo('DebugVolume'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
@@ -215,8 +215,11 @@ class ViewManager {
         this.uniformManager.addShared('u_SpecularFactor', () => {
             return uniforms.u_SpecularFactor
         });
+        this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
+            return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
+        });
         this.uniformManager.addShared('u_Diffuse', () => {
-            return uniforms.u_Diffuse
+            return this.FBAndTextureManager.getTexture('DebugTex'); //uniforms.u_Diffuse
         });
         this.uniformManager.addUnique('u_ViewInverse', (subviewID) => {
             //return uniforms.u_viewInverse;
@@ -280,8 +283,10 @@ class ViewManager {
         // 1. Set up getters
         // shared
         this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
-            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
-            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
+            return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
+
+            //            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
+            //            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
         });
         this.uniformManager.addShared('u_TexCoordToRayOrigin', () => {
             return this.FBAndTextureManager.getTexture('FrontFace');
@@ -298,7 +303,11 @@ class ViewManager {
             return 1;
         });
         this.uniformManager.addShared('u_SamplingRate', () => {
-            let h = this.env.getActiveDataset('GLOBAL').header;
+            let d = this.env.getActiveDataset('GLOBAL');
+            if(!d)
+                return 0.1; // For debugging only
+
+            let h = d.header;
             let m = Math.max(h.cols, h.rows, h.slices);
 
             return 1.0 / m;
@@ -306,8 +315,12 @@ class ViewManager {
 
         // unique
         this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
-            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getMVPMatrix();
-        })
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix();
+        });
+        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
+
 
     }
 

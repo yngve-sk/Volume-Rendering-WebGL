@@ -1,5 +1,5 @@
 #version 300 es
-precision highp float;
+precision mediump float;
 
 #pragma glslify: World2NormalizedBBCoord_0_to_1 = require(../GLSLShared/World2NormalizedBBCoord_0_to_1.glsl)
 

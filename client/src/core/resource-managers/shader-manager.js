@@ -1,14 +1,6 @@
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
-let BASE_PATH = '../shaders/',
-    SHADER_V = 'shader.v.glsl',
-    SHADER_F = 'shader.f.glsl';
-
-let SHADER_FOLDERS = {
-    BasicVolume: 'BasicVolume',
-    PositionToRGB: 'PositionToRGB'
-};
 
 // Naming convention: u_TheUniformName
 let SHADER_UNIFORM_NAMES = {
@@ -17,7 +9,8 @@ let SHADER_UNIFORM_NAMES = {
     u_TexCoordToRayOrigin: 'u_TexCoordToRayOrigin',
     u_TexCoordToRayEndPoint: 'u_TexCoordToRayEndPoint',
     u_BoundingBoxNormalized: 'u_BoundingBoxNormalized',
-    u_BaseSamplingRate: 'u_BaseSamplingRate'
+    u_SamplingRate: 'u_SamplingRate',
+    u_AspectRatio: 'u_AspectRatio'
 
 };
 
@@ -35,7 +28,8 @@ let FSHADER_ATTR_NAMES = {
 let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
     PositionToRGB: 'PositionToRGB',
-    DebugCube: 'DebugCube'
+    DebugCube: 'DebugCube',
+    DebugVolume: 'DebugVolume'
 };
 
 
@@ -72,6 +66,9 @@ class ShaderManager {
 
         this.vertexShaders['DebugCube'] = glsl.file('../rendering/shaders/Debug/shader.cube.v.glsl');
         this.fragmentShaders['DebugCube'] = glsl.file('../rendering/shaders/Debug/shader.cube.f.glsl');
+
+        this.vertexShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.v.glsl');
+        this.fragmentShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.f.glsl');
 
         this._initBuiltinPrograms();
     }
@@ -115,7 +112,7 @@ class ShaderManager {
     }
 
     getAvailableShadersSets() {
-        return SHADER_FOLDERS;
+        return BUILTIN_PROGRAMS;
     }
 
 }

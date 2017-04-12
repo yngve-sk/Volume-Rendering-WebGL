@@ -44043,6 +44043,7 @@ module.exports = ConfigurableRenderer;
  *
  * @memberof module:Core/Renderer
  **/
+
 },{"twgl.js":11}],36:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
@@ -44372,14 +44373,6 @@ module.exports = ModelSyncManager;
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
-let BASE_PATH = '../shaders/',
-    SHADER_V = 'shader.v.glsl',
-    SHADER_F = 'shader.f.glsl';
-
-let SHADER_FOLDERS = {
-    BasicVolume: 'BasicVolume',
-    PositionToRGB: 'PositionToRGB'
-};
 
 // Naming convention: u_TheUniformName
 let SHADER_UNIFORM_NAMES = {
@@ -44388,7 +44381,8 @@ let SHADER_UNIFORM_NAMES = {
     u_TexCoordToRayOrigin: 'u_TexCoordToRayOrigin',
     u_TexCoordToRayEndPoint: 'u_TexCoordToRayEndPoint',
     u_BoundingBoxNormalized: 'u_BoundingBoxNormalized',
-    u_BaseSamplingRate: 'u_BaseSamplingRate'
+    u_SamplingRate: 'u_SamplingRate',
+    u_AspectRatio: 'u_AspectRatio'
 
 };
 
@@ -44406,7 +44400,8 @@ let FSHADER_ATTR_NAMES = {
 let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
     PositionToRGB: 'PositionToRGB',
-    DebugCube: 'DebugCube'
+    DebugCube: 'DebugCube',
+    DebugVolume: 'DebugVolume'
 };
 
 
@@ -44439,10 +44434,13 @@ class ShaderManager {
         this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1604150559(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\n\nin vec4 v_position; // Same as ray start position\nin vec4 v_projectedPosition;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    vec3 gridPosition = World2NormalizedBBCoord_0_to_1_1604150559(modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    return float(iso) / 32736.0;\n}\n\nvoid main() {\n    // Transform from [-1,1] to [0,1]\n    vec2 texCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projectedPosition);\n\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, texCoord).xyz;\n    vec3 frontFaceGridPos = World2NormalizedBBCoord_0_to_1_1604150559(v_position.xyz, u_BoundingBoxNormalized);\n    vec3 front2Back = (backfaceGridPos.xyz - frontFaceGridPos);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n\n    // 2. Start ray casting from pos, blend in alpha and such, output target is texture\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = frontFaceGridPos;//(v_position.xyz + vec3(1.0))/2.0; // [-1,1] -> [0,1]\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float isovalueNormalized; // OK!\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a;\n        color = isoRGBA.rgb;\n        //\n        //alpha *= (1.0 - accumulatedAlpha);\n        //alpha *= alphaScaleFactor;\n\n        // Accumulate color and opacity\n        //accumulatedColor += color * alpha;\n        //accumulatedAlpha += alpha;\n\n        alphaIn = isoRGBA.a;\n        alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    vec3 isovalueLookup = currentPos - vec3(0.5);\n    ///vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    //isovalue = isoAndGradientMag.r;\n    vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    vec3 colorTestRGB = colorTest.rgb;\n    float colorTestA = colorTest.a;\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha); // Block...\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
 
         this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nuniform mat4 u_worldViewProjection;\n\nin vec4 a_position; // The position of the vertex in space [-1,1]\n//out vec4 v_bbPosition;\n\nvoid main() {\n    // Displace to fit RGB color space\n    //v_bbPosition = a_position;\n    gl_Position = u_worldViewProjection * a_position;\n}\n"]);
-        this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\n//in vec4 v_bbPosition;\n//uniform vec3 u_BoundingBoxNormalized;\n\nout vec4 outColor;\n\nvoid main() {\n    //vec3 gridCoord3D_0_to_1 = World2NormalizedBBCoord_0_to_1(\n    //    v_bbPosition.xyz,\n    //    u_BoundingBoxNormalized\n    //);\n\n    outColor = vec4(0.8,0.8,0.8,1.0);//vec4(gridCoord3D_0_to_1, 1.0);\n}\n"]);
+        this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\n//in vec4 v_bbPosition;\n//uniform vec3 u_BoundingBoxNormalized;\n\nout vec4 outColor;\n\nvoid main() {\n    //vec3 gridCoord3D_0_to_1 = World2NormalizedBBCoord_0_to_1(\n    //    v_bbPosition.xyz,\n    //    u_BoundingBoxNormalized\n    //);\n\n    outColor = vec4(0.8,0.8,0.8,1.0);//vec4(gridCoord3D_0_to_1, 1.0);\n}\n "]);
 
         this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_LightWorldPos;\nuniform mat4 u_World;\nuniform mat4 u_ViewInverse;\nuniform mat4 u_WorldInverseTranspose;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\n\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\n\nvoid main() {\n    v_texCoord = a_texcoord;\n    v_position = (u_WorldViewProjection * a_position);\n    v_normal = (u_WorldInverseTranspose * vec4(a_normal, 0)).xyz;\n    v_surfaceToLight = u_LightWorldPos - (u_World * a_position).xyz;\n    v_surfaceToView = (u_ViewInverse[3] - (u_World * a_position)).xyz;\n    gl_Position = vec4(v_position.x/u_AspectRatio, v_position.y, v_position.z, v_position.w);\n}\n"]);
-        this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nin vec2 v_texCoord;\nin vec3 v_normal;\nin vec3 v_surfaceToLight;\nin vec3 v_surfaceToView;\n\nuniform vec4 u_LightColor;\nuniform vec4 u_Ambient;\nuniform sampler2D u_Diffuse;\nuniform vec4 u_Specular;\nuniform float u_Shininess;\nuniform float u_SpecularFactor;\n\nvec4 lit(float l ,float h, float m) {\nreturn vec4(1.0,\nmax(l, 0.0),\n(l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n1.0);\n}\n\nout vec4 outColor;\n\nvoid main() {\n    vec4 diffuseColor = texture(u_Diffuse, v_texCoord);\n    vec3 a_normal = normalize(v_normal);\n    vec3 surfaceToLight = normalize(v_surfaceToLight);\n    vec3 surfaceToView = normalize(v_surfaceToView);\n    vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n    \n    vec4 litR = lit(dot(a_normal, surfaceToLight),\n                    dot(a_normal, halfVector), u_Shininess);\n    \n    outColor = vec4((\n    u_LightColor * (diffuseColor * litR.y + diffuseColor * u_Ambient +\n    u_Specular * litR.z * u_SpecularFactor)).rgb,\n    diffuseColor.a);\n\n}"]);
+        this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nin vec2 v_texCoord;\nin vec3 v_normal;\nin vec3 v_surfaceToLight;\nin vec3 v_surfaceToView;\n\nuniform vec4 u_LightColor;\nuniform vec4 u_Ambient;\nuniform sampler2D u_Diffuse;\nuniform vec4 u_Specular;\nuniform float u_Shininess;\nuniform float u_SpecularFactor;\n\nvec4 lit(float l ,float h, float m) {\nreturn vec4(1.0,\nmax(l, 0.0),\n(l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n1.0);\n}\n\nout vec4 outColor;\n\nvoid main() {\n    vec4 diffuseColor = texture(u_Diffuse, v_texCoord);\n    vec3 a_normal = normalize(v_normal);\n    vec3 surfaceToLight = normalize(v_surfaceToLight);\n    vec3 surfaceToView = normalize(v_surfaceToView);\n    vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n\n    vec4 litR = lit(dot(a_normal, surfaceToLight),\n                    dot(a_normal, halfVector), u_Shininess);\n\n    outColor = vec4((\n    u_LightColor * (diffuseColor * litR.y + diffuseColor * u_Ambient +\n    u_Specular * litR.z * u_SpecularFactor)).rgb,\n    diffuseColor.a);\n\n}\n"]);
+
+        this.vertexShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_position; // [0,1] position within the bounding box coords\n\nvoid main() {\n    \n    vec3 gridCoord3D_0_to_1 = World2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n    \n    v_position = vec4(gridCoord3D_0_to_1,1.0);\n    \n    vec4 projPos = (u_WorldViewProjection * a_position);\n    gl_Position = vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
+        this.fragmentShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nout vec4 outColor;\n\nvoid main() {\n    outColor = v_position;\n}\n"]);
 
         this._initBuiltinPrograms();
     }
@@ -44486,7 +44484,7 @@ class ShaderManager {
     }
 
     getAvailableShadersSets() {
-        return SHADER_FOLDERS;
+        return BUILTIN_PROGRAMS;
     }
 
 }
@@ -44723,9 +44721,9 @@ let SETTINGS = {
             }
         },
         LinkerAndSplitterView: {
-            maxRows: 3,
-            maxColumns: 4,
-            showIDs: true,
+            maxRows: 10,
+            maxColumns: 10,
+            showIDs: false,
             bottomTopThresholdPercentage: 0.20,
             colors: {
                 'LINKS': ['red', 'green', 'white', 'aqua', 'brown', 'gold'],
@@ -45031,25 +45029,25 @@ class ViewManager {
      * initialized before this is initialized. (Including dataset)
      */
     _init() {
-        this._initDebug();
-        //        this._genBoundingBoxBuffer();
-        //        this._genFrameBuffersAndTextureTargets();
-        //        this._genTextures();
-        //        this._bindUniformManager();
-        //        this.addNewView(0);
-        //this._generateBasicVolumeConfigForSubview(0);
+        //        this._initDebug();
+
+        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
+        this._bindUniformManager();
+
+        // Works!
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+
+        this.addNewView(0);
+        this.refresh();
     }
 
     _initDebug() {
-        let gl = this.masterContext;
-        let m4 = twgl.m4;
-        let programInfo = this.shaderManager.getProgramInfo('DebugCube');
-
         this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
         this._bindUniformManagerDebug();
 
         // Works!
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         this.addNewView(0);
@@ -45061,7 +45059,7 @@ class ViewManager {
             uniforms: this.uniformManager.getUniformBundle(subviewID),
             steps: [
                 {
-                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
+                    programInfo: this.shaderManager.getProgramInfo('DebugVolume'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
@@ -45114,8 +45112,11 @@ class ViewManager {
         this.uniformManager.addShared('u_SpecularFactor', () => {
             return uniforms.u_SpecularFactor
         });
+        this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
+            return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
+        });
         this.uniformManager.addShared('u_Diffuse', () => {
-            return uniforms.u_Diffuse
+            return this.FBAndTextureManager.getTexture('DebugTex'); //uniforms.u_Diffuse
         });
         this.uniformManager.addUnique('u_ViewInverse', (subviewID) => {
             //return uniforms.u_viewInverse;
@@ -45179,8 +45180,10 @@ class ViewManager {
         // 1. Set up getters
         // shared
         this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
-            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
-            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
+            return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
+
+            //            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
+            //            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
         });
         this.uniformManager.addShared('u_TexCoordToRayOrigin', () => {
             return this.FBAndTextureManager.getTexture('FrontFace');
@@ -45197,7 +45200,11 @@ class ViewManager {
             return 1;
         });
         this.uniformManager.addShared('u_SamplingRate', () => {
-            let h = this.env.getActiveDataset('GLOBAL').header;
+            let d = this.env.getActiveDataset('GLOBAL');
+            if(!d)
+                return 0.1; // For debugging only
+
+            let h = d.header;
             let m = Math.max(h.cols, h.rows, h.slices);
 
             return 1.0 / m;
@@ -45205,8 +45212,12 @@ class ViewManager {
 
         // unique
         this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
-            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getMVPMatrix();
-        })
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix();
+        });
+        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
+
 
     }
 
