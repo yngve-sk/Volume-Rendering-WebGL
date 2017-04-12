@@ -5,7 +5,7 @@ precision highp sampler2D;
 precision highp isampler3D; // Ints
 
 #pragma glslify: Proj2ScreenCoords_0_to_1 = require(../GLSLShared/Proj2ScreenCoords_0_to_1)
-#pragma glslify: World2NormalizedBBCoord_0_to_1 = require(../GLSLShared/World2NormalizedBBCoord_0_to_1)
+#pragma glslify:  = require(../GLSLShared/)
 
 uniform sampler2D u_TexCoordToRayOrigin;
 uniform sampler2D u_TexCoordToRayEndPoint;
@@ -25,7 +25,7 @@ out vec4 outColor;
 const int MAX_STEPS = 1000;
 
 float getNormalizedIsovalue(vec3 modelPosition) {
-    vec3 gridPosition = World2NormalizedBBCoord_0_to_1(modelPosition, u_BoundingBoxNormalized);
+    vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);
     int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);
     return float(iso) / 32736.0;
 }
@@ -36,7 +36,7 @@ void main() {
     vec2 texCoord = Proj2ScreenCoords_0_to_1(v_projectedPosition);
 
     vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, texCoord).xyz;
-    vec3 frontFaceGridPos = World2NormalizedBBCoord_0_to_1(v_position.xyz, u_BoundingBoxNormalized);
+    vec3 frontFaceGridPos = (v_position.xyz, u_BoundingBoxNormalized);
     vec3 front2Back = (backfaceGridPos.xyz - frontFaceGridPos);
 
     float rayLength = length(front2Back);

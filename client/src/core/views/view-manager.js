@@ -49,7 +49,7 @@ class ViewManager {
         });
 
         this.masterContext.getExtension('EXT_color_buffer_float');
-
+        this.masterContext.getExtension('OES_texture_float')
         twgl.setDefaults({
             attribPrefix: "a_"
         });
@@ -134,10 +134,11 @@ class ViewManager {
     _init() {
         //        this._initDebug();
 
-        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
-        this._bindUniformManager();
+        //this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
 
         // Works!
+        this._genFrameBuffersAndTextureTargets();
+        this._bindUniformManager();
         this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
@@ -162,13 +163,21 @@ class ViewManager {
             uniforms: this.uniformManager.getUniformBundle(subviewID),
             steps: [
                 {
-                    programInfo: this.shaderManager.getProgramInfo('DebugVolume'),
+                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'FRONT'
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('TextureBackMinusFront'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
                         cullFace: 'BACK'
                     }
-                }
+                },
             ]
         };
 
@@ -247,15 +256,15 @@ class ViewManager {
         this.FBAndTextureManager.create2DTextureFB({
             gl: this.masterContext,
             name: 'FrontFace',
-            //            width: 300,
-            //            height: 150
+            width: 300,
+            height: 150
         });
 
         this.FBAndTextureManager.create2DTextureFB({
             gl: this.masterContext,
             name: 'BackFace',
-            //            width: 300,
-            //            height: 150
+            width: 300,
+            height: 150
         });
     }
 
@@ -288,14 +297,21 @@ class ViewManager {
             //            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
             //            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
         });
+
+        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
+        this.FBAndTextureManager.create2DTextureFB({
+            width: this.masterCanvas.width,
+            height: this.masterCanvas.height,
+            name: 'DebugTex2'
+        });
         this.uniformManager.addShared('u_TexCoordToRayOrigin', () => {
-            return this.FBAndTextureManager.getTexture('FrontFace');
+            return this.FBAndTextureManager.getTexture('FrontFace'); // FrontFace
         });
         this.uniformManager.addShared('u_TexCoordToRayEndPoint', () => {
-            return this.FBAndTextureManager.getTexture('BackFace');
+            return null; //this.FBAndTextureManager.getTexture('BackFace');
         });
         this.uniformManager.addShared('u_ModelXYZToIsoValue', () => {
-            return this.FBAndTextureManager.getTexture('u_ModelXYZToIsoValue');
+            return null; //this.FBAndTextureManager.getTexture('u_ModelXYZToIsoValue');
         });
         this.uniformManager.addShared('u_AlphaCorrectionExponent', () => {
             // New sampling rate / base sampling rate.
@@ -304,7 +320,7 @@ class ViewManager {
         });
         this.uniformManager.addShared('u_SamplingRate', () => {
             let d = this.env.getActiveDataset('GLOBAL');
-            if(!d)
+            if (!d)
                 return 0.1; // For debugging only
 
             let h = d.header;
@@ -462,8 +478,104 @@ class ViewManager {
         this.uniformManager.updateAll();
     }
 
+    __applyViewportPercentages(gl, args) {
+        gl.viewport(
+            args[0] * gl.canvas.width,
+            args[1] * gl.canvas.height,
+            args[2] * gl.canvas.width,
+            args[3] * gl.canvas.height
+        );
+    }
+
     refresh() {
         let gl = this.masterContext;
+/*
+
+        //twgl.resizeCanvasToDisplaySize(gl.canvas);
+        //this.__applyViewportPercentages(gl, 0, 0, 1.0, 1.0);
+
+        this.uniformManager.updateAll();
+
+        let pos2RGBInfo = this.shaderManager.getProgramInfo('PositionToRGB');
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+        let tex2FaceInfo = this.shaderManager.getProgramInfo('TextureToBBColor');
+
+        let tex = twgl.createTexture(gl, {
+            target: gl.TEXTURE_2D,
+            width:  gl.drawingBufferWidth,
+            height: gl.drawingBufferHeight,
+            min: gl.LINEAR,
+            mag: gl.LINEAR,
+            internalFormat: gl.RGBA,
+            format: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            wrap: gl.CLAMP_TO_EDGE,
+            //premultiplyAlpha: false,
+            //auto: true,
+            //src: null
+        });
+
+        let fb = twgl.createFramebufferInfo(gl, [{
+            attach: gl.COLOR_ATTACTMENT0,
+            format: gl.RGBA,
+            type: gl.UNSIGNED_BYTE,
+            target: gl.TEXTURE_22D,
+            level: 0,
+            attachment: tex
+        }]);
+
+        twgl.resizeCanvasToDisplaySize(gl.canvas);
+        this.__applyViewportPercentages(gl, 0, 0, 1.0, 1.0);
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.enable(gl.CULL_FACE);
+
+        gl.useProgram(pos2RGBInfo.program);
+        gl.cullFace(gl.BACK);
+
+        let uniformBundle = this.uniformManager.getUniformBundle(0);
+
+        twgl.setBuffersAndAttributes(gl, pos2RGBInfo, bufferInfo);
+        twgl.setUniforms(pos2RGBInfo, uniformBundle);
+
+        twgl.bindFramebufferInfo(gl, fb);
+
+
+        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+       // twgl.drawBufferInfo(gl, pos2RGBInfo);
+
+        /* tex = twgl.createTexture(gl, {
+             min: gl.NEAREST,
+             mag: gl.NEAREST,
+             src: [
+                  255, 255, 255, 255,
+                  192, 192, 192, 255,
+                  192, 192, 192, 255,
+                  255, 255, 255, 255,
+                ],
+         });*/
+        /*
+        uniformBundle.u_TexCoordToRayOrigin = tex;
+
+        gl.cullFace(gl.BACK);
+        gl.useProgram(tex2FaceInfo.program);
+
+        twgl.setBuffersAndAttributes(gl, tex2FaceInfo, bufferInfo);
+        twgl.setUniforms(tex2FaceInfo, uniformBundle);
+
+        twgl.bindFramebufferInfo(gl, null);
+
+
+        uniformBundle = this.uniformManager.getUniformBundle(0);
+        uniformBundle.u_TexCoordToRayOrigin = tex;
+
+
+        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);*/
+
+
+        twgl.resizeCanvasToDisplaySize(gl.canvas);
 
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
@@ -482,6 +594,8 @@ class ViewManager {
         // if (this._debugDoRefresh)
         window.requestAnimationFrame(this.refresh.bind(this));
     }
+
+
 
     __DEBUGRefreshView0() {
         console.log("__DEBUGRefreshView0()");

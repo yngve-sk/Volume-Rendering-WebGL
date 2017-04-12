@@ -29,7 +29,9 @@ let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
     PositionToRGB: 'PositionToRGB',
     DebugCube: 'DebugCube',
-    DebugVolume: 'DebugVolume'
+    DebugVolume: 'DebugVolume',
+    TextureToBBColor: 'TextureToBBColor',
+    TextureBackMinusFront : 'TextureBackMinusFront'
 };
 
 
@@ -69,6 +71,14 @@ class ShaderManager {
 
         this.vertexShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.v.glsl');
         this.fragmentShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.f.glsl');
+
+        this.vertexShaders['TextureToBBColor'] = glsl.file('../rendering/shaders/TextureToBBColor/shader.v.glsl');
+        this.fragmentShaders['TextureToBBColor'] = glsl.file('../rendering/shaders/TextureToBBColor/shader.f.glsl');
+
+        this.vertexShaders['TextureBackMinusFront'] = glsl.file('../rendering/shaders/TextureBackMinusFront/shader.v.glsl');
+        this.fragmentShaders['TextureBackMinusFront'] = glsl.file('../rendering/shaders/TextureBackMinusFront/shader.f.glsl');
+
+
 
         this._initBuiltinPrograms();
     }

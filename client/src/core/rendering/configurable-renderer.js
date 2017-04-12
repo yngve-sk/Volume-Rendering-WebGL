@@ -59,65 +59,14 @@ class ConfigurableRenderer {
     render() {
         let gl = this.gl;
 
-        //let step0 = this.steps[0];
-        //let programInfo = step0.programInfo,
-        //    program = programInfo.program;
-        //let bufferInfo = step0.bufferInfo;
-        //
-        //twgl.bindFramebufferInfo(gl, step0.frameBufferInfo);
-        //
-        //gl.enable(gl.DEPTH_TEST);
-        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        //gl.enable(gl.CULL_FACE);
-        //
-        //let applyViewport = () => {
-        //    gl.viewport(
-        //        this.viewport.x0,
-        //        this.viewport.y0,
-        //        this.viewport.width,
-        //        this.viewport.height);
-        //}
-        //
-        //var projection = m4.perspective(30 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.5, 10);
-        //var eye = [1, 4, -6];
-        //var target = [0, 0, 0];
-        //var up = [0, 1, 0];
-        //
-        //var camera = m4.lookAt(eye, target, up);
-        //var view = m4.inverse(camera);
-        //var viewProjection = m4.multiply(projection, view);
-        //var world = m4.rotationY(0);
-        //
-        ////uniforms.u_viewInverse = camera;
-        ////uniforms.u_world = world;
-        ////uniforms.u_worldInverseTranspose = m4.transpose(m4.inverse(world));
-        //
-        //let tmp_u_worldViewProjection = m4.multiply(viewProjection, world);
-        //
-        //this.uniforms.u_WorldViewProjection = tmp_u_worldViewProjection;
-        //
-        //
-        //gl.useProgram(program);
-        //
-        //gl.cullFace(gl.BACK);
-        //
-        //twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-        //twgl.setUniforms(programInfo, this.uniforms);
-        //
-        //
-        //applyViewport();
-        //
-        //gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-
-
         for (let step of this.steps) {
             let programInfo = step.programInfo;
 
             //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
             gl.useProgram(programInfo.program);
-            this._applyViewport();
 
-
+            if (!step.frameBufferInfo)
+                this._applyViewport();
 
             if (step.glSettings) {
                 for (let func in step.glSettings) {
@@ -132,16 +81,23 @@ class ConfigurableRenderer {
             //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
             twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
-            //            if (step.frameBufferInfo) {
-            //                twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
-            //                //twgl.drawBufferInfo(gl, step.bufferInfo);
-            //                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-            //
-            //            } else {
-            //                gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
-            //                //twgl.drawBufferInfo(gl, step.bufferInfo);
-            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-            //            }
+            /*twgl.bindFramebufferInfo(gl, step.frameBufferInfo.framebuffer, gl.DRAW_FRAMEBUFFER);*/
+            /*
+                        let fb = step.frameBufferInfo === null ? null : step.frameBufferInfo.framebuffer;
+
+                        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+            */
+
+            if (step.frameBufferInfo) {
+                twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+                //twgl.drawBufferInfo(gl, step.bufferInfo);
+                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+
+            } else {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+                //twgl.drawBufferInfo(gl, step.bufferInfo);
+                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            }
         }
     }
 }

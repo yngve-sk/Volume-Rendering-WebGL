@@ -26,21 +26,19 @@ class FrameBufferAndTextureManager {
      *
      * @typedef {Object} FramebufferDetail
      * @property {string|number} name name of the frame buffer
-     * @property {number} width width of the texture attachment
-     * @property {number} height height of the texture attachment
      *
      * @memberof module:Core/Renderer
      **/
 
     getTexture(name) {
         if (!this.textures[name])
-            alert('Texture with name: ' + name + ' is NOT registered...');
+            console.error('Texture with name: ' + name + ' is NOT registered...');
         return this.textures[name];
     }
 
     getFrameBuffer(name) {
         if (!this.framebuffers[name])
-            alert('FB  with name: ' + name + ' is NOT registered...');
+            console.error('FB  with name: ' + name + ' is NOT registered...');
 
         return this.framebuffers[name];
     }
@@ -68,30 +66,33 @@ class FrameBufferAndTextureManager {
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
-            width: detail.width,
-            height: detail.height,
+            width:  gl.drawingBufferWidth,
+            height: gl.drawingBufferHeight,
             min: gl.LINEAR,
             mag: gl.LINEAR,
             internalFormat: gl.RGBA,
             format: gl.RGBA,
             type: gl.UNSIGNED_BYTE,
             wrap: gl.CLAMP_TO_EDGE,
-            premultiplyAlpha: false,
-            auto: true,
-            src: null
+            //premultiplyAlpha: false,
+            //auto: true,
+            //src: null
         });
 
         let framebuffer = twgl.createFramebufferInfo(gl, [{
             attach: gl.COLOR_ATTACTMENT0,
             format: gl.RGBA,
             type: gl.UNSIGNED_BYTE,
-            target: gl.FRAMEBUFFER,
+            target: gl.TEXTURE_2D,
             level: 0,
+            //auto: true,
             attachment: this.textures[detail.name]
         }]);
 
+        twgl.bindFramebufferInfo(gl);
+
         this.framebuffers[detail.name] = framebuffer;
-        return this.framebuffer;
+        return framebuffer;
     }
 
 

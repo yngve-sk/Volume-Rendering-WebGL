@@ -46,7 +46,7 @@ let controller = function ($scope, $timeout) {
             return;
 
         }).catch((e) => {
-            alert("Timed out getting dataset-list, (timeout = " + Timeouts.getDatasetList + "ms )");
+            console.error("Timed out getting dataset-list, (timeout = " + Timeouts.getDatasetList + "ms )");
             setLoaderVisibility(false);
         });
     }
