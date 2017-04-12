@@ -30,6 +30,55 @@ class Camera {
         //this.setPerspective();
         this.modelTransformation = new Transformations();
         this.setPerspective();
+
+        this.mouseCache = {
+            isDrag: false,
+            mx: -1,
+            my: -1
+        }
+    }
+
+    mouse(event) {
+        //console.log("Camera received event!");
+        //console.log(event);
+
+        let ROT_SPEED = 5;
+        let TRANS_SPEED = 5;
+
+        if (event.type === 'mousedown') {
+            this.mouseCache.isDrag = true;
+            this.mouseCache.mx = event.pos.x;
+            this.mouseCache.my = event.pos.y;
+            return;
+        } else if (event.type === 'mouseup') {
+            this.mouseCache.isDrag = false;
+            return;
+        }
+
+        if (this.mouseCache.isDrag) {
+
+            let dx = event.pos.x - this.mouseCache.mx;
+            let dy = event.pos.y - this.mouseCache.my;
+
+            this.mouseCache.mx = event.pos.x;
+            this.mouseCache.my = event.pos.y;
+
+            dx *= ROT_SPEED;
+            dy *= ROT_SPEED;
+
+            switch (event.button) {
+                case 0: // left -> rotate
+                    this.modelTransformation.rotateXY(-1*dy, dx);
+                    break;
+                case 1: // middle -> translate
+                    this.modelTransformation.translate(-dx, -dy, 0);
+                    break;
+                case 2: // right
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     setPerspective() {

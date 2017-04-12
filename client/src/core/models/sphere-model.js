@@ -8,8 +8,9 @@ class SphereModel {
     }
 
 
-    notifyEventDidHappen(event) {
-
+    mouse(event) {
+        console.log("Sphere mouse event");
+        console.log(event);
     }
 }
 

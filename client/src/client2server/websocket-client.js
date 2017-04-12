@@ -94,12 +94,13 @@ function get(resource, doStringify, maxWait) {
             resource: resource,
             doStringify: doStringify
         });
-        setTimeout(() => {
+        let fail = setTimeout(() => {
             reject('Timed out')
         }, maxWait);
 
         messageReceived = () => {
-            resolve(cache); // Call the resolve function and return the cache
+            clearTimeout(fail);
+            return resolve(cache); // Call the resolve function and return the cache
         }
     });
 }

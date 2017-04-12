@@ -16,8 +16,8 @@ let LinkableModels = {
         name: 'SLICER',
         class: Slicer
     },
-    SPHERE_AND_LIGHTS: {
-        name: 'SPHERE_AND_LIGHTS',
+    SPHERE: {
+        name: 'SPHERE',
         class: Sphere
     }
 };

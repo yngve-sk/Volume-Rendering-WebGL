@@ -53,7 +53,10 @@ class Subview {
 
     getAspectRatio() {
         let total = this.viewports.volume;
-        return total.width / total.height;
+        if (total)
+            return total.width / total.height;
+        else
+            return 1; // default fallback
     }
 
     render() {

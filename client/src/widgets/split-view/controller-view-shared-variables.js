@@ -2,7 +2,7 @@ module.exports = {
     'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
     'CAMERA': 'CAMERA',
     'SLICER': 'SLICER',
-    'SPHERE_AND_LIGHTS': 'SPHERE_AND_LIGHTS'
+    'SPHERE': 'SPHERE'
 };
 
 
@@ -10,7 +10,7 @@ module.exports = {
 //    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
 //    'CAMERA': 'CAMERA',
 //    'SLICER': 'SLICER',
-//    'SPHERE_AND_LIGHTS': 'SPHERE_AND_LIGHTS'
+//    'SPHERE': 'SPHERE'
 //};
 //
 //

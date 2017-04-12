@@ -9,7 +9,7 @@ let controller = function ($scope) {
         1: [LinkableModels.TRANSFER_FUNCTION.name],
         2: [LinkableModels.CAMERA.name],
         3: [LinkableModels.SLICER.name],
-        4: [LinkableModels.SPHERE_AND_LIGHTS.name],
+        4: [LinkableModels.SPHERE.name],
     }
 
     let callbacks = {
@@ -49,7 +49,7 @@ let controller = function ($scope) {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
         [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
-        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'LINK-ADD'
+        [LinkableModels.SPHERE.name]: 'LINK-ADD'
     };
 
     $scope.isActiveLinker = (id, on) => {

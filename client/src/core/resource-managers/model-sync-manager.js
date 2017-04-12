@@ -83,6 +83,7 @@ class ModelSyncManager {
         return this.defaultModels[modelName][activeModelSubviewID];
     }
 
+
     /**
      * Removes a subview with given ID. Deletes all models & pointers
      * associated with this subview ID.
@@ -94,14 +95,14 @@ class ModelSyncManager {
         delete this.linkedModels[subviewID];
 
         // Reset any subviews that was pointing to this subview
-//        let subviewIDs = getAllCellIDs();
-//        for (let theSubviewID of subviewIDs) {
-//            for (let modelName in this.linkedModels) {
-//                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
-//                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
-//                }
-//            }
-//        }
+        //        let subviewIDs = getAllCellIDs();
+        //        for (let theSubviewID of subviewIDs) {
+        //            for (let modelName in this.linkedModels) {
+        //                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+        //                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+        //                }
+        //            }
+        //        }
 
 
         this.syncWithLinkGroup();

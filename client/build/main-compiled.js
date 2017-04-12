@@ -42661,6 +42661,8 @@ let controller = function ($scope, $timeout) {
             if ($scope.loadAutomatically)
                 $scope.loadSelectedDataset();
 
+            return;
+
         }).catch((e) => {
             alert("Timed out getting dataset-list, (timeout = " + Timeouts.getDatasetList + "ms )");
             setLoaderVisibility(false);
@@ -42716,6 +42718,8 @@ let controller = function ($scope, $timeout) {
                         let isovalues = new Int16Array(arraybuffer);
 
                         Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, isovalues);
+
+                    return;
 
                     })
                     .catch((e) => {
@@ -42774,7 +42778,7 @@ let controller = function ($scope) {
         1: [LinkableModels.TRANSFER_FUNCTION.name],
         2: [LinkableModels.CAMERA.name],
         3: [LinkableModels.SLICER.name],
-        4: [LinkableModels.SPHERE_AND_LIGHTS.name],
+        4: [LinkableModels.SPHERE.name],
     }
 
     let callbacks = {
@@ -42814,7 +42818,7 @@ let controller = function ($scope) {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
         [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
-        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'LINK-ADD'
+        [LinkableModels.SPHERE.name]: 'LINK-ADD'
     };
 
     $scope.isActiveLinker = (id, on) => {
@@ -43259,12 +43263,13 @@ function get(resource, doStringify, maxWait) {
             resource: resource,
             doStringify: doStringify
         });
-        setTimeout(() => {
+        let fail = setTimeout(() => {
             reject('Timed out')
         }, maxWait);
 
         messageReceived = () => {
-            resolve(cache); // Call the resolve function and return the cache
+            clearTimeout(fail);
+            return resolve(cache); // Call the resolve function and return the cache
         }
     });
 }
@@ -43605,8 +43610,8 @@ let LinkableModels = {
         name: 'SLICER',
         class: Slicer
     },
-    SPHERE_AND_LIGHTS: {
-        name: 'SPHERE_AND_LIGHTS',
+    SPHERE: {
+        name: 'SPHERE',
         class: Sphere
     }
 };
@@ -43653,6 +43658,55 @@ class Camera {
         //this.setPerspective();
         this.modelTransformation = new Transformations();
         this.setPerspective();
+
+        this.mouseCache = {
+            isDrag: false,
+            mx: -1,
+            my: -1
+        }
+    }
+
+    mouse(event) {
+        //console.log("Camera received event!");
+        //console.log(event);
+
+        let ROT_SPEED = 5;
+        let TRANS_SPEED = 5;
+
+        if (event.type === 'mousedown') {
+            this.mouseCache.isDrag = true;
+            this.mouseCache.mx = event.pos.x;
+            this.mouseCache.my = event.pos.y;
+            return;
+        } else if (event.type === 'mouseup') {
+            this.mouseCache.isDrag = false;
+            return;
+        }
+
+        if (this.mouseCache.isDrag) {
+
+            let dx = event.pos.x - this.mouseCache.mx;
+            let dy = event.pos.y - this.mouseCache.my;
+
+            this.mouseCache.mx = event.pos.x;
+            this.mouseCache.my = event.pos.y;
+
+            dx *= ROT_SPEED;
+            dy *= ROT_SPEED;
+
+            switch (event.button) {
+                case 0: // left -> rotate
+                    this.modelTransformation.rotateXY(-1*dy, dx);
+                    break;
+                case 1: // middle -> translate
+                    this.modelTransformation.translate(-dx, -dy, 0);
+                    break;
+                case 2: // right
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     setPerspective() {
@@ -43716,8 +43770,9 @@ class SlicerModel {
 
     }
 
-    notifyEventDidHappen(event) {
-
+    mouse(event) {
+        console.log("Slicer mouse event");
+        console.log(event);
     }
 }
 
@@ -43734,8 +43789,9 @@ class SphereModel {
     }
 
 
-    notifyEventDidHappen(event) {
-
+    mouse(event) {
+        console.log("Sphere mouse event");
+        console.log(event);
     }
 }
 
@@ -43772,6 +43828,11 @@ class Transformations {
 
         m4.axisRotate(this.rotation, yAxis, rx, this.rotation);
         m4.axisRotate(this.rotation, xAxis, ry, this.rotation);
+    }
+
+    rotateXY(dx, dy) {
+        this.rotateX(dx);
+        this.rotateY(dy);
     }
 
     rotateX(radians) {
@@ -43982,7 +44043,6 @@ module.exports = ConfigurableRenderer;
  *
  * @memberof module:Core/Renderer
  **/
-
 },{"twgl.js":11}],36:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
@@ -44051,6 +44111,20 @@ class FrameBufferAndTextureManager {
             alert('FB  with name: ' + name + ' is NOT registered...');
 
         return this.framebuffers[name];
+    }
+
+    createDEBUG2DTexture(name) {
+        let gl = this.gl;
+        this.textures[name] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+        255, 255, 255, 255,
+        192, 192, 192, 255,
+        192, 192, 192, 255,
+        255, 255, 255, 255,
+      ]
+        });
     }
 
     /**
@@ -44214,6 +44288,7 @@ class ModelSyncManager {
         return this.defaultModels[modelName][activeModelSubviewID];
     }
 
+
     /**
      * Removes a subview with given ID. Deletes all models & pointers
      * associated with this subview ID.
@@ -44225,14 +44300,14 @@ class ModelSyncManager {
         delete this.linkedModels[subviewID];
 
         // Reset any subviews that was pointing to this subview
-//        let subviewIDs = getAllCellIDs();
-//        for (let theSubviewID of subviewIDs) {
-//            for (let modelName in this.linkedModels) {
-//                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
-//                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
-//                }
-//            }
-//        }
+        //        let subviewIDs = getAllCellIDs();
+        //        for (let theSubviewID of subviewIDs) {
+        //            for (let modelName in this.linkedModels) {
+        //                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+        //                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+        //                }
+        //            }
+        //        }
 
 
         this.syncWithLinkGroup();
@@ -44366,8 +44441,8 @@ class ShaderManager {
         this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nuniform mat4 u_worldViewProjection;\n\nin vec4 a_position; // The position of the vertex in space [-1,1]\n//out vec4 v_bbPosition;\n\nvoid main() {\n    // Displace to fit RGB color space\n    //v_bbPosition = a_position;\n    gl_Position = u_worldViewProjection * a_position;\n}\n"]);
         this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 World2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\n//in vec4 v_bbPosition;\n//uniform vec3 u_BoundingBoxNormalized;\n\nout vec4 outColor;\n\nvoid main() {\n    //vec3 gridCoord3D_0_to_1 = World2NormalizedBBCoord_0_to_1(\n    //    v_bbPosition.xyz,\n    //    u_BoundingBoxNormalized\n    //);\n\n    outColor = vec4(0.8,0.8,0.8,1.0);//vec4(gridCoord3D_0_to_1, 1.0);\n}\n"]);
 
-        this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_worldViewProjection;\nuniform vec3 u_lightWorldPos;\nuniform mat4 u_world;\nuniform mat4 u_viewInverse;\nuniform mat4 u_worldInverseTranspose;\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\nvoid main() {\nv_texCoord = a_texcoord;\nv_position = (u_worldViewProjection * a_position);\nv_normal = (u_worldInverseTranspose * vec4(a_normal, 0)).xyz;\nv_surfaceToLight = u_lightWorldPos - (u_world * a_position).xyz;\nv_surfaceToView = (u_viewInverse[3] - (u_world * a_position)).xyz;\ngl_Position = v_position;\n}\n"]);
-        this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\n            precision mediump float;\n            precision mediump sampler2D;\n#define GLSLIFY 1\n\n\n            in vec4 v_position;\n            in vec2 v_texCoord;\n            in vec3 v_normal;\n            in vec3 v_surfaceToLight;\n            in vec3 v_surfaceToView;\n\n            uniform vec4 u_lightColor;\n            uniform vec4 u_ambient;\n            uniform sampler2D u_diffuse;\n            uniform vec4 u_specular;\n            uniform float u_shininess;\n            uniform float u_specularFactor;\n\n            vec4 lit(float l ,float h, float m) {\n            return vec4(1.0,\n            max(l, 0.0),\n            (l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n            1.0);\n            }\n\n            out vec4 outColor;\n\n            void main() {\n            vec4 diffuseColor = texture(u_diffuse, v_texCoord);\n            vec3 a_normal = normalize(v_normal);\n            vec3 surfaceToLight = normalize(v_surfaceToLight);\n            vec3 surfaceToView = normalize(v_surfaceToView);\n            vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n            vec4 litR = lit(dot(a_normal, surfaceToLight),\n            dot(a_normal, halfVector), u_shininess);\n            outColor = vec4((\n            u_lightColor * (diffuseColor * litR.y + diffuseColor * u_ambient +\n            u_specular * litR.z * u_specularFactor)).rgb,\n            diffuseColor.a);\n\n            }\n"]);
+        this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_LightWorldPos;\nuniform mat4 u_World;\nuniform mat4 u_ViewInverse;\nuniform mat4 u_WorldInverseTranspose;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\n\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\n\nvoid main() {\n    v_texCoord = a_texcoord;\n    v_position = (u_WorldViewProjection * a_position);\n    v_normal = (u_WorldInverseTranspose * vec4(a_normal, 0)).xyz;\n    v_surfaceToLight = u_LightWorldPos - (u_World * a_position).xyz;\n    v_surfaceToView = (u_ViewInverse[3] - (u_World * a_position)).xyz;\n    gl_Position = vec4(v_position.x/u_AspectRatio, v_position.y, v_position.z, v_position.w);\n}\n"]);
+        this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nin vec2 v_texCoord;\nin vec3 v_normal;\nin vec3 v_surfaceToLight;\nin vec3 v_surfaceToView;\n\nuniform vec4 u_LightColor;\nuniform vec4 u_Ambient;\nuniform sampler2D u_Diffuse;\nuniform vec4 u_Specular;\nuniform float u_Shininess;\nuniform float u_SpecularFactor;\n\nvec4 lit(float l ,float h, float m) {\nreturn vec4(1.0,\nmax(l, 0.0),\n(l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n1.0);\n}\n\nout vec4 outColor;\n\nvoid main() {\n    vec4 diffuseColor = texture(u_Diffuse, v_texCoord);\n    vec3 a_normal = normalize(v_normal);\n    vec3 surfaceToLight = normalize(v_surfaceToLight);\n    vec3 surfaceToView = normalize(v_surfaceToView);\n    vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n    \n    vec4 litR = lit(dot(a_normal, surfaceToLight),\n                    dot(a_normal, halfVector), u_Shininess);\n    \n    outColor = vec4((\n    u_LightColor * (diffuseColor * litR.y + diffuseColor * u_Ambient +\n    u_Specular * litR.z * u_SpecularFactor)).rgb,\n    diffuseColor.a);\n\n}"]);
 
         this._initBuiltinPrograms();
     }
@@ -44489,6 +44564,10 @@ class UniformManager {
 
     addSubview(subviewID) {
         this._bundleUniformsForSubview(subviewID);
+    }
+
+    removeSubview(subviewID) {
+        delete this.uniforms[subviewID];
     }
 
     /**
@@ -44649,7 +44728,7 @@ let SETTINGS = {
             showIDs: true,
             bottomTopThresholdPercentage: 0.20,
             colors: {
-                'LINKS': ['red', 'green', 'white', 'blue', 'brown', 'gold'],
+                'LINKS': ['red', 'green', 'white', 'aqua', 'brown', 'gold'],
                 'REMOVE': 'red',
                 'ADD': 'green'
             }
@@ -44671,7 +44750,7 @@ let SETTINGS = {
                     bottomTopThresholdPercentage: 0.1
                 },
                 SubcellLayout: {
-                    changeLayoutThresholdMultiplier: 1.2,
+                    changeLayoutThresholdMultiplier: 2.2,
                     standardSizeMultiplier: 0.7
                 }
             }
@@ -44738,7 +44817,10 @@ class Subview {
 
     getAspectRatio() {
         let total = this.viewports.volume;
-        return total.width / total.height;
+        if (total)
+            return total.width / total.height;
+        else
+            return 1; // default fallback
     }
 
     render() {
@@ -44838,6 +44920,13 @@ let createCuboidVertices = require('../../geometry/box');
 
 let glsl = require('glslify');
 
+
+let OverlayCellEventToModel = {
+    'sphere': 'SPHERE',
+    'volume': 'CAMERA',
+    'slicer': 'SLICER'
+};
+
 /** @module Core/View */
 
 /**
@@ -44891,9 +44980,17 @@ class ViewManager {
 
 
         let eventListenerOverlayCallback = (cellID, subcellName, event) => {
+            //            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
+            //                event.button);
             console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
                 event.button);
 
+            if (this.subviews[cellID]) {
+                let modelName = OverlayCellEventToModel[subcellName];
+                let model = this.modelSyncManager.getActiveModel(modelName, cellID);
+                this.modelSyncManager.getActiveModel(modelName, cellID).mouse(event);
+                this.uniformManager.updateAll();
+            } else
             if (this.subviews[cellID])
                 this.subviews[cellID].notifyEventDidHappen(subcellName, event)
             else
@@ -44948,169 +45045,99 @@ class ViewManager {
         let m4 = twgl.m4;
         let programInfo = this.shaderManager.getProgramInfo('DebugCube');
 
-        let tex = twgl.createTexture(gl, {
-            min: gl.NEAREST,
-            mag: gl.NEAREST,
-            src: [
-        255, 255, 255, 255,
-        192, 192, 192, 255,
-        192, 192, 192, 255,
-        255, 255, 255, 255,
-      ],
-        });
-
-
-        let uniforms = {
-            u_lightWorldPos: [1, 8, -10],
-            u_lightColor: [1, 0.8, 0.8, 1],
-            u_ambient: [0, 0, 0, 1],
-            u_specular: [1, 1, 1, 1],
-            u_shininess: 50,
-            u_specularFactor: 1,
-            u_diffuse: tex,
-        };
-
-        // Adding shared ones WORK
-        /*
-                this.uniformManager.addShared('u_lightWorldPos', () => {
-                    return uniforms.u_lightWorldPos
-                });
-                this.uniformManager.addShared('u_lightColor', () => {
-                    return uniforms.u_lightColor
-                });
-                this.uniformManager.addShared('u_ambient', () => {
-                    return uniforms.u_ambient
-                });
-                this.uniformManager.addShared('u_specular', () => {
-                    return uniforms.u_specular
-                });
-                this.uniformManager.addShared('u_shininess', () => {
-                    return uniforms.u_shininess
-                });
-                this.uniformManager.addShared('u_specularFactor', () => {
-                    return uniforms.u_specularFactor
-                });
-                this.uniformManager.addShared('u_diffuse', () => {
-                    return uniforms.u_diffuse
-                });
-                this.uniformManager.addShared('u_viewInverse', () => {
-                    return uniforms.u_viewInverse;
-                });
-                this.uniformManager.addShared('u_world', () => {
-                    return uniforms.u_world;
-                });
-                this.uniformManager.addShared('u_worldInverseTranspose', () => {
-                    return uniforms.u_worldInverseTranspose;
-                });
-                this.uniformManager.addShared('u_worldViewProjection', () => {
-                    return uniforms.u_worldViewProjection;
-                });
-        */
-
-        // Adding some as shared, some as unique (should work)
-        this.uniformManager.addUnique('u_lightWorldPos', (subviewID) => {
-            return uniforms.u_lightWorldPos
-        });
-        this.uniformManager.addUnique('u_lightColor', (subviewID) => {
-            return uniforms.u_lightColor
-        });
-        this.uniformManager.addShared('u_ambient', () => {
-            return uniforms.u_ambient
-        });
-        this.uniformManager.addShared('u_specular', () => {
-            return uniforms.u_specular
-        });
-        this.uniformManager.addShared('u_shininess', () => {
-            return uniforms.u_shininess
-        });
-        this.uniformManager.addShared('u_specularFactor', () => {
-            return uniforms.u_specularFactor
-        });
-        this.uniformManager.addShared('u_diffuse', () => {
-            return uniforms.u_diffuse
-        });
-        this.uniformManager.addUnique('u_viewInverse', (subviewID) => {
-            //return uniforms.u_viewInverse;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
-        });
-        this.uniformManager.addUnique('u_world', (subviewID) => {
-            //return uniforms.u_world;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
-        });
-        this.uniformManager.addUnique('u_worldInverseTranspose', (subviewID) => {
-            //return uniforms.u_worldInverseTranspose;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
-        });
-        this.uniformManager.addUnique('u_worldViewProjection', (subviewID) => {
-            //return uniforms.u_worldViewProjection;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
-        });
-        this.uniformManager.addUnique('u_aspectratio', (subviewID) => {
-            return this.subviews[subviewID].getAspectRatio();
-        });
+        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
+        this._bindUniformManagerDebug();
 
         // Works!
         this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
-        //this.modelSyncManager.addSubview('GLOBAL');
-        //let cam = this.modelSyncManager.getActiveModel('CAMERA', 'GLOBAL');
-        //this.uniformManager.addSubview('GLOBAL');
-        //let self = this;
-
-        // TODO
-        // 1. move camera logic to camera obj itself, and rotation. <- OK
-        // 2. when that works, use camera through model sync manager <- OK
-        // 3. Add buffer manager and use that to generate buffer info
-        // 4. Move the light model to model sync manager
-
-        //twgl.resizeCanvasToDisplaySize(gl.canvas);
-        //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-        //let cam = new Camera(gl);
-
-        function render() {
-
-            gl.enable(gl.DEPTH_TEST);
-            gl.enable(gl.CULL_FACE);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            //            var camera = m4.lookAt(eye, target, up);
-            //            var view = m4.inverse(camera);
-            //            var viewProjection = m4.multiply(projection, view);
-            //            var world = m4.rotationY(time);
-
-            //            var camera = cam.getLookAt();
-            //            var view = cam.getViewMatrix();
-            //            var viewProjection = cam.getViewProjectionMatrix();
-
-            cam.getModelTransformation().rotateY(0.007);
-            cam.getModelTransformation().rotateX(0.007);
-            cam.getModelTransformation().rotateZ(-0.007);
-            //            var world = cam.getWorldMatrix();
-            // Works!
-
-            //            uniforms.u_viewInverse = camera;
-            //            uniforms.u_world = world;
-            //            uniforms.u_worldInverseTranspose = m4.transpose(m4.inverse(world));
-            //            uniforms.u_worldViewProjection = m4.multiply(viewProjection, world);
-
-            gl.useProgram(programInfo.program);
-            twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-
-            self.uniformManager.updateAll();
-            let uniformBundle = self.uniformManager.getUniformBundle('GLOBAL');
-
-            twgl.setUniforms(programInfo, uniformBundle);
-            gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-
-            requestAnimationFrame(render);
-        }
-        // requestAnimationFrame(render);
-        //this._generateDebugConfigurationForSubview('GLOBAL');
         this.addNewView(0);
         this.refresh();
     }
+
+    _generateDebugConfigurationForSubview(subviewID) {
+        let DebugConfig = {
+            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                }
+            ]
+        };
+
+        return DebugConfig;
+    }
+
+    _bindUniformManagerDebug() {
+        let gl = this.masterContext;
+        let tex = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                 255, 255, 255, 255,
+                 192, 192, 192, 255,
+                 192, 192, 192, 255,
+                 255, 255, 255, 255,
+               ],
+        });
+        let uniforms = {
+            u_LightWorldPos: [1, 8, -10],
+            u_LightColor: [1, 0.8, 0.8, 1],
+            u_Ambient: [0, 0, 0, 1],
+            u_Specular: [1, 1, 1, 1],
+            u_Shininess: 50,
+            u_SpecularFactor: 1,
+            u_Diffuse: tex //this.FBAndTextureManager.getTexture('DebugTex'),
+        };
+        // Adding some as shared, some as unique (should work)
+        this.uniformManager.addUnique('u_LightWorldPos', (subviewID) => {
+            return uniforms.u_LightWorldPos
+        });
+        this.uniformManager.addUnique('u_LightColor', (subviewID) => {
+            return uniforms.u_LightColor
+        });
+        this.uniformManager.addShared('u_Ambient', () => {
+            return uniforms.u_Ambient
+        });
+        this.uniformManager.addShared('u_Specular', () => {
+            return uniforms.u_Specular
+        });
+        this.uniformManager.addShared('u_Shininess', () => {
+            return uniforms.u_Shininess
+        });
+        this.uniformManager.addShared('u_SpecularFactor', () => {
+            return uniforms.u_SpecularFactor
+        });
+        this.uniformManager.addShared('u_Diffuse', () => {
+            return uniforms.u_Diffuse
+        });
+        this.uniformManager.addUnique('u_ViewInverse', (subviewID) => {
+            //return uniforms.u_viewInverse;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
+        });
+        this.uniformManager.addUnique('u_World', (subviewID) => {
+            //return uniforms.u_world;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
+        });
+        this.uniformManager.addUnique('u_WorldInverseTranspose', (subviewID) => {
+            //return uniforms.u_worldInverseTranspose;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
+        });
+        this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
+            //return uniforms.u_worldViewProjection;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
+        });
+        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
+    }
+
 
     _genFrameBuffersAndTextureTargets() {
         this.FBAndTextureManager.create2DTextureFB({
@@ -45183,23 +45210,7 @@ class ViewManager {
 
     }
 
-    _generateDebugConfigurationForSubview(subviewID) {
-        let DebugConfig = {
-            uniforms: this.uniformManager.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                }
-            ]
-        };
 
-        return DebugConfig;
-    }
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
@@ -45258,25 +45269,22 @@ class ViewManager {
     }
 
     addNewView(id) {
-
         this.subviews[id] = new Subview(this.masterContext);
-        this.syncWithLayout();
-
         this.modelSyncManager.addSubview(id);
         this.uniformManager.addSubview(id);
-
         //        let config = this._generateBasicVolumeConfigForSubview(id);
         let config = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', config);
 
+        this.syncWithLayout();
     }
 
     removeView(id) {
         delete this.subviews[id];
         this.modelSyncManager.removeSubview(id);
+        this.uniformManager.removeSubview(id);
 
         this.syncWithLayout();
-        //this.uniformManager.updateAll();
     }
 
     /**
@@ -46323,34 +46331,6 @@ class MiniatureSplitView {
             });
 
         let masterCellIDs = this.linkGrouper.getMasterCellIDs();
-
-        let defs = svg.append("defs");
-
-        // create filter with id #drop-shadow
-        // height=130% so that the shadow is not clipped
-        // <!-- adapted from jsfiddle snippet: https://jsfiddle.net/w8r/yx0y1jLc/ -->
-        // Will be applied to master cell
-        let filterHTML = `<filter id="linkgroup-master-cell-filter">
-
-			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
-			<feOffset dy="3" dx="3"></feOffset>
-			<feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
-
-           <feFlood flood-color="white" flood-opacity="1"></feFlood>
-		   <feComposite in2="shadowDiff" operator="in"></feComposite>
-		   <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
-
-
-          <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
-			<feOffset dy="-7" dx="-7"></feOffset>
-			<feComposite in2="firstfilter" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
-
-           <feFlood flood-color="black" flood-opacity="1"></feFlood>
-			<feComposite in2="shadowDiff" operator="in"></feComposite>
-			<feComposite in2="firstfilter" operator="over"></feComposite>
-  </filter>`;
-        defs.node().innerHTML = filterHTML;
-
 
         svg.selectAll('.splitview-rect')
             .data(this.layout.flattenedLayoutPercentages)
@@ -47404,7 +47384,7 @@ let divIDs = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
         [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
         [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'lvw-link-view-4'
+        [LinkableModels.SPHERE.name]: 'lvw-link-view-4'
     }
 };
 

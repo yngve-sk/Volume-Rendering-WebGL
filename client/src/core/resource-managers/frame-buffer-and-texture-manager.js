@@ -45,6 +45,20 @@ class FrameBufferAndTextureManager {
         return this.framebuffers[name];
     }
 
+    createDEBUG2DTexture(name) {
+        let gl = this.gl;
+        this.textures[name] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+        255, 255, 255, 255,
+        192, 192, 192, 255,
+        192, 192, 192, 255,
+        255, 255, 255, 255,
+      ]
+        });
+    }
+
     /**
      * Creates a frame buffer holding a 2D texture
      *

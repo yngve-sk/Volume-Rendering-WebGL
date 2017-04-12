@@ -39,7 +39,7 @@ module.exports = function (grunt) {
             js: {
                 files: ['src/**/*.js', 'src/**/*.glsl'],
                 tasks: [
-                    'jsdoc:dist',
+                    /*'jsdoc:dist',*/
                     'browserify:dist'
                 ]
             }

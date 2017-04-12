@@ -21,6 +21,13 @@ let createCuboidVertices = require('../../geometry/box');
 
 let glsl = require('glslify');
 
+
+let OverlayCellEventToModel = {
+    'sphere': 'SPHERE',
+    'volume': 'CAMERA',
+    'slicer': 'SLICER'
+};
+
 /** @module Core/View */
 
 /**
@@ -74,9 +81,17 @@ class ViewManager {
 
 
         let eventListenerOverlayCallback = (cellID, subcellName, event) => {
+            //            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
+            //                event.button);
             console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
                 event.button);
 
+            if (this.subviews[cellID]) {
+                let modelName = OverlayCellEventToModel[subcellName];
+                let model = this.modelSyncManager.getActiveModel(modelName, cellID);
+                this.modelSyncManager.getActiveModel(modelName, cellID).mouse(event);
+                this.uniformManager.updateAll();
+            } else
             if (this.subviews[cellID])
                 this.subviews[cellID].notifyEventDidHappen(subcellName, event)
             else
@@ -131,169 +146,99 @@ class ViewManager {
         let m4 = twgl.m4;
         let programInfo = this.shaderManager.getProgramInfo('DebugCube');
 
-        let tex = twgl.createTexture(gl, {
-            min: gl.NEAREST,
-            mag: gl.NEAREST,
-            src: [
-        255, 255, 255, 255,
-        192, 192, 192, 255,
-        192, 192, 192, 255,
-        255, 255, 255, 255,
-      ],
-        });
-
-
-        let uniforms = {
-            u_lightWorldPos: [1, 8, -10],
-            u_lightColor: [1, 0.8, 0.8, 1],
-            u_ambient: [0, 0, 0, 1],
-            u_specular: [1, 1, 1, 1],
-            u_shininess: 50,
-            u_specularFactor: 1,
-            u_diffuse: tex,
-        };
-
-        // Adding shared ones WORK
-        /*
-                this.uniformManager.addShared('u_lightWorldPos', () => {
-                    return uniforms.u_lightWorldPos
-                });
-                this.uniformManager.addShared('u_lightColor', () => {
-                    return uniforms.u_lightColor
-                });
-                this.uniformManager.addShared('u_ambient', () => {
-                    return uniforms.u_ambient
-                });
-                this.uniformManager.addShared('u_specular', () => {
-                    return uniforms.u_specular
-                });
-                this.uniformManager.addShared('u_shininess', () => {
-                    return uniforms.u_shininess
-                });
-                this.uniformManager.addShared('u_specularFactor', () => {
-                    return uniforms.u_specularFactor
-                });
-                this.uniformManager.addShared('u_diffuse', () => {
-                    return uniforms.u_diffuse
-                });
-                this.uniformManager.addShared('u_viewInverse', () => {
-                    return uniforms.u_viewInverse;
-                });
-                this.uniformManager.addShared('u_world', () => {
-                    return uniforms.u_world;
-                });
-                this.uniformManager.addShared('u_worldInverseTranspose', () => {
-                    return uniforms.u_worldInverseTranspose;
-                });
-                this.uniformManager.addShared('u_worldViewProjection', () => {
-                    return uniforms.u_worldViewProjection;
-                });
-        */
-
-        // Adding some as shared, some as unique (should work)
-        this.uniformManager.addUnique('u_lightWorldPos', (subviewID) => {
-            return uniforms.u_lightWorldPos
-        });
-        this.uniformManager.addUnique('u_lightColor', (subviewID) => {
-            return uniforms.u_lightColor
-        });
-        this.uniformManager.addShared('u_ambient', () => {
-            return uniforms.u_ambient
-        });
-        this.uniformManager.addShared('u_specular', () => {
-            return uniforms.u_specular
-        });
-        this.uniformManager.addShared('u_shininess', () => {
-            return uniforms.u_shininess
-        });
-        this.uniformManager.addShared('u_specularFactor', () => {
-            return uniforms.u_specularFactor
-        });
-        this.uniformManager.addShared('u_diffuse', () => {
-            return uniforms.u_diffuse
-        });
-        this.uniformManager.addUnique('u_viewInverse', (subviewID) => {
-            //return uniforms.u_viewInverse;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
-        });
-        this.uniformManager.addUnique('u_world', (subviewID) => {
-            //return uniforms.u_world;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
-        });
-        this.uniformManager.addUnique('u_worldInverseTranspose', (subviewID) => {
-            //return uniforms.u_worldInverseTranspose;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
-        });
-        this.uniformManager.addUnique('u_worldViewProjection', (subviewID) => {
-            //return uniforms.u_worldViewProjection;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
-        });
-        this.uniformManager.addUnique('u_aspectratio', (subviewID) => {
-            return this.subviews[subviewID].getAspectRatio();
-        });
+        this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
+        this._bindUniformManagerDebug();
 
         // Works!
         this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 1.0, 1.0);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
-        //this.modelSyncManager.addSubview('GLOBAL');
-        //let cam = this.modelSyncManager.getActiveModel('CAMERA', 'GLOBAL');
-        //this.uniformManager.addSubview('GLOBAL');
-        //let self = this;
-
-        // TODO
-        // 1. move camera logic to camera obj itself, and rotation. <- OK
-        // 2. when that works, use camera through model sync manager <- OK
-        // 3. Add buffer manager and use that to generate buffer info
-        // 4. Move the light model to model sync manager
-
-        //twgl.resizeCanvasToDisplaySize(gl.canvas);
-        //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-        //let cam = new Camera(gl);
-
-        function render() {
-
-            gl.enable(gl.DEPTH_TEST);
-            gl.enable(gl.CULL_FACE);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            //            var camera = m4.lookAt(eye, target, up);
-            //            var view = m4.inverse(camera);
-            //            var viewProjection = m4.multiply(projection, view);
-            //            var world = m4.rotationY(time);
-
-            //            var camera = cam.getLookAt();
-            //            var view = cam.getViewMatrix();
-            //            var viewProjection = cam.getViewProjectionMatrix();
-
-            cam.getModelTransformation().rotateY(0.007);
-            cam.getModelTransformation().rotateX(0.007);
-            cam.getModelTransformation().rotateZ(-0.007);
-            //            var world = cam.getWorldMatrix();
-            // Works!
-
-            //            uniforms.u_viewInverse = camera;
-            //            uniforms.u_world = world;
-            //            uniforms.u_worldInverseTranspose = m4.transpose(m4.inverse(world));
-            //            uniforms.u_worldViewProjection = m4.multiply(viewProjection, world);
-
-            gl.useProgram(programInfo.program);
-            twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-
-            self.uniformManager.updateAll();
-            let uniformBundle = self.uniformManager.getUniformBundle('GLOBAL');
-
-            twgl.setUniforms(programInfo, uniformBundle);
-            gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-
-            requestAnimationFrame(render);
-        }
-        // requestAnimationFrame(render);
-        //this._generateDebugConfigurationForSubview('GLOBAL');
         this.addNewView(0);
         this.refresh();
     }
+
+    _generateDebugConfigurationForSubview(subviewID) {
+        let DebugConfig = {
+            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                }
+            ]
+        };
+
+        return DebugConfig;
+    }
+
+    _bindUniformManagerDebug() {
+        let gl = this.masterContext;
+        let tex = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                 255, 255, 255, 255,
+                 192, 192, 192, 255,
+                 192, 192, 192, 255,
+                 255, 255, 255, 255,
+               ],
+        });
+        let uniforms = {
+            u_LightWorldPos: [1, 8, -10],
+            u_LightColor: [1, 0.8, 0.8, 1],
+            u_Ambient: [0, 0, 0, 1],
+            u_Specular: [1, 1, 1, 1],
+            u_Shininess: 50,
+            u_SpecularFactor: 1,
+            u_Diffuse: tex //this.FBAndTextureManager.getTexture('DebugTex'),
+        };
+        // Adding some as shared, some as unique (should work)
+        this.uniformManager.addUnique('u_LightWorldPos', (subviewID) => {
+            return uniforms.u_LightWorldPos
+        });
+        this.uniformManager.addUnique('u_LightColor', (subviewID) => {
+            return uniforms.u_LightColor
+        });
+        this.uniformManager.addShared('u_Ambient', () => {
+            return uniforms.u_Ambient
+        });
+        this.uniformManager.addShared('u_Specular', () => {
+            return uniforms.u_Specular
+        });
+        this.uniformManager.addShared('u_Shininess', () => {
+            return uniforms.u_Shininess
+        });
+        this.uniformManager.addShared('u_SpecularFactor', () => {
+            return uniforms.u_SpecularFactor
+        });
+        this.uniformManager.addShared('u_Diffuse', () => {
+            return uniforms.u_Diffuse
+        });
+        this.uniformManager.addUnique('u_ViewInverse', (subviewID) => {
+            //return uniforms.u_viewInverse;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
+        });
+        this.uniformManager.addUnique('u_World', (subviewID) => {
+            //return uniforms.u_world;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
+        });
+        this.uniformManager.addUnique('u_WorldInverseTranspose', (subviewID) => {
+            //return uniforms.u_worldInverseTranspose;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
+        });
+        this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
+            //return uniforms.u_worldViewProjection;
+            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
+        });
+        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+            return this.subviews[subviewID].getAspectRatio();
+        });
+    }
+
 
     _genFrameBuffersAndTextureTargets() {
         this.FBAndTextureManager.create2DTextureFB({
@@ -366,23 +311,7 @@ class ViewManager {
 
     }
 
-    _generateDebugConfigurationForSubview(subviewID) {
-        let DebugConfig = {
-            uniforms: this.uniformManager.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('DebugCube'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                }
-            ]
-        };
 
-        return DebugConfig;
-    }
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
@@ -441,25 +370,22 @@ class ViewManager {
     }
 
     addNewView(id) {
-
         this.subviews[id] = new Subview(this.masterContext);
-        this.syncWithLayout();
-
         this.modelSyncManager.addSubview(id);
         this.uniformManager.addSubview(id);
-
         //        let config = this._generateBasicVolumeConfigForSubview(id);
         let config = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', config);
 
+        this.syncWithLayout();
     }
 
     removeView(id) {
         delete this.subviews[id];
         this.modelSyncManager.removeSubview(id);
+        this.uniformManager.removeSubview(id);
 
         this.syncWithLayout();
-        //this.uniformManager.updateAll();
     }
 
     /**

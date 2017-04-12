@@ -62,5 +62,5 @@
  *  (i.e all other cells inherit the property from them)
  */
 .linkgroup-master-cell {
-    filter: url('#linkgroup-master-cell-filter');
+    filter: url('#linkgroup-master-cell-filter22');
 }

@@ -61,6 +61,10 @@ class UniformManager {
         this._bundleUniformsForSubview(subviewID);
     }
 
+    removeSubview(subviewID) {
+        delete this.uniforms[subviewID];
+    }
+
     /**
      * Gets a JSON of uniforms for the given subview ID.
      * This is a JSON so changes made to the uniform will

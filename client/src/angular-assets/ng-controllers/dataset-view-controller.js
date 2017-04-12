@@ -43,6 +43,8 @@ let controller = function ($scope, $timeout) {
             if ($scope.loadAutomatically)
                 $scope.loadSelectedDataset();
 
+            return;
+
         }).catch((e) => {
             alert("Timed out getting dataset-list, (timeout = " + Timeouts.getDatasetList + "ms )");
             setLoaderVisibility(false);
@@ -98,6 +100,8 @@ let controller = function ($scope, $timeout) {
                         let isovalues = new Int16Array(arraybuffer);
 
                         Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, isovalues);
+
+                    return;
 
                     })
                     .catch((e) => {

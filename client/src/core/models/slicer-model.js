@@ -7,8 +7,9 @@ class SlicerModel {
 
     }
 
-    notifyEventDidHappen(event) {
-
+    mouse(event) {
+        console.log("Slicer mouse event");
+        console.log(event);
     }
 }
 

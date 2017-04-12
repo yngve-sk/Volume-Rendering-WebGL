@@ -30,6 +30,11 @@ class Transformations {
         m4.axisRotate(this.rotation, xAxis, ry, this.rotation);
     }
 
+    rotateXY(dx, dy) {
+        this.rotateX(dx);
+        this.rotateY(dy);
+    }
+
     rotateX(radians) {
         m4.rotateX(this.rotation, radians, this.rotation);
     }

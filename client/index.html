@@ -16,6 +16,25 @@
 </head>
 
 <body>
+    <svg><defs><filter id="linkgroup-master-cell-filter22">
+
+			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
+			<feOffset dy="3" dx="3"></feOffset>
+			<feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="white" flood-opacity="1"></feFlood>
+		   <feComposite in2="shadowDiff" operator="in"></feComposite>
+		   <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
+
+
+          <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
+			<feOffset dy="-7" dx="-7"></feOffset>
+			<feComposite in2="firstfilter" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
+
+           <feFlood flood-color="black" flood-opacity="1"></feFlood>
+			<feComposite in2="shadowDiff" operator="in"></feComposite>
+			<feComposite in2="firstfilter" operator="over"></feComposite>
+  </filter></defs></svg>
     <div ng-controller="master-controller as mc" id="master-container">
 
         <links-and-views-view></links-and-views-view>

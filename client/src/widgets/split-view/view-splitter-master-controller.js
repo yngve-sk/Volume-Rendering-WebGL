@@ -9,7 +9,7 @@ let divIDs = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
         [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
         [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.SPHERE_AND_LIGHTS.name]: 'lvw-link-view-4'
+        [LinkableModels.SPHERE.name]: 'lvw-link-view-4'
     }
 };
 

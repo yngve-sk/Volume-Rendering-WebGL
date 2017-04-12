@@ -115,7 +115,7 @@ let SETTINGS = {
             showIDs: true,
             bottomTopThresholdPercentage: 0.20,
             colors: {
-                'LINKS': ['red', 'green', 'white', 'blue', 'brown', 'gold'],
+                'LINKS': ['red', 'green', 'white', 'aqua', 'brown', 'gold'],
                 'REMOVE': 'red',
                 'ADD': 'green'
             }
@@ -137,7 +137,7 @@ let SETTINGS = {
                     bottomTopThresholdPercentage: 0.1
                 },
                 SubcellLayout: {
-                    changeLayoutThresholdMultiplier: 1.2,
+                    changeLayoutThresholdMultiplier: 2.2,
                     standardSizeMultiplier: 0.7
                 }
             }
