@@ -123,9 +123,9 @@ let SETTINGS = {
     },
     WSClient: {
         Timeouts: {
-            getDatasetList: 5000,
-            getDatasetHeader: 5000,
-            getDatasetIsovalues: 30000
+            getDatasetList: 10000,
+            getDatasetHeader: 10000,
+            getDatasetIsovalues: 100000
         },
         loadAutomaticallyByDefault: false
     },
