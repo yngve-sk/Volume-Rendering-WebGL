@@ -50791,13 +50791,27 @@ class SlicerModel {
             this.pickingBuffer.refresh(); // Render it onto FB before reading
             console.log("MouseCLICK left");
             let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(1.0 * 4);
+            let dest = new Uint8Array(4*pb.width*pb.height);
+            //let pixels = pb.readPixels(
+            //    state.x * pb.width, state.y * pb.height,
+            //    1.0, 1.0,
+            //    gl.RGBA, gl.UNSIGNED_BYTE,
+            //    dest, 0
+            //);
+
             let pixels = pb.readPixels(
-                state.x * pb.width, state.y * pb.height,
-                1.0, 1.0,
+                0, 0,
+                pb.width, pb.height,
                 gl.RGBA, gl.UNSIGNED_BYTE,
                 dest, 0
             );
+
+
+            let debugcanvas = document.getElementById('debugcanvas');
+            let gl2 = debugcanvas.getContext('2d');
+            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
+            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
+            gl2.putImageData(imagedata, 0, 0);
 
             let id = 50 * dest[0] / 255.0;
 
