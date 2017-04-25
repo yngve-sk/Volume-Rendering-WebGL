@@ -53,6 +53,22 @@ class ConfigurableRenderer {
             this.viewport.height);
     }
 
+    _applySubViewport(svp01) {
+
+        let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
+            subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
+
+
+        let subWidth = svp01.width * this.viewport.width,
+            subHeight = svp01.height * this.viewport.height;
+
+        this.gl.viewport(
+            subX0,
+            subY0,
+            subWidth,
+            subHeight);
+    }
+
     /**
      * Renders as instructed by the current configuration
      */
@@ -65,17 +81,27 @@ class ConfigurableRenderer {
             //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
             gl.useProgram(programInfo.program);
 
-            if (!step.frameBufferInfo)
+            if (!step.frameBufferInfo) {
                 this._applyViewport();
 
-            if (step.glSettings) {
-                for (let func in step.glSettings) {
-                    // Ex: {cullFace: 'BACK'} evalues into:
-                    // gl[cullFace](gl[BACK]) which is the same as
-                    // gl.cullFace(gl.BACK)
-                    gl[func](gl[step.glSettings[func]]);
-                }
+                if (step.subViewport)
+                    this._applySubViewport(step.subViewport);
             }
+
+            /*       if (step.glSettings) { // Single argument gl.X = gl.Y
+                       for (let func in step.glSettings) {
+                           // Ex: {cullFace: 'BACK'} evalues into:
+                           // gl[cullFace](gl[BACK]) which is the same as
+                           // gl.cullFace(gl.BACK)
+                           gl[func](gl[step.glSettings[func]]);
+                       }
+                   }*/
+
+            if (step.glSettings)
+                for (let func in step.glSettings) {
+                    let args = step.glSettings[func];
+                    gl[func].apply(gl, args);
+                }
 
             twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
             //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
