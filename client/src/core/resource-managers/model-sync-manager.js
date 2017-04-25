@@ -19,8 +19,9 @@ class ModelSyncManager {
      * @class undefined
      * @constructor
      */
-    constructor(gl) {
-        this.gl = gl; // Some models need the GL context / canvas to initialize properly
+    constructor(viewManager) {
+        this.gl = viewManager.masterContext; // Some models need the GL context / canvas to initialize properly
+        this.viewManager = viewManager;
         this.classes = {};
 
         this.defaultModels = {};
@@ -51,7 +52,7 @@ class ModelSyncManager {
         for (let subviewID of subviewIDs) {
 
             // Initialize a new object
-            this.defaultModels[modelName][subviewID] = new Class(this.gl);
+            this.defaultModels[modelName][subviewID] = new Class(this.gl, this.viewManager, subviewID);
 
             // Initially point a subview to itself.
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -117,7 +118,7 @@ class ModelSyncManager {
     addSubview(subviewID) {
         for (let modelName in this.defaultModels) {
             // Construct a new object for the subview
-            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl);
+            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl, this.viewManager, subviewID);
 
             // link to itself initially
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -147,7 +148,7 @@ class ModelSyncManager {
         }
     }
 
-    _getModel(modelName, subviewID) {
+    getModel(modelName, subviewID) {
         return this.defaultModels[modelName][subviewID];
     }
 
