@@ -57,7 +57,7 @@ module.exports = function (grunt) {
         uglify: {
             externals: {
                 options: {
-                    mangle: true,
+                    mangle: false,
                     compress: true
 
                 },
@@ -74,7 +74,7 @@ module.exports = function (grunt) {
             },
             mainBundle: {
                 options: {
-                    mangle: true,
+                    mangle: false,
                     compress: true
                 },
                 files: {
@@ -95,7 +95,7 @@ module.exports = function (grunt) {
                         'css/all.css',
                         'semantic/dist/semantic.min.css',
                         'node_modules/spectrum-colorpicker/spectrum.css',
-                        'node_modules/angularjs-slider/dist/rzslider.min.css'
+                        'node_modules/angularjs-slider/dist/rzslider.2.8.0.css'
                         ]
                 }
             }
