@@ -264,6 +264,8 @@ class TransferFunctionEditor {
             .attr('width', 400)
             .attr('height', 400); // 400x400 pixels to render on
 
+        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID(this.EnvironmentTFKey, this.$scope$id);
+
         this.svgMain = d3.select(this.container)
             .append('svg')
             .attr('class', 'tf-editor-svg-container');
@@ -652,6 +654,11 @@ class TransferFunctionEditor {
         this._renderAxes(sizes);
 
         //this._renderColorOpacityBitmap();
+    }
+
+    _notifyTFDidChange() {
+        console.log("_notifyTFDidChange(" + this.EnvironmentTFKey + ")");
+        Environment.notifyTransferFunctionDidChangeAtEditor(this.EnvironmentTFKey);
     }
 
     _renderHistogramSelection(sizes) {
@@ -1085,7 +1092,11 @@ class TransferFunctionEditor {
         }
 
         context.putImageData(new ImageData(data2, width, height), 0, 0);
+
+        // CALL POSSIBLY OBSOLETE...
         Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
+
+        this._notifyTFDidChange();
     }
 
     /* Opacity interpolates down-up, color as usual */
