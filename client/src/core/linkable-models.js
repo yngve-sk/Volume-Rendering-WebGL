@@ -1,5 +1,6 @@
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
-let Camera = require('./models/camera');
+//let Camera = require('./models/camera');
+let Camera = require('./models/camera-orbiter');
 let Slicer = require('./models/slicer-model');
 let Sphere = require('./models/sphere-model');
 

@@ -107,6 +107,7 @@ class Environment {
                     this.ViewManager.refresh();
                     break;
                 case '2':
+                    this.ViewManager._init();
                     break;
                 case '3':
                     break;
@@ -200,6 +201,10 @@ class Environment {
         let masterID = this.links.getMasterCellIDForModel('TransferFunction', cellID);
 
         return this.TransferFunctionManager.getTransferFunction(masterID);
+    }
+
+    notifyTransferFunctionDidChangeAtEditor(tfEditorKey) {
+        this.ViewManager.transferFunctionDidChangeForSubviewID(tfEditorKey);
     }
 
     /* Find the cell ID associated to the TF */

@@ -8,6 +8,8 @@ class Transformations {
         this.translation = m4.identity();
         this.scale = m4.identity();
 
+        this.qRot =
+
         this.transformation = m4.identity();
     }
 
