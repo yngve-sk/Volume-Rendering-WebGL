@@ -15,6 +15,10 @@ class BufferManager {
     getBufferInfo(name) {
         return this.bufferObjects[name];
     }
+
+    createBufferInfoFromArrays(arrays, name) {
+        this.bufferObjects[name] = twgl.createBufferInfoFromArrays(this.gl, arrays);
+    }
 }
 
 module.exports = BufferManager;
