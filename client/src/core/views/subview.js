@@ -33,14 +33,15 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            volume: true,
-            slicer: false,
+            volume: false,
+            slicer: true,
             sphere: false
         }
 
         this.renderers = {
             volume: new ConfigurableRenderer(this.gl),
-            slicer: null,
+            slicer: new ConfigurableRenderer(this.gl),
+            SlicerPicking: new ConfigurableRenderer(this.gl),
             sphere: null
         };
 
@@ -59,14 +60,28 @@ class Subview {
             return 1; // default fallback
     }
 
+    renderSpecific(name) {
+        this.renderers[name].render();
+    }
+
+    notifyNeedsUpdate(name) {
+        this.needsUpdate[name] = true;
+    }
+
     render() {
-        if (this.needsUpdate.volume)
+        if (this.needsUpdate.volume) {
             this.renderers.volume.render();
-        //
-        //        this.renderers.slicer.render({
-        //            model: this.models.slicer,
-        //            viewport: this.viewports.slicer
-        //        });
+            //this.needsUpdate.volume = false;
+        }
+
+        if (this.needsUpdate.slicer) {
+            this.renderers.slicer.render();
+            //this.needsUpdate.slicer = false;
+        }
+        if (this.needsUpdate.SlicerPicking) {
+            this.renderers.SlicerPicking.render();
+            //this.needsUpdate.volume = false;
+        }
         //
         //        this.renderers.sphere.render({
         //            model: this.models.sphere,
