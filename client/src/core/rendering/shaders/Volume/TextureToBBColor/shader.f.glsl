@@ -2,7 +2,7 @@
 precision mediump float;
 precision mediump sampler2D;
 
-#pragma glslify: Proj2ScreenCoords_0_to_1 = require(../GLSLShared/Proj2ScreenCoords_0_to_1.glsl)
+#pragma glslify: Proj2ScreenCoords_0_to_1 = require(../../GLSLShared/Proj2ScreenCoords_0_to_1.glsl)
 
 uniform sampler2D u_TexCoordToRayOrigin;
 

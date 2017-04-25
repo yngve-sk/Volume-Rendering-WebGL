@@ -139,7 +139,7 @@ module.exports = function blobToBuffer (blob, cb) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":5}],3:[function(require,module,exports){
+},{"buffer":15}],3:[function(require,module,exports){
 // https://d3js.org Version 4.6.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -16597,6 +16597,6492 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 },{}],4:[function(require,module,exports){
+/**
+ * @fileoverview gl-matrix - High performance matrix and vector operations
+ * @author Brandon Jones
+ * @author Colin MacKenzie IV
+ * @version 2.3.2
+ */
+
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+// END HEADER
+
+exports.glMatrix = require("./gl-matrix/common.js");
+exports.mat2 = require("./gl-matrix/mat2.js");
+exports.mat2d = require("./gl-matrix/mat2d.js");
+exports.mat3 = require("./gl-matrix/mat3.js");
+exports.mat4 = require("./gl-matrix/mat4.js");
+exports.quat = require("./gl-matrix/quat.js");
+exports.vec2 = require("./gl-matrix/vec2.js");
+exports.vec3 = require("./gl-matrix/vec3.js");
+exports.vec4 = require("./gl-matrix/vec4.js");
+},{"./gl-matrix/common.js":5,"./gl-matrix/mat2.js":6,"./gl-matrix/mat2d.js":7,"./gl-matrix/mat3.js":8,"./gl-matrix/mat4.js":9,"./gl-matrix/quat.js":10,"./gl-matrix/vec2.js":11,"./gl-matrix/vec3.js":12,"./gl-matrix/vec4.js":13}],5:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+/**
+ * @class Common utilities
+ * @name glMatrix
+ */
+var glMatrix = {};
+
+// Configuration Constants
+glMatrix.EPSILON = 0.000001;
+glMatrix.ARRAY_TYPE = (typeof Float32Array !== 'undefined') ? Float32Array : Array;
+glMatrix.RANDOM = Math.random;
+glMatrix.ENABLE_SIMD = false;
+
+// Capability detection
+glMatrix.SIMD_AVAILABLE = (glMatrix.ARRAY_TYPE === Float32Array) && ('SIMD' in this);
+glMatrix.USE_SIMD = glMatrix.ENABLE_SIMD && glMatrix.SIMD_AVAILABLE;
+
+/**
+ * Sets the type of array used when creating new vectors and matrices
+ *
+ * @param {Type} type Array type, such as Float32Array or Array
+ */
+glMatrix.setMatrixArrayType = function(type) {
+    glMatrix.ARRAY_TYPE = type;
+}
+
+var degree = Math.PI / 180;
+
+/**
+* Convert Degree To Radian
+*
+* @param {Number} Angle in Degrees
+*/
+glMatrix.toRadian = function(a){
+     return a * degree;
+}
+
+/**
+ * Tests whether or not the arguments have approximately the same value, within an absolute
+ * or relative tolerance of glMatrix.EPSILON (an absolute tolerance is used for values less
+ * than or equal to 1.0, and a relative tolerance is used for larger values)
+ *
+ * @param {Number} a The first number to test.
+ * @param {Number} b The second number to test.
+ * @returns {Boolean} True if the numbers are approximately equal, false otherwise.
+ */
+glMatrix.equals = function(a, b) {
+	return Math.abs(a - b) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a), Math.abs(b));
+}
+
+module.exports = glMatrix;
+
+},{}],6:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 2x2 Matrix
+ * @name mat2
+ */
+var mat2 = {};
+
+/**
+ * Creates a new identity mat2
+ *
+ * @returns {mat2} a new 2x2 matrix
+ */
+mat2.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    return out;
+};
+
+/**
+ * Creates a new mat2 initialized with values from an existing matrix
+ *
+ * @param {mat2} a matrix to clone
+ * @returns {mat2} a new 2x2 matrix
+ */
+mat2.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Copy the values from one mat2 to another
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the source matrix
+ * @returns {mat2} out
+ */
+mat2.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Set a mat2 to the identity matrix
+ *
+ * @param {mat2} out the receiving matrix
+ * @returns {mat2} out
+ */
+mat2.identity = function(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    return out;
+};
+
+/**
+ * Create a new mat2 with the given values
+ *
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m10 Component in column 1, row 0 position (index 2)
+ * @param {Number} m11 Component in column 1, row 1 position (index 3)
+ * @returns {mat2} out A new 2x2 matrix
+ */
+mat2.fromValues = function(m00, m01, m10, m11) {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m10;
+    out[3] = m11;
+    return out;
+};
+
+/**
+ * Set the components of a mat2 to the given values
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m10 Component in column 1, row 0 position (index 2)
+ * @param {Number} m11 Component in column 1, row 1 position (index 3)
+ * @returns {mat2} out
+ */
+mat2.set = function(out, m00, m01, m10, m11) {
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m10;
+    out[3] = m11;
+    return out;
+};
+
+
+/**
+ * Transpose the values of a mat2
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the source matrix
+ * @returns {mat2} out
+ */
+mat2.transpose = function(out, a) {
+    // If we are transposing ourselves we can skip a few steps but have to cache some values
+    if (out === a) {
+        var a1 = a[1];
+        out[1] = a[2];
+        out[2] = a1;
+    } else {
+        out[0] = a[0];
+        out[1] = a[2];
+        out[2] = a[1];
+        out[3] = a[3];
+    }
+
+    return out;
+};
+
+/**
+ * Inverts a mat2
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the source matrix
+ * @returns {mat2} out
+ */
+mat2.invert = function(out, a) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+
+        // Calculate the determinant
+        det = a0 * a3 - a2 * a1;
+
+    if (!det) {
+        return null;
+    }
+    det = 1.0 / det;
+
+    out[0] =  a3 * det;
+    out[1] = -a1 * det;
+    out[2] = -a2 * det;
+    out[3] =  a0 * det;
+
+    return out;
+};
+
+/**
+ * Calculates the adjugate of a mat2
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the source matrix
+ * @returns {mat2} out
+ */
+mat2.adjoint = function(out, a) {
+    // Caching this value is nessecary if out == a
+    var a0 = a[0];
+    out[0] =  a[3];
+    out[1] = -a[1];
+    out[2] = -a[2];
+    out[3] =  a0;
+
+    return out;
+};
+
+/**
+ * Calculates the determinant of a mat2
+ *
+ * @param {mat2} a the source matrix
+ * @returns {Number} determinant of a
+ */
+mat2.determinant = function (a) {
+    return a[0] * a[3] - a[2] * a[1];
+};
+
+/**
+ * Multiplies two mat2's
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the first operand
+ * @param {mat2} b the second operand
+ * @returns {mat2} out
+ */
+mat2.multiply = function (out, a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+    var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+    out[0] = a0 * b0 + a2 * b1;
+    out[1] = a1 * b0 + a3 * b1;
+    out[2] = a0 * b2 + a2 * b3;
+    out[3] = a1 * b2 + a3 * b3;
+    return out;
+};
+
+/**
+ * Alias for {@link mat2.multiply}
+ * @function
+ */
+mat2.mul = mat2.multiply;
+
+/**
+ * Rotates a mat2 by the given angle
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat2} out
+ */
+mat2.rotate = function (out, a, rad) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+        s = Math.sin(rad),
+        c = Math.cos(rad);
+    out[0] = a0 *  c + a2 * s;
+    out[1] = a1 *  c + a3 * s;
+    out[2] = a0 * -s + a2 * c;
+    out[3] = a1 * -s + a3 * c;
+    return out;
+};
+
+/**
+ * Scales the mat2 by the dimensions in the given vec2
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the matrix to rotate
+ * @param {vec2} v the vec2 to scale the matrix by
+ * @returns {mat2} out
+ **/
+mat2.scale = function(out, a, v) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+        v0 = v[0], v1 = v[1];
+    out[0] = a0 * v0;
+    out[1] = a1 * v0;
+    out[2] = a2 * v1;
+    out[3] = a3 * v1;
+    return out;
+};
+
+/**
+ * Creates a matrix from a given angle
+ * This is equivalent to (but much faster than):
+ *
+ *     mat2.identity(dest);
+ *     mat2.rotate(dest, dest, rad);
+ *
+ * @param {mat2} out mat2 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat2} out
+ */
+mat2.fromRotation = function(out, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad);
+    out[0] = c;
+    out[1] = s;
+    out[2] = -s;
+    out[3] = c;
+    return out;
+}
+
+/**
+ * Creates a matrix from a vector scaling
+ * This is equivalent to (but much faster than):
+ *
+ *     mat2.identity(dest);
+ *     mat2.scale(dest, dest, vec);
+ *
+ * @param {mat2} out mat2 receiving operation result
+ * @param {vec2} v Scaling vector
+ * @returns {mat2} out
+ */
+mat2.fromScaling = function(out, v) {
+    out[0] = v[0];
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = v[1];
+    return out;
+}
+
+/**
+ * Returns a string representation of a mat2
+ *
+ * @param {mat2} mat matrix to represent as a string
+ * @returns {String} string representation of the matrix
+ */
+mat2.str = function (a) {
+    return 'mat2(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+};
+
+/**
+ * Returns Frobenius norm of a mat2
+ *
+ * @param {mat2} a the matrix to calculate Frobenius norm of
+ * @returns {Number} Frobenius norm
+ */
+mat2.frob = function (a) {
+    return(Math.sqrt(Math.pow(a[0], 2) + Math.pow(a[1], 2) + Math.pow(a[2], 2) + Math.pow(a[3], 2)))
+};
+
+/**
+ * Returns L, D and U matrices (Lower triangular, Diagonal and Upper triangular) by factorizing the input matrix
+ * @param {mat2} L the lower triangular matrix
+ * @param {mat2} D the diagonal matrix
+ * @param {mat2} U the upper triangular matrix
+ * @param {mat2} a the input matrix to factorize
+ */
+
+mat2.LDU = function (L, D, U, a) {
+    L[2] = a[2]/a[0];
+    U[0] = a[0];
+    U[1] = a[1];
+    U[3] = a[3] - L[2] * U[1];
+    return [L, D, U];
+};
+
+/**
+ * Adds two mat2's
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the first operand
+ * @param {mat2} b the second operand
+ * @returns {mat2} out
+ */
+mat2.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    return out;
+};
+
+/**
+ * Subtracts matrix b from matrix a
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the first operand
+ * @param {mat2} b the second operand
+ * @returns {mat2} out
+ */
+mat2.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    out[3] = a[3] - b[3];
+    return out;
+};
+
+/**
+ * Alias for {@link mat2.subtract}
+ * @function
+ */
+mat2.sub = mat2.subtract;
+
+/**
+ * Returns whether or not the matrices have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {mat2} a The first matrix.
+ * @param {mat2} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat2.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+};
+
+/**
+ * Returns whether or not the matrices have approximately the same elements in the same position.
+ *
+ * @param {mat2} a The first matrix.
+ * @param {mat2} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat2.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+    var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+            Math.abs(a3 - b3) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a3), Math.abs(b3)));
+};
+
+/**
+ * Multiply each element of the matrix by a scalar.
+ *
+ * @param {mat2} out the receiving matrix
+ * @param {mat2} a the matrix to scale
+ * @param {Number} b amount to scale the matrix's elements by
+ * @returns {mat2} out
+ */
+mat2.multiplyScalar = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    out[3] = a[3] * b;
+    return out;
+};
+
+/**
+ * Adds two mat2's after multiplying each element of the second operand by a scalar value.
+ *
+ * @param {mat2} out the receiving vector
+ * @param {mat2} a the first operand
+ * @param {mat2} b the second operand
+ * @param {Number} scale the amount to scale b's elements by before adding
+ * @returns {mat2} out
+ */
+mat2.multiplyScalarAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    out[3] = a[3] + (b[3] * scale);
+    return out;
+};
+
+module.exports = mat2;
+
+},{"./common.js":5}],7:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 2x3 Matrix
+ * @name mat2d
+ *
+ * @description
+ * A mat2d contains six elements defined as:
+ * <pre>
+ * [a, c, tx,
+ *  b, d, ty]
+ * </pre>
+ * This is a short form for the 3x3 matrix:
+ * <pre>
+ * [a, c, tx,
+ *  b, d, ty,
+ *  0, 0, 1]
+ * </pre>
+ * The last row is ignored so the array is shorter and operations are faster.
+ */
+var mat2d = {};
+
+/**
+ * Creates a new identity mat2d
+ *
+ * @returns {mat2d} a new 2x3 matrix
+ */
+mat2d.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(6);
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    out[4] = 0;
+    out[5] = 0;
+    return out;
+};
+
+/**
+ * Creates a new mat2d initialized with values from an existing matrix
+ *
+ * @param {mat2d} a matrix to clone
+ * @returns {mat2d} a new 2x3 matrix
+ */
+mat2d.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(6);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    return out;
+};
+
+/**
+ * Copy the values from one mat2d to another
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the source matrix
+ * @returns {mat2d} out
+ */
+mat2d.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    return out;
+};
+
+/**
+ * Set a mat2d to the identity matrix
+ *
+ * @param {mat2d} out the receiving matrix
+ * @returns {mat2d} out
+ */
+mat2d.identity = function(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    out[4] = 0;
+    out[5] = 0;
+    return out;
+};
+
+/**
+ * Create a new mat2d with the given values
+ *
+ * @param {Number} a Component A (index 0)
+ * @param {Number} b Component B (index 1)
+ * @param {Number} c Component C (index 2)
+ * @param {Number} d Component D (index 3)
+ * @param {Number} tx Component TX (index 4)
+ * @param {Number} ty Component TY (index 5)
+ * @returns {mat2d} A new mat2d
+ */
+mat2d.fromValues = function(a, b, c, d, tx, ty) {
+    var out = new glMatrix.ARRAY_TYPE(6);
+    out[0] = a;
+    out[1] = b;
+    out[2] = c;
+    out[3] = d;
+    out[4] = tx;
+    out[5] = ty;
+    return out;
+};
+
+/**
+ * Set the components of a mat2d to the given values
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {Number} a Component A (index 0)
+ * @param {Number} b Component B (index 1)
+ * @param {Number} c Component C (index 2)
+ * @param {Number} d Component D (index 3)
+ * @param {Number} tx Component TX (index 4)
+ * @param {Number} ty Component TY (index 5)
+ * @returns {mat2d} out
+ */
+mat2d.set = function(out, a, b, c, d, tx, ty) {
+    out[0] = a;
+    out[1] = b;
+    out[2] = c;
+    out[3] = d;
+    out[4] = tx;
+    out[5] = ty;
+    return out;
+};
+
+/**
+ * Inverts a mat2d
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the source matrix
+ * @returns {mat2d} out
+ */
+mat2d.invert = function(out, a) {
+    var aa = a[0], ab = a[1], ac = a[2], ad = a[3],
+        atx = a[4], aty = a[5];
+
+    var det = aa * ad - ab * ac;
+    if(!det){
+        return null;
+    }
+    det = 1.0 / det;
+
+    out[0] = ad * det;
+    out[1] = -ab * det;
+    out[2] = -ac * det;
+    out[3] = aa * det;
+    out[4] = (ac * aty - ad * atx) * det;
+    out[5] = (ab * atx - aa * aty) * det;
+    return out;
+};
+
+/**
+ * Calculates the determinant of a mat2d
+ *
+ * @param {mat2d} a the source matrix
+ * @returns {Number} determinant of a
+ */
+mat2d.determinant = function (a) {
+    return a[0] * a[3] - a[1] * a[2];
+};
+
+/**
+ * Multiplies two mat2d's
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the first operand
+ * @param {mat2d} b the second operand
+ * @returns {mat2d} out
+ */
+mat2d.multiply = function (out, a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5],
+        b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5];
+    out[0] = a0 * b0 + a2 * b1;
+    out[1] = a1 * b0 + a3 * b1;
+    out[2] = a0 * b2 + a2 * b3;
+    out[3] = a1 * b2 + a3 * b3;
+    out[4] = a0 * b4 + a2 * b5 + a4;
+    out[5] = a1 * b4 + a3 * b5 + a5;
+    return out;
+};
+
+/**
+ * Alias for {@link mat2d.multiply}
+ * @function
+ */
+mat2d.mul = mat2d.multiply;
+
+/**
+ * Rotates a mat2d by the given angle
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat2d} out
+ */
+mat2d.rotate = function (out, a, rad) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5],
+        s = Math.sin(rad),
+        c = Math.cos(rad);
+    out[0] = a0 *  c + a2 * s;
+    out[1] = a1 *  c + a3 * s;
+    out[2] = a0 * -s + a2 * c;
+    out[3] = a1 * -s + a3 * c;
+    out[4] = a4;
+    out[5] = a5;
+    return out;
+};
+
+/**
+ * Scales the mat2d by the dimensions in the given vec2
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the matrix to translate
+ * @param {vec2} v the vec2 to scale the matrix by
+ * @returns {mat2d} out
+ **/
+mat2d.scale = function(out, a, v) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5],
+        v0 = v[0], v1 = v[1];
+    out[0] = a0 * v0;
+    out[1] = a1 * v0;
+    out[2] = a2 * v1;
+    out[3] = a3 * v1;
+    out[4] = a4;
+    out[5] = a5;
+    return out;
+};
+
+/**
+ * Translates the mat2d by the dimensions in the given vec2
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the matrix to translate
+ * @param {vec2} v the vec2 to translate the matrix by
+ * @returns {mat2d} out
+ **/
+mat2d.translate = function(out, a, v) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5],
+        v0 = v[0], v1 = v[1];
+    out[0] = a0;
+    out[1] = a1;
+    out[2] = a2;
+    out[3] = a3;
+    out[4] = a0 * v0 + a2 * v1 + a4;
+    out[5] = a1 * v0 + a3 * v1 + a5;
+    return out;
+};
+
+/**
+ * Creates a matrix from a given angle
+ * This is equivalent to (but much faster than):
+ *
+ *     mat2d.identity(dest);
+ *     mat2d.rotate(dest, dest, rad);
+ *
+ * @param {mat2d} out mat2d receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat2d} out
+ */
+mat2d.fromRotation = function(out, rad) {
+    var s = Math.sin(rad), c = Math.cos(rad);
+    out[0] = c;
+    out[1] = s;
+    out[2] = -s;
+    out[3] = c;
+    out[4] = 0;
+    out[5] = 0;
+    return out;
+}
+
+/**
+ * Creates a matrix from a vector scaling
+ * This is equivalent to (but much faster than):
+ *
+ *     mat2d.identity(dest);
+ *     mat2d.scale(dest, dest, vec);
+ *
+ * @param {mat2d} out mat2d receiving operation result
+ * @param {vec2} v Scaling vector
+ * @returns {mat2d} out
+ */
+mat2d.fromScaling = function(out, v) {
+    out[0] = v[0];
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = v[1];
+    out[4] = 0;
+    out[5] = 0;
+    return out;
+}
+
+/**
+ * Creates a matrix from a vector translation
+ * This is equivalent to (but much faster than):
+ *
+ *     mat2d.identity(dest);
+ *     mat2d.translate(dest, dest, vec);
+ *
+ * @param {mat2d} out mat2d receiving operation result
+ * @param {vec2} v Translation vector
+ * @returns {mat2d} out
+ */
+mat2d.fromTranslation = function(out, v) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    out[4] = v[0];
+    out[5] = v[1];
+    return out;
+}
+
+/**
+ * Returns a string representation of a mat2d
+ *
+ * @param {mat2d} a matrix to represent as a string
+ * @returns {String} string representation of the matrix
+ */
+mat2d.str = function (a) {
+    return 'mat2d(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' +
+                    a[3] + ', ' + a[4] + ', ' + a[5] + ')';
+};
+
+/**
+ * Returns Frobenius norm of a mat2d
+ *
+ * @param {mat2d} a the matrix to calculate Frobenius norm of
+ * @returns {Number} Frobenius norm
+ */
+mat2d.frob = function (a) {
+    return(Math.sqrt(Math.pow(a[0], 2) + Math.pow(a[1], 2) + Math.pow(a[2], 2) + Math.pow(a[3], 2) + Math.pow(a[4], 2) + Math.pow(a[5], 2) + 1))
+};
+
+/**
+ * Adds two mat2d's
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the first operand
+ * @param {mat2d} b the second operand
+ * @returns {mat2d} out
+ */
+mat2d.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    out[4] = a[4] + b[4];
+    out[5] = a[5] + b[5];
+    return out;
+};
+
+/**
+ * Subtracts matrix b from matrix a
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the first operand
+ * @param {mat2d} b the second operand
+ * @returns {mat2d} out
+ */
+mat2d.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    out[3] = a[3] - b[3];
+    out[4] = a[4] - b[4];
+    out[5] = a[5] - b[5];
+    return out;
+};
+
+/**
+ * Alias for {@link mat2d.subtract}
+ * @function
+ */
+mat2d.sub = mat2d.subtract;
+
+/**
+ * Multiply each element of the matrix by a scalar.
+ *
+ * @param {mat2d} out the receiving matrix
+ * @param {mat2d} a the matrix to scale
+ * @param {Number} b amount to scale the matrix's elements by
+ * @returns {mat2d} out
+ */
+mat2d.multiplyScalar = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    out[3] = a[3] * b;
+    out[4] = a[4] * b;
+    out[5] = a[5] * b;
+    return out;
+};
+
+/**
+ * Adds two mat2d's after multiplying each element of the second operand by a scalar value.
+ *
+ * @param {mat2d} out the receiving vector
+ * @param {mat2d} a the first operand
+ * @param {mat2d} b the second operand
+ * @param {Number} scale the amount to scale b's elements by before adding
+ * @returns {mat2d} out
+ */
+mat2d.multiplyScalarAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    out[3] = a[3] + (b[3] * scale);
+    out[4] = a[4] + (b[4] * scale);
+    out[5] = a[5] + (b[5] * scale);
+    return out;
+};
+
+/**
+ * Returns whether or not the matrices have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {mat2d} a The first matrix.
+ * @param {mat2d} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat2d.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && a[5] === b[5];
+};
+
+/**
+ * Returns whether or not the matrices have approximately the same elements in the same position.
+ *
+ * @param {mat2d} a The first matrix.
+ * @param {mat2d} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat2d.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5];
+    var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+            Math.abs(a3 - b3) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+            Math.abs(a4 - b4) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+            Math.abs(a5 - b5) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a5), Math.abs(b5)));
+};
+
+module.exports = mat2d;
+
+},{"./common.js":5}],8:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 3x3 Matrix
+ * @name mat3
+ */
+var mat3 = {};
+
+/**
+ * Creates a new identity mat3
+ *
+ * @returns {mat3} a new 3x3 matrix
+ */
+mat3.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(9);
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 1;
+    out[5] = 0;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 1;
+    return out;
+};
+
+/**
+ * Copies the upper-left 3x3 values into the given mat3.
+ *
+ * @param {mat3} out the receiving 3x3 matrix
+ * @param {mat4} a   the source 4x4 matrix
+ * @returns {mat3} out
+ */
+mat3.fromMat4 = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[4];
+    out[4] = a[5];
+    out[5] = a[6];
+    out[6] = a[8];
+    out[7] = a[9];
+    out[8] = a[10];
+    return out;
+};
+
+/**
+ * Creates a new mat3 initialized with values from an existing matrix
+ *
+ * @param {mat3} a matrix to clone
+ * @returns {mat3} a new 3x3 matrix
+ */
+mat3.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(9);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
+    out[8] = a[8];
+    return out;
+};
+
+/**
+ * Copy the values from one mat3 to another
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the source matrix
+ * @returns {mat3} out
+ */
+mat3.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
+    out[8] = a[8];
+    return out;
+};
+
+/**
+ * Create a new mat3 with the given values
+ *
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m02 Component in column 0, row 2 position (index 2)
+ * @param {Number} m10 Component in column 1, row 0 position (index 3)
+ * @param {Number} m11 Component in column 1, row 1 position (index 4)
+ * @param {Number} m12 Component in column 1, row 2 position (index 5)
+ * @param {Number} m20 Component in column 2, row 0 position (index 6)
+ * @param {Number} m21 Component in column 2, row 1 position (index 7)
+ * @param {Number} m22 Component in column 2, row 2 position (index 8)
+ * @returns {mat3} A new mat3
+ */
+mat3.fromValues = function(m00, m01, m02, m10, m11, m12, m20, m21, m22) {
+    var out = new glMatrix.ARRAY_TYPE(9);
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m02;
+    out[3] = m10;
+    out[4] = m11;
+    out[5] = m12;
+    out[6] = m20;
+    out[7] = m21;
+    out[8] = m22;
+    return out;
+};
+
+/**
+ * Set the components of a mat3 to the given values
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m02 Component in column 0, row 2 position (index 2)
+ * @param {Number} m10 Component in column 1, row 0 position (index 3)
+ * @param {Number} m11 Component in column 1, row 1 position (index 4)
+ * @param {Number} m12 Component in column 1, row 2 position (index 5)
+ * @param {Number} m20 Component in column 2, row 0 position (index 6)
+ * @param {Number} m21 Component in column 2, row 1 position (index 7)
+ * @param {Number} m22 Component in column 2, row 2 position (index 8)
+ * @returns {mat3} out
+ */
+mat3.set = function(out, m00, m01, m02, m10, m11, m12, m20, m21, m22) {
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m02;
+    out[3] = m10;
+    out[4] = m11;
+    out[5] = m12;
+    out[6] = m20;
+    out[7] = m21;
+    out[8] = m22;
+    return out;
+};
+
+/**
+ * Set a mat3 to the identity matrix
+ *
+ * @param {mat3} out the receiving matrix
+ * @returns {mat3} out
+ */
+mat3.identity = function(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 1;
+    out[5] = 0;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 1;
+    return out;
+};
+
+/**
+ * Transpose the values of a mat3
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the source matrix
+ * @returns {mat3} out
+ */
+mat3.transpose = function(out, a) {
+    // If we are transposing ourselves we can skip a few steps but have to cache some values
+    if (out === a) {
+        var a01 = a[1], a02 = a[2], a12 = a[5];
+        out[1] = a[3];
+        out[2] = a[6];
+        out[3] = a01;
+        out[5] = a[7];
+        out[6] = a02;
+        out[7] = a12;
+    } else {
+        out[0] = a[0];
+        out[1] = a[3];
+        out[2] = a[6];
+        out[3] = a[1];
+        out[4] = a[4];
+        out[5] = a[7];
+        out[6] = a[2];
+        out[7] = a[5];
+        out[8] = a[8];
+    }
+
+    return out;
+};
+
+/**
+ * Inverts a mat3
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the source matrix
+ * @returns {mat3} out
+ */
+mat3.invert = function(out, a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8],
+
+        b01 = a22 * a11 - a12 * a21,
+        b11 = -a22 * a10 + a12 * a20,
+        b21 = a21 * a10 - a11 * a20,
+
+        // Calculate the determinant
+        det = a00 * b01 + a01 * b11 + a02 * b21;
+
+    if (!det) {
+        return null;
+    }
+    det = 1.0 / det;
+
+    out[0] = b01 * det;
+    out[1] = (-a22 * a01 + a02 * a21) * det;
+    out[2] = (a12 * a01 - a02 * a11) * det;
+    out[3] = b11 * det;
+    out[4] = (a22 * a00 - a02 * a20) * det;
+    out[5] = (-a12 * a00 + a02 * a10) * det;
+    out[6] = b21 * det;
+    out[7] = (-a21 * a00 + a01 * a20) * det;
+    out[8] = (a11 * a00 - a01 * a10) * det;
+    return out;
+};
+
+/**
+ * Calculates the adjugate of a mat3
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the source matrix
+ * @returns {mat3} out
+ */
+mat3.adjoint = function(out, a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8];
+
+    out[0] = (a11 * a22 - a12 * a21);
+    out[1] = (a02 * a21 - a01 * a22);
+    out[2] = (a01 * a12 - a02 * a11);
+    out[3] = (a12 * a20 - a10 * a22);
+    out[4] = (a00 * a22 - a02 * a20);
+    out[5] = (a02 * a10 - a00 * a12);
+    out[6] = (a10 * a21 - a11 * a20);
+    out[7] = (a01 * a20 - a00 * a21);
+    out[8] = (a00 * a11 - a01 * a10);
+    return out;
+};
+
+/**
+ * Calculates the determinant of a mat3
+ *
+ * @param {mat3} a the source matrix
+ * @returns {Number} determinant of a
+ */
+mat3.determinant = function (a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8];
+
+    return a00 * (a22 * a11 - a12 * a21) + a01 * (-a22 * a10 + a12 * a20) + a02 * (a21 * a10 - a11 * a20);
+};
+
+/**
+ * Multiplies two mat3's
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the first operand
+ * @param {mat3} b the second operand
+ * @returns {mat3} out
+ */
+mat3.multiply = function (out, a, b) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8],
+
+        b00 = b[0], b01 = b[1], b02 = b[2],
+        b10 = b[3], b11 = b[4], b12 = b[5],
+        b20 = b[6], b21 = b[7], b22 = b[8];
+
+    out[0] = b00 * a00 + b01 * a10 + b02 * a20;
+    out[1] = b00 * a01 + b01 * a11 + b02 * a21;
+    out[2] = b00 * a02 + b01 * a12 + b02 * a22;
+
+    out[3] = b10 * a00 + b11 * a10 + b12 * a20;
+    out[4] = b10 * a01 + b11 * a11 + b12 * a21;
+    out[5] = b10 * a02 + b11 * a12 + b12 * a22;
+
+    out[6] = b20 * a00 + b21 * a10 + b22 * a20;
+    out[7] = b20 * a01 + b21 * a11 + b22 * a21;
+    out[8] = b20 * a02 + b21 * a12 + b22 * a22;
+    return out;
+};
+
+/**
+ * Alias for {@link mat3.multiply}
+ * @function
+ */
+mat3.mul = mat3.multiply;
+
+/**
+ * Translate a mat3 by the given vector
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the matrix to translate
+ * @param {vec2} v vector to translate by
+ * @returns {mat3} out
+ */
+mat3.translate = function(out, a, v) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8],
+        x = v[0], y = v[1];
+
+    out[0] = a00;
+    out[1] = a01;
+    out[2] = a02;
+
+    out[3] = a10;
+    out[4] = a11;
+    out[5] = a12;
+
+    out[6] = x * a00 + y * a10 + a20;
+    out[7] = x * a01 + y * a11 + a21;
+    out[8] = x * a02 + y * a12 + a22;
+    return out;
+};
+
+/**
+ * Rotates a mat3 by the given angle
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat3} out
+ */
+mat3.rotate = function (out, a, rad) {
+    var a00 = a[0], a01 = a[1], a02 = a[2],
+        a10 = a[3], a11 = a[4], a12 = a[5],
+        a20 = a[6], a21 = a[7], a22 = a[8],
+
+        s = Math.sin(rad),
+        c = Math.cos(rad);
+
+    out[0] = c * a00 + s * a10;
+    out[1] = c * a01 + s * a11;
+    out[2] = c * a02 + s * a12;
+
+    out[3] = c * a10 - s * a00;
+    out[4] = c * a11 - s * a01;
+    out[5] = c * a12 - s * a02;
+
+    out[6] = a20;
+    out[7] = a21;
+    out[8] = a22;
+    return out;
+};
+
+/**
+ * Scales the mat3 by the dimensions in the given vec2
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the matrix to rotate
+ * @param {vec2} v the vec2 to scale the matrix by
+ * @returns {mat3} out
+ **/
+mat3.scale = function(out, a, v) {
+    var x = v[0], y = v[1];
+
+    out[0] = x * a[0];
+    out[1] = x * a[1];
+    out[2] = x * a[2];
+
+    out[3] = y * a[3];
+    out[4] = y * a[4];
+    out[5] = y * a[5];
+
+    out[6] = a[6];
+    out[7] = a[7];
+    out[8] = a[8];
+    return out;
+};
+
+/**
+ * Creates a matrix from a vector translation
+ * This is equivalent to (but much faster than):
+ *
+ *     mat3.identity(dest);
+ *     mat3.translate(dest, dest, vec);
+ *
+ * @param {mat3} out mat3 receiving operation result
+ * @param {vec2} v Translation vector
+ * @returns {mat3} out
+ */
+mat3.fromTranslation = function(out, v) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 1;
+    out[5] = 0;
+    out[6] = v[0];
+    out[7] = v[1];
+    out[8] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from a given angle
+ * This is equivalent to (but much faster than):
+ *
+ *     mat3.identity(dest);
+ *     mat3.rotate(dest, dest, rad);
+ *
+ * @param {mat3} out mat3 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat3} out
+ */
+mat3.fromRotation = function(out, rad) {
+    var s = Math.sin(rad), c = Math.cos(rad);
+
+    out[0] = c;
+    out[1] = s;
+    out[2] = 0;
+
+    out[3] = -s;
+    out[4] = c;
+    out[5] = 0;
+
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from a vector scaling
+ * This is equivalent to (but much faster than):
+ *
+ *     mat3.identity(dest);
+ *     mat3.scale(dest, dest, vec);
+ *
+ * @param {mat3} out mat3 receiving operation result
+ * @param {vec2} v Scaling vector
+ * @returns {mat3} out
+ */
+mat3.fromScaling = function(out, v) {
+    out[0] = v[0];
+    out[1] = 0;
+    out[2] = 0;
+
+    out[3] = 0;
+    out[4] = v[1];
+    out[5] = 0;
+
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 1;
+    return out;
+}
+
+/**
+ * Copies the values from a mat2d into a mat3
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat2d} a the matrix to copy
+ * @returns {mat3} out
+ **/
+mat3.fromMat2d = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = 0;
+
+    out[3] = a[2];
+    out[4] = a[3];
+    out[5] = 0;
+
+    out[6] = a[4];
+    out[7] = a[5];
+    out[8] = 1;
+    return out;
+};
+
+/**
+* Calculates a 3x3 matrix from the given quaternion
+*
+* @param {mat3} out mat3 receiving operation result
+* @param {quat} q Quaternion to create matrix from
+*
+* @returns {mat3} out
+*/
+mat3.fromQuat = function (out, q) {
+    var x = q[0], y = q[1], z = q[2], w = q[3],
+        x2 = x + x,
+        y2 = y + y,
+        z2 = z + z,
+
+        xx = x * x2,
+        yx = y * x2,
+        yy = y * y2,
+        zx = z * x2,
+        zy = z * y2,
+        zz = z * z2,
+        wx = w * x2,
+        wy = w * y2,
+        wz = w * z2;
+
+    out[0] = 1 - yy - zz;
+    out[3] = yx - wz;
+    out[6] = zx + wy;
+
+    out[1] = yx + wz;
+    out[4] = 1 - xx - zz;
+    out[7] = zy - wx;
+
+    out[2] = zx - wy;
+    out[5] = zy + wx;
+    out[8] = 1 - xx - yy;
+
+    return out;
+};
+
+/**
+* Calculates a 3x3 normal matrix (transpose inverse) from the 4x4 matrix
+*
+* @param {mat3} out mat3 receiving operation result
+* @param {mat4} a Mat4 to derive the normal matrix from
+*
+* @returns {mat3} out
+*/
+mat3.normalFromMat4 = function (out, a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
+
+        b00 = a00 * a11 - a01 * a10,
+        b01 = a00 * a12 - a02 * a10,
+        b02 = a00 * a13 - a03 * a10,
+        b03 = a01 * a12 - a02 * a11,
+        b04 = a01 * a13 - a03 * a11,
+        b05 = a02 * a13 - a03 * a12,
+        b06 = a20 * a31 - a21 * a30,
+        b07 = a20 * a32 - a22 * a30,
+        b08 = a20 * a33 - a23 * a30,
+        b09 = a21 * a32 - a22 * a31,
+        b10 = a21 * a33 - a23 * a31,
+        b11 = a22 * a33 - a23 * a32,
+
+        // Calculate the determinant
+        det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+
+    if (!det) {
+        return null;
+    }
+    det = 1.0 / det;
+
+    out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+    out[1] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+    out[2] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+
+    out[3] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+    out[4] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+    out[5] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+
+    out[6] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+    out[7] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+    out[8] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+
+    return out;
+};
+
+/**
+ * Returns a string representation of a mat3
+ *
+ * @param {mat3} mat matrix to represent as a string
+ * @returns {String} string representation of the matrix
+ */
+mat3.str = function (a) {
+    return 'mat3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' +
+                    a[3] + ', ' + a[4] + ', ' + a[5] + ', ' +
+                    a[6] + ', ' + a[7] + ', ' + a[8] + ')';
+};
+
+/**
+ * Returns Frobenius norm of a mat3
+ *
+ * @param {mat3} a the matrix to calculate Frobenius norm of
+ * @returns {Number} Frobenius norm
+ */
+mat3.frob = function (a) {
+    return(Math.sqrt(Math.pow(a[0], 2) + Math.pow(a[1], 2) + Math.pow(a[2], 2) + Math.pow(a[3], 2) + Math.pow(a[4], 2) + Math.pow(a[5], 2) + Math.pow(a[6], 2) + Math.pow(a[7], 2) + Math.pow(a[8], 2)))
+};
+
+/**
+ * Adds two mat3's
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the first operand
+ * @param {mat3} b the second operand
+ * @returns {mat3} out
+ */
+mat3.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    out[4] = a[4] + b[4];
+    out[5] = a[5] + b[5];
+    out[6] = a[6] + b[6];
+    out[7] = a[7] + b[7];
+    out[8] = a[8] + b[8];
+    return out;
+};
+
+/**
+ * Subtracts matrix b from matrix a
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the first operand
+ * @param {mat3} b the second operand
+ * @returns {mat3} out
+ */
+mat3.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    out[3] = a[3] - b[3];
+    out[4] = a[4] - b[4];
+    out[5] = a[5] - b[5];
+    out[6] = a[6] - b[6];
+    out[7] = a[7] - b[7];
+    out[8] = a[8] - b[8];
+    return out;
+};
+
+/**
+ * Alias for {@link mat3.subtract}
+ * @function
+ */
+mat3.sub = mat3.subtract;
+
+/**
+ * Multiply each element of the matrix by a scalar.
+ *
+ * @param {mat3} out the receiving matrix
+ * @param {mat3} a the matrix to scale
+ * @param {Number} b amount to scale the matrix's elements by
+ * @returns {mat3} out
+ */
+mat3.multiplyScalar = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    out[3] = a[3] * b;
+    out[4] = a[4] * b;
+    out[5] = a[5] * b;
+    out[6] = a[6] * b;
+    out[7] = a[7] * b;
+    out[8] = a[8] * b;
+    return out;
+};
+
+/**
+ * Adds two mat3's after multiplying each element of the second operand by a scalar value.
+ *
+ * @param {mat3} out the receiving vector
+ * @param {mat3} a the first operand
+ * @param {mat3} b the second operand
+ * @param {Number} scale the amount to scale b's elements by before adding
+ * @returns {mat3} out
+ */
+mat3.multiplyScalarAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    out[3] = a[3] + (b[3] * scale);
+    out[4] = a[4] + (b[4] * scale);
+    out[5] = a[5] + (b[5] * scale);
+    out[6] = a[6] + (b[6] * scale);
+    out[7] = a[7] + (b[7] * scale);
+    out[8] = a[8] + (b[8] * scale);
+    return out;
+};
+
+/*
+ * Returns whether or not the matrices have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {mat3} a The first matrix.
+ * @param {mat3} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat3.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] &&
+           a[3] === b[3] && a[4] === b[4] && a[5] === b[5] &&
+           a[6] === b[6] && a[7] === b[7] && a[8] === b[8];
+};
+
+/**
+ * Returns whether or not the matrices have approximately the same elements in the same position.
+ *
+ * @param {mat3} a The first matrix.
+ * @param {mat3} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat3.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
+    var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5], b6 = a[6], b7 = b[7], b8 = b[8];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+            Math.abs(a3 - b3) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+            Math.abs(a4 - b4) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+            Math.abs(a5 - b5) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+            Math.abs(a6 - b6) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+            Math.abs(a7 - b7) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+            Math.abs(a8 - b8) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a8), Math.abs(b8)));
+};
+
+
+module.exports = mat3;
+
+},{"./common.js":5}],9:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 4x4 Matrix
+ * @name mat4
+ */
+var mat4 = {
+  scalar: {},
+  SIMD: {},
+};
+
+/**
+ * Creates a new identity mat4
+ *
+ * @returns {mat4} a new 4x4 matrix
+ */
+mat4.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(16);
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+};
+
+/**
+ * Creates a new mat4 initialized with values from an existing matrix
+ *
+ * @param {mat4} a matrix to clone
+ * @returns {mat4} a new 4x4 matrix
+ */
+mat4.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(16);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
+    out[8] = a[8];
+    out[9] = a[9];
+    out[10] = a[10];
+    out[11] = a[11];
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+    return out;
+};
+
+/**
+ * Copy the values from one mat4 to another
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
+    out[8] = a[8];
+    out[9] = a[9];
+    out[10] = a[10];
+    out[11] = a[11];
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+    return out;
+};
+
+/**
+ * Create a new mat4 with the given values
+ *
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m02 Component in column 0, row 2 position (index 2)
+ * @param {Number} m03 Component in column 0, row 3 position (index 3)
+ * @param {Number} m10 Component in column 1, row 0 position (index 4)
+ * @param {Number} m11 Component in column 1, row 1 position (index 5)
+ * @param {Number} m12 Component in column 1, row 2 position (index 6)
+ * @param {Number} m13 Component in column 1, row 3 position (index 7)
+ * @param {Number} m20 Component in column 2, row 0 position (index 8)
+ * @param {Number} m21 Component in column 2, row 1 position (index 9)
+ * @param {Number} m22 Component in column 2, row 2 position (index 10)
+ * @param {Number} m23 Component in column 2, row 3 position (index 11)
+ * @param {Number} m30 Component in column 3, row 0 position (index 12)
+ * @param {Number} m31 Component in column 3, row 1 position (index 13)
+ * @param {Number} m32 Component in column 3, row 2 position (index 14)
+ * @param {Number} m33 Component in column 3, row 3 position (index 15)
+ * @returns {mat4} A new mat4
+ */
+mat4.fromValues = function(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
+    var out = new glMatrix.ARRAY_TYPE(16);
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m02;
+    out[3] = m03;
+    out[4] = m10;
+    out[5] = m11;
+    out[6] = m12;
+    out[7] = m13;
+    out[8] = m20;
+    out[9] = m21;
+    out[10] = m22;
+    out[11] = m23;
+    out[12] = m30;
+    out[13] = m31;
+    out[14] = m32;
+    out[15] = m33;
+    return out;
+};
+
+/**
+ * Set the components of a mat4 to the given values
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {Number} m00 Component in column 0, row 0 position (index 0)
+ * @param {Number} m01 Component in column 0, row 1 position (index 1)
+ * @param {Number} m02 Component in column 0, row 2 position (index 2)
+ * @param {Number} m03 Component in column 0, row 3 position (index 3)
+ * @param {Number} m10 Component in column 1, row 0 position (index 4)
+ * @param {Number} m11 Component in column 1, row 1 position (index 5)
+ * @param {Number} m12 Component in column 1, row 2 position (index 6)
+ * @param {Number} m13 Component in column 1, row 3 position (index 7)
+ * @param {Number} m20 Component in column 2, row 0 position (index 8)
+ * @param {Number} m21 Component in column 2, row 1 position (index 9)
+ * @param {Number} m22 Component in column 2, row 2 position (index 10)
+ * @param {Number} m23 Component in column 2, row 3 position (index 11)
+ * @param {Number} m30 Component in column 3, row 0 position (index 12)
+ * @param {Number} m31 Component in column 3, row 1 position (index 13)
+ * @param {Number} m32 Component in column 3, row 2 position (index 14)
+ * @param {Number} m33 Component in column 3, row 3 position (index 15)
+ * @returns {mat4} out
+ */
+mat4.set = function(out, m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
+    out[0] = m00;
+    out[1] = m01;
+    out[2] = m02;
+    out[3] = m03;
+    out[4] = m10;
+    out[5] = m11;
+    out[6] = m12;
+    out[7] = m13;
+    out[8] = m20;
+    out[9] = m21;
+    out[10] = m22;
+    out[11] = m23;
+    out[12] = m30;
+    out[13] = m31;
+    out[14] = m32;
+    out[15] = m33;
+    return out;
+};
+
+
+/**
+ * Set a mat4 to the identity matrix
+ *
+ * @param {mat4} out the receiving matrix
+ * @returns {mat4} out
+ */
+mat4.identity = function(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+};
+
+/**
+ * Transpose the values of a mat4 not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.scalar.transpose = function(out, a) {
+    // If we are transposing ourselves we can skip a few steps but have to cache some values
+    if (out === a) {
+        var a01 = a[1], a02 = a[2], a03 = a[3],
+            a12 = a[6], a13 = a[7],
+            a23 = a[11];
+
+        out[1] = a[4];
+        out[2] = a[8];
+        out[3] = a[12];
+        out[4] = a01;
+        out[6] = a[9];
+        out[7] = a[13];
+        out[8] = a02;
+        out[9] = a12;
+        out[11] = a[14];
+        out[12] = a03;
+        out[13] = a13;
+        out[14] = a23;
+    } else {
+        out[0] = a[0];
+        out[1] = a[4];
+        out[2] = a[8];
+        out[3] = a[12];
+        out[4] = a[1];
+        out[5] = a[5];
+        out[6] = a[9];
+        out[7] = a[13];
+        out[8] = a[2];
+        out[9] = a[6];
+        out[10] = a[10];
+        out[11] = a[14];
+        out[12] = a[3];
+        out[13] = a[7];
+        out[14] = a[11];
+        out[15] = a[15];
+    }
+
+    return out;
+};
+
+/**
+ * Transpose the values of a mat4 using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.SIMD.transpose = function(out, a) {
+    var a0, a1, a2, a3,
+        tmp01, tmp23,
+        out0, out1, out2, out3;
+
+    a0 = SIMD.Float32x4.load(a, 0);
+    a1 = SIMD.Float32x4.load(a, 4);
+    a2 = SIMD.Float32x4.load(a, 8);
+    a3 = SIMD.Float32x4.load(a, 12);
+
+    tmp01 = SIMD.Float32x4.shuffle(a0, a1, 0, 1, 4, 5);
+    tmp23 = SIMD.Float32x4.shuffle(a2, a3, 0, 1, 4, 5);
+    out0  = SIMD.Float32x4.shuffle(tmp01, tmp23, 0, 2, 4, 6);
+    out1  = SIMD.Float32x4.shuffle(tmp01, tmp23, 1, 3, 5, 7);
+    SIMD.Float32x4.store(out, 0,  out0);
+    SIMD.Float32x4.store(out, 4,  out1);
+
+    tmp01 = SIMD.Float32x4.shuffle(a0, a1, 2, 3, 6, 7);
+    tmp23 = SIMD.Float32x4.shuffle(a2, a3, 2, 3, 6, 7);
+    out2  = SIMD.Float32x4.shuffle(tmp01, tmp23, 0, 2, 4, 6);
+    out3  = SIMD.Float32x4.shuffle(tmp01, tmp23, 1, 3, 5, 7);
+    SIMD.Float32x4.store(out, 8,  out2);
+    SIMD.Float32x4.store(out, 12, out3);
+
+    return out;
+};
+
+/**
+ * Transpse a mat4 using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.transpose = glMatrix.USE_SIMD ? mat4.SIMD.transpose : mat4.scalar.transpose;
+
+/**
+ * Inverts a mat4 not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.scalar.invert = function(out, a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
+
+        b00 = a00 * a11 - a01 * a10,
+        b01 = a00 * a12 - a02 * a10,
+        b02 = a00 * a13 - a03 * a10,
+        b03 = a01 * a12 - a02 * a11,
+        b04 = a01 * a13 - a03 * a11,
+        b05 = a02 * a13 - a03 * a12,
+        b06 = a20 * a31 - a21 * a30,
+        b07 = a20 * a32 - a22 * a30,
+        b08 = a20 * a33 - a23 * a30,
+        b09 = a21 * a32 - a22 * a31,
+        b10 = a21 * a33 - a23 * a31,
+        b11 = a22 * a33 - a23 * a32,
+
+        // Calculate the determinant
+        det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+
+    if (!det) {
+        return null;
+    }
+    det = 1.0 / det;
+
+    out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+    out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+    out[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+    out[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+    out[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+    out[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+    out[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+    out[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+    out[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+    out[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+    out[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+    out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+    out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+    out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+    out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+    out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+
+    return out;
+};
+
+/**
+ * Inverts a mat4 using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.SIMD.invert = function(out, a) {
+  var row0, row1, row2, row3,
+      tmp1,
+      minor0, minor1, minor2, minor3,
+      det,
+      a0 = SIMD.Float32x4.load(a, 0),
+      a1 = SIMD.Float32x4.load(a, 4),
+      a2 = SIMD.Float32x4.load(a, 8),
+      a3 = SIMD.Float32x4.load(a, 12);
+
+  // Compute matrix adjugate
+  tmp1 = SIMD.Float32x4.shuffle(a0, a1, 0, 1, 4, 5);
+  row1 = SIMD.Float32x4.shuffle(a2, a3, 0, 1, 4, 5);
+  row0 = SIMD.Float32x4.shuffle(tmp1, row1, 0, 2, 4, 6);
+  row1 = SIMD.Float32x4.shuffle(row1, tmp1, 1, 3, 5, 7);
+  tmp1 = SIMD.Float32x4.shuffle(a0, a1, 2, 3, 6, 7);
+  row3 = SIMD.Float32x4.shuffle(a2, a3, 2, 3, 6, 7);
+  row2 = SIMD.Float32x4.shuffle(tmp1, row3, 0, 2, 4, 6);
+  row3 = SIMD.Float32x4.shuffle(row3, tmp1, 1, 3, 5, 7);
+
+  tmp1   = SIMD.Float32x4.mul(row2, row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor0 = SIMD.Float32x4.mul(row1, tmp1);
+  minor1 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row1, tmp1), minor0);
+  minor1 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor1);
+  minor1 = SIMD.Float32x4.swizzle(minor1, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(row1, row2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor0 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor0);
+  minor3 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(minor0, SIMD.Float32x4.mul(row3, tmp1));
+  minor3 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor3);
+  minor3 = SIMD.Float32x4.swizzle(minor3, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(row1, 2, 3, 0, 1), row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  row2   = SIMD.Float32x4.swizzle(row2, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row2, tmp1), minor0);
+  minor2 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(minor0, SIMD.Float32x4.mul(row2, tmp1));
+  minor2 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor2);
+  minor2 = SIMD.Float32x4.swizzle(minor2, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(row0, row1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor2 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor2);
+  minor3 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row2, tmp1), minor3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor2 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row3, tmp1), minor2);
+  minor3 = SIMD.Float32x4.sub(minor3, SIMD.Float32x4.mul(row2, tmp1));
+
+  tmp1   = SIMD.Float32x4.mul(row0, row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor1 = SIMD.Float32x4.sub(minor1, SIMD.Float32x4.mul(row2, tmp1));
+  minor2 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row1, tmp1), minor2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor1 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row2, tmp1), minor1);
+  minor2 = SIMD.Float32x4.sub(minor2, SIMD.Float32x4.mul(row1, tmp1));
+
+  tmp1   = SIMD.Float32x4.mul(row0, row2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor1 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor1);
+  minor3 = SIMD.Float32x4.sub(minor3, SIMD.Float32x4.mul(row1, tmp1));
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor1 = SIMD.Float32x4.sub(minor1, SIMD.Float32x4.mul(row3, tmp1));
+  minor3 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row1, tmp1), minor3);
+
+  // Compute matrix determinant
+  det   = SIMD.Float32x4.mul(row0, minor0);
+  det   = SIMD.Float32x4.add(SIMD.Float32x4.swizzle(det, 2, 3, 0, 1), det);
+  det   = SIMD.Float32x4.add(SIMD.Float32x4.swizzle(det, 1, 0, 3, 2), det);
+  tmp1  = SIMD.Float32x4.reciprocalApproximation(det);
+  det   = SIMD.Float32x4.sub(
+               SIMD.Float32x4.add(tmp1, tmp1),
+               SIMD.Float32x4.mul(det, SIMD.Float32x4.mul(tmp1, tmp1)));
+  det   = SIMD.Float32x4.swizzle(det, 0, 0, 0, 0);
+  if (!det) {
+      return null;
+  }
+
+  // Compute matrix inverse
+  SIMD.Float32x4.store(out, 0,  SIMD.Float32x4.mul(det, minor0));
+  SIMD.Float32x4.store(out, 4,  SIMD.Float32x4.mul(det, minor1));
+  SIMD.Float32x4.store(out, 8,  SIMD.Float32x4.mul(det, minor2));
+  SIMD.Float32x4.store(out, 12, SIMD.Float32x4.mul(det, minor3));
+  return out;
+}
+
+/**
+ * Inverts a mat4 using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.invert = glMatrix.USE_SIMD ? mat4.SIMD.invert : mat4.scalar.invert;
+
+/**
+ * Calculates the adjugate of a mat4 not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.scalar.adjoint = function(out, a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+    out[0]  =  (a11 * (a22 * a33 - a23 * a32) - a21 * (a12 * a33 - a13 * a32) + a31 * (a12 * a23 - a13 * a22));
+    out[1]  = -(a01 * (a22 * a33 - a23 * a32) - a21 * (a02 * a33 - a03 * a32) + a31 * (a02 * a23 - a03 * a22));
+    out[2]  =  (a01 * (a12 * a33 - a13 * a32) - a11 * (a02 * a33 - a03 * a32) + a31 * (a02 * a13 - a03 * a12));
+    out[3]  = -(a01 * (a12 * a23 - a13 * a22) - a11 * (a02 * a23 - a03 * a22) + a21 * (a02 * a13 - a03 * a12));
+    out[4]  = -(a10 * (a22 * a33 - a23 * a32) - a20 * (a12 * a33 - a13 * a32) + a30 * (a12 * a23 - a13 * a22));
+    out[5]  =  (a00 * (a22 * a33 - a23 * a32) - a20 * (a02 * a33 - a03 * a32) + a30 * (a02 * a23 - a03 * a22));
+    out[6]  = -(a00 * (a12 * a33 - a13 * a32) - a10 * (a02 * a33 - a03 * a32) + a30 * (a02 * a13 - a03 * a12));
+    out[7]  =  (a00 * (a12 * a23 - a13 * a22) - a10 * (a02 * a23 - a03 * a22) + a20 * (a02 * a13 - a03 * a12));
+    out[8]  =  (a10 * (a21 * a33 - a23 * a31) - a20 * (a11 * a33 - a13 * a31) + a30 * (a11 * a23 - a13 * a21));
+    out[9]  = -(a00 * (a21 * a33 - a23 * a31) - a20 * (a01 * a33 - a03 * a31) + a30 * (a01 * a23 - a03 * a21));
+    out[10] =  (a00 * (a11 * a33 - a13 * a31) - a10 * (a01 * a33 - a03 * a31) + a30 * (a01 * a13 - a03 * a11));
+    out[11] = -(a00 * (a11 * a23 - a13 * a21) - a10 * (a01 * a23 - a03 * a21) + a20 * (a01 * a13 - a03 * a11));
+    out[12] = -(a10 * (a21 * a32 - a22 * a31) - a20 * (a11 * a32 - a12 * a31) + a30 * (a11 * a22 - a12 * a21));
+    out[13] =  (a00 * (a21 * a32 - a22 * a31) - a20 * (a01 * a32 - a02 * a31) + a30 * (a01 * a22 - a02 * a21));
+    out[14] = -(a00 * (a11 * a32 - a12 * a31) - a10 * (a01 * a32 - a02 * a31) + a30 * (a01 * a12 - a02 * a11));
+    out[15] =  (a00 * (a11 * a22 - a12 * a21) - a10 * (a01 * a22 - a02 * a21) + a20 * (a01 * a12 - a02 * a11));
+    return out;
+};
+
+/**
+ * Calculates the adjugate of a mat4 using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+mat4.SIMD.adjoint = function(out, a) {
+  var a0, a1, a2, a3;
+  var row0, row1, row2, row3;
+  var tmp1;
+  var minor0, minor1, minor2, minor3;
+
+  var a0 = SIMD.Float32x4.load(a, 0);
+  var a1 = SIMD.Float32x4.load(a, 4);
+  var a2 = SIMD.Float32x4.load(a, 8);
+  var a3 = SIMD.Float32x4.load(a, 12);
+
+  // Transpose the source matrix.  Sort of.  Not a true transpose operation
+  tmp1 = SIMD.Float32x4.shuffle(a0, a1, 0, 1, 4, 5);
+  row1 = SIMD.Float32x4.shuffle(a2, a3, 0, 1, 4, 5);
+  row0 = SIMD.Float32x4.shuffle(tmp1, row1, 0, 2, 4, 6);
+  row1 = SIMD.Float32x4.shuffle(row1, tmp1, 1, 3, 5, 7);
+
+  tmp1 = SIMD.Float32x4.shuffle(a0, a1, 2, 3, 6, 7);
+  row3 = SIMD.Float32x4.shuffle(a2, a3, 2, 3, 6, 7);
+  row2 = SIMD.Float32x4.shuffle(tmp1, row3, 0, 2, 4, 6);
+  row3 = SIMD.Float32x4.shuffle(row3, tmp1, 1, 3, 5, 7);
+
+  tmp1   = SIMD.Float32x4.mul(row2, row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor0 = SIMD.Float32x4.mul(row1, tmp1);
+  minor1 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row1, tmp1), minor0);
+  minor1 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor1);
+  minor1 = SIMD.Float32x4.swizzle(minor1, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(row1, row2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor0 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor0);
+  minor3 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(minor0, SIMD.Float32x4.mul(row3, tmp1));
+  minor3 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor3);
+  minor3 = SIMD.Float32x4.swizzle(minor3, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(row1, 2, 3, 0, 1), row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  row2   = SIMD.Float32x4.swizzle(row2, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row2, tmp1), minor0);
+  minor2 = SIMD.Float32x4.mul(row0, tmp1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor0 = SIMD.Float32x4.sub(minor0, SIMD.Float32x4.mul(row2, tmp1));
+  minor2 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row0, tmp1), minor2);
+  minor2 = SIMD.Float32x4.swizzle(minor2, 2, 3, 0, 1);
+
+  tmp1   = SIMD.Float32x4.mul(row0, row1);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor2 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor2);
+  minor3 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row2, tmp1), minor3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor2 = SIMD.Float32x4.sub(SIMD.Float32x4.mul(row3, tmp1), minor2);
+  minor3 = SIMD.Float32x4.sub(minor3, SIMD.Float32x4.mul(row2, tmp1));
+
+  tmp1   = SIMD.Float32x4.mul(row0, row3);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor1 = SIMD.Float32x4.sub(minor1, SIMD.Float32x4.mul(row2, tmp1));
+  minor2 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row1, tmp1), minor2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor1 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row2, tmp1), minor1);
+  minor2 = SIMD.Float32x4.sub(minor2, SIMD.Float32x4.mul(row1, tmp1));
+
+  tmp1   = SIMD.Float32x4.mul(row0, row2);
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 1, 0, 3, 2);
+  minor1 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row3, tmp1), minor1);
+  minor3 = SIMD.Float32x4.sub(minor3, SIMD.Float32x4.mul(row1, tmp1));
+  tmp1   = SIMD.Float32x4.swizzle(tmp1, 2, 3, 0, 1);
+  minor1 = SIMD.Float32x4.sub(minor1, SIMD.Float32x4.mul(row3, tmp1));
+  minor3 = SIMD.Float32x4.add(SIMD.Float32x4.mul(row1, tmp1), minor3);
+
+  SIMD.Float32x4.store(out, 0,  minor0);
+  SIMD.Float32x4.store(out, 4,  minor1);
+  SIMD.Float32x4.store(out, 8,  minor2);
+  SIMD.Float32x4.store(out, 12, minor3);
+  return out;
+};
+
+/**
+ * Calculates the adjugate of a mat4 using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the source matrix
+ * @returns {mat4} out
+ */
+ mat4.adjoint = glMatrix.USE_SIMD ? mat4.SIMD.adjoint : mat4.scalar.adjoint;
+
+/**
+ * Calculates the determinant of a mat4
+ *
+ * @param {mat4} a the source matrix
+ * @returns {Number} determinant of a
+ */
+mat4.determinant = function (a) {
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
+
+        b00 = a00 * a11 - a01 * a10,
+        b01 = a00 * a12 - a02 * a10,
+        b02 = a00 * a13 - a03 * a10,
+        b03 = a01 * a12 - a02 * a11,
+        b04 = a01 * a13 - a03 * a11,
+        b05 = a02 * a13 - a03 * a12,
+        b06 = a20 * a31 - a21 * a30,
+        b07 = a20 * a32 - a22 * a30,
+        b08 = a20 * a33 - a23 * a30,
+        b09 = a21 * a32 - a22 * a31,
+        b10 = a21 * a33 - a23 * a31,
+        b11 = a22 * a33 - a23 * a32;
+
+    // Calculate the determinant
+    return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+};
+
+/**
+ * Multiplies two mat4's explicitly using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the first operand, must be a Float32Array
+ * @param {mat4} b the second operand, must be a Float32Array
+ * @returns {mat4} out
+ */
+mat4.SIMD.multiply = function (out, a, b) {
+    var a0 = SIMD.Float32x4.load(a, 0);
+    var a1 = SIMD.Float32x4.load(a, 4);
+    var a2 = SIMD.Float32x4.load(a, 8);
+    var a3 = SIMD.Float32x4.load(a, 12);
+
+    var b0 = SIMD.Float32x4.load(b, 0);
+    var out0 = SIMD.Float32x4.add(
+                   SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b0, 0, 0, 0, 0), a0),
+                   SIMD.Float32x4.add(
+                       SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b0, 1, 1, 1, 1), a1),
+                       SIMD.Float32x4.add(
+                           SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b0, 2, 2, 2, 2), a2),
+                           SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b0, 3, 3, 3, 3), a3))));
+    SIMD.Float32x4.store(out, 0, out0);
+
+    var b1 = SIMD.Float32x4.load(b, 4);
+    var out1 = SIMD.Float32x4.add(
+                   SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b1, 0, 0, 0, 0), a0),
+                   SIMD.Float32x4.add(
+                       SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b1, 1, 1, 1, 1), a1),
+                       SIMD.Float32x4.add(
+                           SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b1, 2, 2, 2, 2), a2),
+                           SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b1, 3, 3, 3, 3), a3))));
+    SIMD.Float32x4.store(out, 4, out1);
+
+    var b2 = SIMD.Float32x4.load(b, 8);
+    var out2 = SIMD.Float32x4.add(
+                   SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b2, 0, 0, 0, 0), a0),
+                   SIMD.Float32x4.add(
+                       SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b2, 1, 1, 1, 1), a1),
+                       SIMD.Float32x4.add(
+                               SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b2, 2, 2, 2, 2), a2),
+                               SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b2, 3, 3, 3, 3), a3))));
+    SIMD.Float32x4.store(out, 8, out2);
+
+    var b3 = SIMD.Float32x4.load(b, 12);
+    var out3 = SIMD.Float32x4.add(
+                   SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b3, 0, 0, 0, 0), a0),
+                   SIMD.Float32x4.add(
+                        SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b3, 1, 1, 1, 1), a1),
+                        SIMD.Float32x4.add(
+                            SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b3, 2, 2, 2, 2), a2),
+                            SIMD.Float32x4.mul(SIMD.Float32x4.swizzle(b3, 3, 3, 3, 3), a3))));
+    SIMD.Float32x4.store(out, 12, out3);
+
+    return out;
+};
+
+/**
+ * Multiplies two mat4's explicitly not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the first operand
+ * @param {mat4} b the second operand
+ * @returns {mat4} out
+ */
+mat4.scalar.multiply = function (out, a, b) {
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+        a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+        a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+        a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+    // Cache only the current line of the second matrix
+    var b0  = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+    out[0] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+    out[1] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+    out[2] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+    out[3] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+    b0 = b[4]; b1 = b[5]; b2 = b[6]; b3 = b[7];
+    out[4] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+    out[5] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+    out[6] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+    out[7] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+    b0 = b[8]; b1 = b[9]; b2 = b[10]; b3 = b[11];
+    out[8] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+    out[9] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+    out[10] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+    out[11] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+    b0 = b[12]; b1 = b[13]; b2 = b[14]; b3 = b[15];
+    out[12] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+    out[13] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+    out[14] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+    out[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+    return out;
+};
+
+/**
+ * Multiplies two mat4's using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the first operand
+ * @param {mat4} b the second operand
+ * @returns {mat4} out
+ */
+mat4.multiply = glMatrix.USE_SIMD ? mat4.SIMD.multiply : mat4.scalar.multiply;
+
+/**
+ * Alias for {@link mat4.multiply}
+ * @function
+ */
+mat4.mul = mat4.multiply;
+
+/**
+ * Translate a mat4 by the given vector not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to translate
+ * @param {vec3} v vector to translate by
+ * @returns {mat4} out
+ */
+mat4.scalar.translate = function (out, a, v) {
+    var x = v[0], y = v[1], z = v[2],
+        a00, a01, a02, a03,
+        a10, a11, a12, a13,
+        a20, a21, a22, a23;
+
+    if (a === out) {
+        out[12] = a[0] * x + a[4] * y + a[8] * z + a[12];
+        out[13] = a[1] * x + a[5] * y + a[9] * z + a[13];
+        out[14] = a[2] * x + a[6] * y + a[10] * z + a[14];
+        out[15] = a[3] * x + a[7] * y + a[11] * z + a[15];
+    } else {
+        a00 = a[0]; a01 = a[1]; a02 = a[2]; a03 = a[3];
+        a10 = a[4]; a11 = a[5]; a12 = a[6]; a13 = a[7];
+        a20 = a[8]; a21 = a[9]; a22 = a[10]; a23 = a[11];
+
+        out[0] = a00; out[1] = a01; out[2] = a02; out[3] = a03;
+        out[4] = a10; out[5] = a11; out[6] = a12; out[7] = a13;
+        out[8] = a20; out[9] = a21; out[10] = a22; out[11] = a23;
+
+        out[12] = a00 * x + a10 * y + a20 * z + a[12];
+        out[13] = a01 * x + a11 * y + a21 * z + a[13];
+        out[14] = a02 * x + a12 * y + a22 * z + a[14];
+        out[15] = a03 * x + a13 * y + a23 * z + a[15];
+    }
+
+    return out;
+};
+
+/**
+ * Translates a mat4 by the given vector using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to translate
+ * @param {vec3} v vector to translate by
+ * @returns {mat4} out
+ */
+mat4.SIMD.translate = function (out, a, v) {
+    var a0 = SIMD.Float32x4.load(a, 0),
+        a1 = SIMD.Float32x4.load(a, 4),
+        a2 = SIMD.Float32x4.load(a, 8),
+        a3 = SIMD.Float32x4.load(a, 12),
+        vec = SIMD.Float32x4(v[0], v[1], v[2] , 0);
+
+    if (a !== out) {
+        out[0] = a[0]; out[1] = a[1]; out[2] = a[2]; out[3] = a[3];
+        out[4] = a[4]; out[5] = a[5]; out[6] = a[6]; out[7] = a[7];
+        out[8] = a[8]; out[9] = a[9]; out[10] = a[10]; out[11] = a[11];
+    }
+
+    a0 = SIMD.Float32x4.mul(a0, SIMD.Float32x4.swizzle(vec, 0, 0, 0, 0));
+    a1 = SIMD.Float32x4.mul(a1, SIMD.Float32x4.swizzle(vec, 1, 1, 1, 1));
+    a2 = SIMD.Float32x4.mul(a2, SIMD.Float32x4.swizzle(vec, 2, 2, 2, 2));
+
+    var t0 = SIMD.Float32x4.add(a0, SIMD.Float32x4.add(a1, SIMD.Float32x4.add(a2, a3)));
+    SIMD.Float32x4.store(out, 12, t0);
+
+    return out;
+};
+
+/**
+ * Translates a mat4 by the given vector using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to translate
+ * @param {vec3} v vector to translate by
+ * @returns {mat4} out
+ */
+mat4.translate = glMatrix.USE_SIMD ? mat4.SIMD.translate : mat4.scalar.translate;
+
+/**
+ * Scales the mat4 by the dimensions in the given vec3 not using vectorization
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to scale
+ * @param {vec3} v the vec3 to scale the matrix by
+ * @returns {mat4} out
+ **/
+mat4.scalar.scale = function(out, a, v) {
+    var x = v[0], y = v[1], z = v[2];
+
+    out[0] = a[0] * x;
+    out[1] = a[1] * x;
+    out[2] = a[2] * x;
+    out[3] = a[3] * x;
+    out[4] = a[4] * y;
+    out[5] = a[5] * y;
+    out[6] = a[6] * y;
+    out[7] = a[7] * y;
+    out[8] = a[8] * z;
+    out[9] = a[9] * z;
+    out[10] = a[10] * z;
+    out[11] = a[11] * z;
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+    return out;
+};
+
+/**
+ * Scales the mat4 by the dimensions in the given vec3 using vectorization
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to scale
+ * @param {vec3} v the vec3 to scale the matrix by
+ * @returns {mat4} out
+ **/
+mat4.SIMD.scale = function(out, a, v) {
+    var a0, a1, a2;
+    var vec = SIMD.Float32x4(v[0], v[1], v[2], 0);
+
+    a0 = SIMD.Float32x4.load(a, 0);
+    SIMD.Float32x4.store(
+        out, 0, SIMD.Float32x4.mul(a0, SIMD.Float32x4.swizzle(vec, 0, 0, 0, 0)));
+
+    a1 = SIMD.Float32x4.load(a, 4);
+    SIMD.Float32x4.store(
+        out, 4, SIMD.Float32x4.mul(a1, SIMD.Float32x4.swizzle(vec, 1, 1, 1, 1)));
+
+    a2 = SIMD.Float32x4.load(a, 8);
+    SIMD.Float32x4.store(
+        out, 8, SIMD.Float32x4.mul(a2, SIMD.Float32x4.swizzle(vec, 2, 2, 2, 2)));
+
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+    return out;
+};
+
+/**
+ * Scales the mat4 by the dimensions in the given vec3 using SIMD if available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to scale
+ * @param {vec3} v the vec3 to scale the matrix by
+ * @returns {mat4} out
+ */
+mat4.scale = glMatrix.USE_SIMD ? mat4.SIMD.scale : mat4.scalar.scale;
+
+/**
+ * Rotates a mat4 by the given angle around the given axis
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @param {vec3} axis the axis to rotate around
+ * @returns {mat4} out
+ */
+mat4.rotate = function (out, a, rad, axis) {
+    var x = axis[0], y = axis[1], z = axis[2],
+        len = Math.sqrt(x * x + y * y + z * z),
+        s, c, t,
+        a00, a01, a02, a03,
+        a10, a11, a12, a13,
+        a20, a21, a22, a23,
+        b00, b01, b02,
+        b10, b11, b12,
+        b20, b21, b22;
+
+    if (Math.abs(len) < glMatrix.EPSILON) { return null; }
+
+    len = 1 / len;
+    x *= len;
+    y *= len;
+    z *= len;
+
+    s = Math.sin(rad);
+    c = Math.cos(rad);
+    t = 1 - c;
+
+    a00 = a[0]; a01 = a[1]; a02 = a[2]; a03 = a[3];
+    a10 = a[4]; a11 = a[5]; a12 = a[6]; a13 = a[7];
+    a20 = a[8]; a21 = a[9]; a22 = a[10]; a23 = a[11];
+
+    // Construct the elements of the rotation matrix
+    b00 = x * x * t + c; b01 = y * x * t + z * s; b02 = z * x * t - y * s;
+    b10 = x * y * t - z * s; b11 = y * y * t + c; b12 = z * y * t + x * s;
+    b20 = x * z * t + y * s; b21 = y * z * t - x * s; b22 = z * z * t + c;
+
+    // Perform rotation-specific matrix multiplication
+    out[0] = a00 * b00 + a10 * b01 + a20 * b02;
+    out[1] = a01 * b00 + a11 * b01 + a21 * b02;
+    out[2] = a02 * b00 + a12 * b01 + a22 * b02;
+    out[3] = a03 * b00 + a13 * b01 + a23 * b02;
+    out[4] = a00 * b10 + a10 * b11 + a20 * b12;
+    out[5] = a01 * b10 + a11 * b11 + a21 * b12;
+    out[6] = a02 * b10 + a12 * b11 + a22 * b12;
+    out[7] = a03 * b10 + a13 * b11 + a23 * b12;
+    out[8] = a00 * b20 + a10 * b21 + a20 * b22;
+    out[9] = a01 * b20 + a11 * b21 + a21 * b22;
+    out[10] = a02 * b20 + a12 * b21 + a22 * b22;
+    out[11] = a03 * b20 + a13 * b21 + a23 * b22;
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged last row
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the X axis not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.scalar.rotateX = function (out, a, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad),
+        a10 = a[4],
+        a11 = a[5],
+        a12 = a[6],
+        a13 = a[7],
+        a20 = a[8],
+        a21 = a[9],
+        a22 = a[10],
+        a23 = a[11];
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged rows
+        out[0]  = a[0];
+        out[1]  = a[1];
+        out[2]  = a[2];
+        out[3]  = a[3];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[4] = a10 * c + a20 * s;
+    out[5] = a11 * c + a21 * s;
+    out[6] = a12 * c + a22 * s;
+    out[7] = a13 * c + a23 * s;
+    out[8] = a20 * c - a10 * s;
+    out[9] = a21 * c - a11 * s;
+    out[10] = a22 * c - a12 * s;
+    out[11] = a23 * c - a13 * s;
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the X axis using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.SIMD.rotateX = function (out, a, rad) {
+    var s = SIMD.Float32x4.splat(Math.sin(rad)),
+        c = SIMD.Float32x4.splat(Math.cos(rad));
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged rows
+      out[0]  = a[0];
+      out[1]  = a[1];
+      out[2]  = a[2];
+      out[3]  = a[3];
+      out[12] = a[12];
+      out[13] = a[13];
+      out[14] = a[14];
+      out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    var a_1 = SIMD.Float32x4.load(a, 4);
+    var a_2 = SIMD.Float32x4.load(a, 8);
+    SIMD.Float32x4.store(out, 4,
+                         SIMD.Float32x4.add(SIMD.Float32x4.mul(a_1, c), SIMD.Float32x4.mul(a_2, s)));
+    SIMD.Float32x4.store(out, 8,
+                         SIMD.Float32x4.sub(SIMD.Float32x4.mul(a_2, c), SIMD.Float32x4.mul(a_1, s)));
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the X axis using SIMD if availabe and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.rotateX = glMatrix.USE_SIMD ? mat4.SIMD.rotateX : mat4.scalar.rotateX;
+
+/**
+ * Rotates a matrix by the given angle around the Y axis not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.scalar.rotateY = function (out, a, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad),
+        a00 = a[0],
+        a01 = a[1],
+        a02 = a[2],
+        a03 = a[3],
+        a20 = a[8],
+        a21 = a[9],
+        a22 = a[10],
+        a23 = a[11];
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged rows
+        out[4]  = a[4];
+        out[5]  = a[5];
+        out[6]  = a[6];
+        out[7]  = a[7];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[0] = a00 * c - a20 * s;
+    out[1] = a01 * c - a21 * s;
+    out[2] = a02 * c - a22 * s;
+    out[3] = a03 * c - a23 * s;
+    out[8] = a00 * s + a20 * c;
+    out[9] = a01 * s + a21 * c;
+    out[10] = a02 * s + a22 * c;
+    out[11] = a03 * s + a23 * c;
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the Y axis using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.SIMD.rotateY = function (out, a, rad) {
+    var s = SIMD.Float32x4.splat(Math.sin(rad)),
+        c = SIMD.Float32x4.splat(Math.cos(rad));
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged rows
+        out[4]  = a[4];
+        out[5]  = a[5];
+        out[6]  = a[6];
+        out[7]  = a[7];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    var a_0 = SIMD.Float32x4.load(a, 0);
+    var a_2 = SIMD.Float32x4.load(a, 8);
+    SIMD.Float32x4.store(out, 0,
+                         SIMD.Float32x4.sub(SIMD.Float32x4.mul(a_0, c), SIMD.Float32x4.mul(a_2, s)));
+    SIMD.Float32x4.store(out, 8,
+                         SIMD.Float32x4.add(SIMD.Float32x4.mul(a_0, s), SIMD.Float32x4.mul(a_2, c)));
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the Y axis if SIMD available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+ mat4.rotateY = glMatrix.USE_SIMD ? mat4.SIMD.rotateY : mat4.scalar.rotateY;
+
+/**
+ * Rotates a matrix by the given angle around the Z axis not using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.scalar.rotateZ = function (out, a, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad),
+        a00 = a[0],
+        a01 = a[1],
+        a02 = a[2],
+        a03 = a[3],
+        a10 = a[4],
+        a11 = a[5],
+        a12 = a[6],
+        a13 = a[7];
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged last row
+        out[8]  = a[8];
+        out[9]  = a[9];
+        out[10] = a[10];
+        out[11] = a[11];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[0] = a00 * c + a10 * s;
+    out[1] = a01 * c + a11 * s;
+    out[2] = a02 * c + a12 * s;
+    out[3] = a03 * c + a13 * s;
+    out[4] = a10 * c - a00 * s;
+    out[5] = a11 * c - a01 * s;
+    out[6] = a12 * c - a02 * s;
+    out[7] = a13 * c - a03 * s;
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the Z axis using SIMD
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.SIMD.rotateZ = function (out, a, rad) {
+    var s = SIMD.Float32x4.splat(Math.sin(rad)),
+        c = SIMD.Float32x4.splat(Math.cos(rad));
+
+    if (a !== out) { // If the source and destination differ, copy the unchanged last row
+        out[8]  = a[8];
+        out[9]  = a[9];
+        out[10] = a[10];
+        out[11] = a[11];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    var a_0 = SIMD.Float32x4.load(a, 0);
+    var a_1 = SIMD.Float32x4.load(a, 4);
+    SIMD.Float32x4.store(out, 0,
+                         SIMD.Float32x4.add(SIMD.Float32x4.mul(a_0, c), SIMD.Float32x4.mul(a_1, s)));
+    SIMD.Float32x4.store(out, 4,
+                         SIMD.Float32x4.sub(SIMD.Float32x4.mul(a_1, c), SIMD.Float32x4.mul(a_0, s)));
+    return out;
+};
+
+/**
+ * Rotates a matrix by the given angle around the Z axis if SIMD available and enabled
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to rotate
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+ mat4.rotateZ = glMatrix.USE_SIMD ? mat4.SIMD.rotateZ : mat4.scalar.rotateZ;
+
+/**
+ * Creates a matrix from a vector translation
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.translate(dest, dest, vec);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {vec3} v Translation vector
+ * @returns {mat4} out
+ */
+mat4.fromTranslation = function(out, v) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = v[0];
+    out[13] = v[1];
+    out[14] = v[2];
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from a vector scaling
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.scale(dest, dest, vec);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {vec3} v Scaling vector
+ * @returns {mat4} out
+ */
+mat4.fromScaling = function(out, v) {
+    out[0] = v[0];
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = v[1];
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = v[2];
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from a given angle around a given axis
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.rotate(dest, dest, rad, axis);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @param {vec3} axis the axis to rotate around
+ * @returns {mat4} out
+ */
+mat4.fromRotation = function(out, rad, axis) {
+    var x = axis[0], y = axis[1], z = axis[2],
+        len = Math.sqrt(x * x + y * y + z * z),
+        s, c, t;
+
+    if (Math.abs(len) < glMatrix.EPSILON) { return null; }
+
+    len = 1 / len;
+    x *= len;
+    y *= len;
+    z *= len;
+
+    s = Math.sin(rad);
+    c = Math.cos(rad);
+    t = 1 - c;
+
+    // Perform rotation-specific matrix multiplication
+    out[0] = x * x * t + c;
+    out[1] = y * x * t + z * s;
+    out[2] = z * x * t - y * s;
+    out[3] = 0;
+    out[4] = x * y * t - z * s;
+    out[5] = y * y * t + c;
+    out[6] = z * y * t + x * s;
+    out[7] = 0;
+    out[8] = x * z * t + y * s;
+    out[9] = y * z * t - x * s;
+    out[10] = z * z * t + c;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from the given angle around the X axis
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.rotateX(dest, dest, rad);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.fromXRotation = function(out, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad);
+
+    // Perform axis-specific matrix multiplication
+    out[0]  = 1;
+    out[1]  = 0;
+    out[2]  = 0;
+    out[3]  = 0;
+    out[4] = 0;
+    out[5] = c;
+    out[6] = s;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = -s;
+    out[10] = c;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from the given angle around the Y axis
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.rotateY(dest, dest, rad);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.fromYRotation = function(out, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad);
+
+    // Perform axis-specific matrix multiplication
+    out[0]  = c;
+    out[1]  = 0;
+    out[2]  = -s;
+    out[3]  = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = s;
+    out[9] = 0;
+    out[10] = c;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from the given angle around the Z axis
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.rotateZ(dest, dest, rad);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {Number} rad the angle to rotate the matrix by
+ * @returns {mat4} out
+ */
+mat4.fromZRotation = function(out, rad) {
+    var s = Math.sin(rad),
+        c = Math.cos(rad);
+
+    // Perform axis-specific matrix multiplication
+    out[0]  = c;
+    out[1]  = s;
+    out[2]  = 0;
+    out[3]  = 0;
+    out[4] = -s;
+    out[5] = c;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+}
+
+/**
+ * Creates a matrix from a quaternion rotation and vector translation
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.translate(dest, vec);
+ *     var quatMat = mat4.create();
+ *     quat4.toMat4(quat, quatMat);
+ *     mat4.multiply(dest, quatMat);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {quat4} q Rotation quaternion
+ * @param {vec3} v Translation vector
+ * @returns {mat4} out
+ */
+mat4.fromRotationTranslation = function (out, q, v) {
+    // Quaternion math
+    var x = q[0], y = q[1], z = q[2], w = q[3],
+        x2 = x + x,
+        y2 = y + y,
+        z2 = z + z,
+
+        xx = x * x2,
+        xy = x * y2,
+        xz = x * z2,
+        yy = y * y2,
+        yz = y * z2,
+        zz = z * z2,
+        wx = w * x2,
+        wy = w * y2,
+        wz = w * z2;
+
+    out[0] = 1 - (yy + zz);
+    out[1] = xy + wz;
+    out[2] = xz - wy;
+    out[3] = 0;
+    out[4] = xy - wz;
+    out[5] = 1 - (xx + zz);
+    out[6] = yz + wx;
+    out[7] = 0;
+    out[8] = xz + wy;
+    out[9] = yz - wx;
+    out[10] = 1 - (xx + yy);
+    out[11] = 0;
+    out[12] = v[0];
+    out[13] = v[1];
+    out[14] = v[2];
+    out[15] = 1;
+
+    return out;
+};
+
+/**
+ * Returns the translation vector component of a transformation
+ *  matrix. If a matrix is built with fromRotationTranslation,
+ *  the returned vector will be the same as the translation vector
+ *  originally supplied.
+ * @param  {vec3} out Vector to receive translation component
+ * @param  {mat4} mat Matrix to be decomposed (input)
+ * @return {vec3} out
+ */
+mat4.getTranslation = function (out, mat) {
+  out[0] = mat[12];
+  out[1] = mat[13];
+  out[2] = mat[14];
+
+  return out;
+};
+
+/**
+ * Returns a quaternion representing the rotational component
+ *  of a transformation matrix. If a matrix is built with
+ *  fromRotationTranslation, the returned quaternion will be the
+ *  same as the quaternion originally supplied.
+ * @param {quat} out Quaternion to receive the rotation component
+ * @param {mat4} mat Matrix to be decomposed (input)
+ * @return {quat} out
+ */
+mat4.getRotation = function (out, mat) {
+  // Algorithm taken from http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/index.htm
+  var trace = mat[0] + mat[5] + mat[10];
+  var S = 0;
+
+  if (trace > 0) {
+    S = Math.sqrt(trace + 1.0) * 2;
+    out[3] = 0.25 * S;
+    out[0] = (mat[6] - mat[9]) / S;
+    out[1] = (mat[8] - mat[2]) / S;
+    out[2] = (mat[1] - mat[4]) / S;
+  } else if ((mat[0] > mat[5])&(mat[0] > mat[10])) {
+    S = Math.sqrt(1.0 + mat[0] - mat[5] - mat[10]) * 2;
+    out[3] = (mat[6] - mat[9]) / S;
+    out[0] = 0.25 * S;
+    out[1] = (mat[1] + mat[4]) / S;
+    out[2] = (mat[8] + mat[2]) / S;
+  } else if (mat[5] > mat[10]) {
+    S = Math.sqrt(1.0 + mat[5] - mat[0] - mat[10]) * 2;
+    out[3] = (mat[8] - mat[2]) / S;
+    out[0] = (mat[1] + mat[4]) / S;
+    out[1] = 0.25 * S;
+    out[2] = (mat[6] + mat[9]) / S;
+  } else {
+    S = Math.sqrt(1.0 + mat[10] - mat[0] - mat[5]) * 2;
+    out[3] = (mat[1] - mat[4]) / S;
+    out[0] = (mat[8] + mat[2]) / S;
+    out[1] = (mat[6] + mat[9]) / S;
+    out[2] = 0.25 * S;
+  }
+
+  return out;
+};
+
+/**
+ * Creates a matrix from a quaternion rotation, vector translation and vector scale
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.translate(dest, vec);
+ *     var quatMat = mat4.create();
+ *     quat4.toMat4(quat, quatMat);
+ *     mat4.multiply(dest, quatMat);
+ *     mat4.scale(dest, scale)
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {quat4} q Rotation quaternion
+ * @param {vec3} v Translation vector
+ * @param {vec3} s Scaling vector
+ * @returns {mat4} out
+ */
+mat4.fromRotationTranslationScale = function (out, q, v, s) {
+    // Quaternion math
+    var x = q[0], y = q[1], z = q[2], w = q[3],
+        x2 = x + x,
+        y2 = y + y,
+        z2 = z + z,
+
+        xx = x * x2,
+        xy = x * y2,
+        xz = x * z2,
+        yy = y * y2,
+        yz = y * z2,
+        zz = z * z2,
+        wx = w * x2,
+        wy = w * y2,
+        wz = w * z2,
+        sx = s[0],
+        sy = s[1],
+        sz = s[2];
+
+    out[0] = (1 - (yy + zz)) * sx;
+    out[1] = (xy + wz) * sx;
+    out[2] = (xz - wy) * sx;
+    out[3] = 0;
+    out[4] = (xy - wz) * sy;
+    out[5] = (1 - (xx + zz)) * sy;
+    out[6] = (yz + wx) * sy;
+    out[7] = 0;
+    out[8] = (xz + wy) * sz;
+    out[9] = (yz - wx) * sz;
+    out[10] = (1 - (xx + yy)) * sz;
+    out[11] = 0;
+    out[12] = v[0];
+    out[13] = v[1];
+    out[14] = v[2];
+    out[15] = 1;
+
+    return out;
+};
+
+/**
+ * Creates a matrix from a quaternion rotation, vector translation and vector scale, rotating and scaling around the given origin
+ * This is equivalent to (but much faster than):
+ *
+ *     mat4.identity(dest);
+ *     mat4.translate(dest, vec);
+ *     mat4.translate(dest, origin);
+ *     var quatMat = mat4.create();
+ *     quat4.toMat4(quat, quatMat);
+ *     mat4.multiply(dest, quatMat);
+ *     mat4.scale(dest, scale)
+ *     mat4.translate(dest, negativeOrigin);
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {quat4} q Rotation quaternion
+ * @param {vec3} v Translation vector
+ * @param {vec3} s Scaling vector
+ * @param {vec3} o The origin vector around which to scale and rotate
+ * @returns {mat4} out
+ */
+mat4.fromRotationTranslationScaleOrigin = function (out, q, v, s, o) {
+  // Quaternion math
+  var x = q[0], y = q[1], z = q[2], w = q[3],
+      x2 = x + x,
+      y2 = y + y,
+      z2 = z + z,
+
+      xx = x * x2,
+      xy = x * y2,
+      xz = x * z2,
+      yy = y * y2,
+      yz = y * z2,
+      zz = z * z2,
+      wx = w * x2,
+      wy = w * y2,
+      wz = w * z2,
+
+      sx = s[0],
+      sy = s[1],
+      sz = s[2],
+
+      ox = o[0],
+      oy = o[1],
+      oz = o[2];
+
+  out[0] = (1 - (yy + zz)) * sx;
+  out[1] = (xy + wz) * sx;
+  out[2] = (xz - wy) * sx;
+  out[3] = 0;
+  out[4] = (xy - wz) * sy;
+  out[5] = (1 - (xx + zz)) * sy;
+  out[6] = (yz + wx) * sy;
+  out[7] = 0;
+  out[8] = (xz + wy) * sz;
+  out[9] = (yz - wx) * sz;
+  out[10] = (1 - (xx + yy)) * sz;
+  out[11] = 0;
+  out[12] = v[0] + ox - (out[0] * ox + out[4] * oy + out[8] * oz);
+  out[13] = v[1] + oy - (out[1] * ox + out[5] * oy + out[9] * oz);
+  out[14] = v[2] + oz - (out[2] * ox + out[6] * oy + out[10] * oz);
+  out[15] = 1;
+
+  return out;
+};
+
+/**
+ * Calculates a 4x4 matrix from the given quaternion
+ *
+ * @param {mat4} out mat4 receiving operation result
+ * @param {quat} q Quaternion to create matrix from
+ *
+ * @returns {mat4} out
+ */
+mat4.fromQuat = function (out, q) {
+    var x = q[0], y = q[1], z = q[2], w = q[3],
+        x2 = x + x,
+        y2 = y + y,
+        z2 = z + z,
+
+        xx = x * x2,
+        yx = y * x2,
+        yy = y * y2,
+        zx = z * x2,
+        zy = z * y2,
+        zz = z * z2,
+        wx = w * x2,
+        wy = w * y2,
+        wz = w * z2;
+
+    out[0] = 1 - yy - zz;
+    out[1] = yx + wz;
+    out[2] = zx - wy;
+    out[3] = 0;
+
+    out[4] = yx - wz;
+    out[5] = 1 - xx - zz;
+    out[6] = zy + wx;
+    out[7] = 0;
+
+    out[8] = zx + wy;
+    out[9] = zy - wx;
+    out[10] = 1 - xx - yy;
+    out[11] = 0;
+
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+
+    return out;
+};
+
+/**
+ * Generates a frustum matrix with the given bounds
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {Number} left Left bound of the frustum
+ * @param {Number} right Right bound of the frustum
+ * @param {Number} bottom Bottom bound of the frustum
+ * @param {Number} top Top bound of the frustum
+ * @param {Number} near Near bound of the frustum
+ * @param {Number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+mat4.frustum = function (out, left, right, bottom, top, near, far) {
+    var rl = 1 / (right - left),
+        tb = 1 / (top - bottom),
+        nf = 1 / (near - far);
+    out[0] = (near * 2) * rl;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = (near * 2) * tb;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = (right + left) * rl;
+    out[9] = (top + bottom) * tb;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (far * near * 2) * nf;
+    out[15] = 0;
+    return out;
+};
+
+/**
+ * Generates a perspective projection matrix with the given bounds
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {number} fovy Vertical field of view in radians
+ * @param {number} aspect Aspect ratio. typically viewport width/height
+ * @param {number} near Near bound of the frustum
+ * @param {number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+mat4.perspective = function (out, fovy, aspect, near, far) {
+    var f = 1.0 / Math.tan(fovy / 2),
+        nf = 1 / (near - far);
+    out[0] = f / aspect;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (2 * far * near) * nf;
+    out[15] = 0;
+    return out;
+};
+
+/**
+ * Generates a perspective projection matrix with the given field of view.
+ * This is primarily useful for generating projection matrices to be used
+ * with the still experiemental WebVR API.
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {Object} fov Object containing the following values: upDegrees, downDegrees, leftDegrees, rightDegrees
+ * @param {number} near Near bound of the frustum
+ * @param {number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+mat4.perspectiveFromFieldOfView = function (out, fov, near, far) {
+    var upTan = Math.tan(fov.upDegrees * Math.PI/180.0),
+        downTan = Math.tan(fov.downDegrees * Math.PI/180.0),
+        leftTan = Math.tan(fov.leftDegrees * Math.PI/180.0),
+        rightTan = Math.tan(fov.rightDegrees * Math.PI/180.0),
+        xScale = 2.0 / (leftTan + rightTan),
+        yScale = 2.0 / (upTan + downTan);
+
+    out[0] = xScale;
+    out[1] = 0.0;
+    out[2] = 0.0;
+    out[3] = 0.0;
+    out[4] = 0.0;
+    out[5] = yScale;
+    out[6] = 0.0;
+    out[7] = 0.0;
+    out[8] = -((leftTan - rightTan) * xScale * 0.5);
+    out[9] = ((upTan - downTan) * yScale * 0.5);
+    out[10] = far / (near - far);
+    out[11] = -1.0;
+    out[12] = 0.0;
+    out[13] = 0.0;
+    out[14] = (far * near) / (near - far);
+    out[15] = 0.0;
+    return out;
+}
+
+/**
+ * Generates a orthogonal projection matrix with the given bounds
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {number} left Left bound of the frustum
+ * @param {number} right Right bound of the frustum
+ * @param {number} bottom Bottom bound of the frustum
+ * @param {number} top Top bound of the frustum
+ * @param {number} near Near bound of the frustum
+ * @param {number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+mat4.ortho = function (out, left, right, bottom, top, near, far) {
+    var lr = 1 / (left - right),
+        bt = 1 / (bottom - top),
+        nf = 1 / (near - far);
+    out[0] = -2 * lr;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = -2 * bt;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 2 * nf;
+    out[11] = 0;
+    out[12] = (left + right) * lr;
+    out[13] = (top + bottom) * bt;
+    out[14] = (far + near) * nf;
+    out[15] = 1;
+    return out;
+};
+
+/**
+ * Generates a look-at matrix with the given eye position, focal point, and up axis
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {vec3} eye Position of the viewer
+ * @param {vec3} center Point the viewer is looking at
+ * @param {vec3} up vec3 pointing up
+ * @returns {mat4} out
+ */
+mat4.lookAt = function (out, eye, center, up) {
+    var x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
+        eyex = eye[0],
+        eyey = eye[1],
+        eyez = eye[2],
+        upx = up[0],
+        upy = up[1],
+        upz = up[2],
+        centerx = center[0],
+        centery = center[1],
+        centerz = center[2];
+
+    if (Math.abs(eyex - centerx) < glMatrix.EPSILON &&
+        Math.abs(eyey - centery) < glMatrix.EPSILON &&
+        Math.abs(eyez - centerz) < glMatrix.EPSILON) {
+        return mat4.identity(out);
+    }
+
+    z0 = eyex - centerx;
+    z1 = eyey - centery;
+    z2 = eyez - centerz;
+
+    len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
+    z0 *= len;
+    z1 *= len;
+    z2 *= len;
+
+    x0 = upy * z2 - upz * z1;
+    x1 = upz * z0 - upx * z2;
+    x2 = upx * z1 - upy * z0;
+    len = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
+    if (!len) {
+        x0 = 0;
+        x1 = 0;
+        x2 = 0;
+    } else {
+        len = 1 / len;
+        x0 *= len;
+        x1 *= len;
+        x2 *= len;
+    }
+
+    y0 = z1 * x2 - z2 * x1;
+    y1 = z2 * x0 - z0 * x2;
+    y2 = z0 * x1 - z1 * x0;
+
+    len = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
+    if (!len) {
+        y0 = 0;
+        y1 = 0;
+        y2 = 0;
+    } else {
+        len = 1 / len;
+        y0 *= len;
+        y1 *= len;
+        y2 *= len;
+    }
+
+    out[0] = x0;
+    out[1] = y0;
+    out[2] = z0;
+    out[3] = 0;
+    out[4] = x1;
+    out[5] = y1;
+    out[6] = z1;
+    out[7] = 0;
+    out[8] = x2;
+    out[9] = y2;
+    out[10] = z2;
+    out[11] = 0;
+    out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
+    out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
+    out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
+    out[15] = 1;
+
+    return out;
+};
+
+/**
+ * Returns a string representation of a mat4
+ *
+ * @param {mat4} mat matrix to represent as a string
+ * @returns {String} string representation of the matrix
+ */
+mat4.str = function (a) {
+    return 'mat4(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' +
+                    a[4] + ', ' + a[5] + ', ' + a[6] + ', ' + a[7] + ', ' +
+                    a[8] + ', ' + a[9] + ', ' + a[10] + ', ' + a[11] + ', ' +
+                    a[12] + ', ' + a[13] + ', ' + a[14] + ', ' + a[15] + ')';
+};
+
+/**
+ * Returns Frobenius norm of a mat4
+ *
+ * @param {mat4} a the matrix to calculate Frobenius norm of
+ * @returns {Number} Frobenius norm
+ */
+mat4.frob = function (a) {
+    return(Math.sqrt(Math.pow(a[0], 2) + Math.pow(a[1], 2) + Math.pow(a[2], 2) + Math.pow(a[3], 2) + Math.pow(a[4], 2) + Math.pow(a[5], 2) + Math.pow(a[6], 2) + Math.pow(a[7], 2) + Math.pow(a[8], 2) + Math.pow(a[9], 2) + Math.pow(a[10], 2) + Math.pow(a[11], 2) + Math.pow(a[12], 2) + Math.pow(a[13], 2) + Math.pow(a[14], 2) + Math.pow(a[15], 2) ))
+};
+
+/**
+ * Adds two mat4's
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the first operand
+ * @param {mat4} b the second operand
+ * @returns {mat4} out
+ */
+mat4.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    out[4] = a[4] + b[4];
+    out[5] = a[5] + b[5];
+    out[6] = a[6] + b[6];
+    out[7] = a[7] + b[7];
+    out[8] = a[8] + b[8];
+    out[9] = a[9] + b[9];
+    out[10] = a[10] + b[10];
+    out[11] = a[11] + b[11];
+    out[12] = a[12] + b[12];
+    out[13] = a[13] + b[13];
+    out[14] = a[14] + b[14];
+    out[15] = a[15] + b[15];
+    return out;
+};
+
+/**
+ * Subtracts matrix b from matrix a
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the first operand
+ * @param {mat4} b the second operand
+ * @returns {mat4} out
+ */
+mat4.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    out[3] = a[3] - b[3];
+    out[4] = a[4] - b[4];
+    out[5] = a[5] - b[5];
+    out[6] = a[6] - b[6];
+    out[7] = a[7] - b[7];
+    out[8] = a[8] - b[8];
+    out[9] = a[9] - b[9];
+    out[10] = a[10] - b[10];
+    out[11] = a[11] - b[11];
+    out[12] = a[12] - b[12];
+    out[13] = a[13] - b[13];
+    out[14] = a[14] - b[14];
+    out[15] = a[15] - b[15];
+    return out;
+};
+
+/**
+ * Alias for {@link mat4.subtract}
+ * @function
+ */
+mat4.sub = mat4.subtract;
+
+/**
+ * Multiply each element of the matrix by a scalar.
+ *
+ * @param {mat4} out the receiving matrix
+ * @param {mat4} a the matrix to scale
+ * @param {Number} b amount to scale the matrix's elements by
+ * @returns {mat4} out
+ */
+mat4.multiplyScalar = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    out[3] = a[3] * b;
+    out[4] = a[4] * b;
+    out[5] = a[5] * b;
+    out[6] = a[6] * b;
+    out[7] = a[7] * b;
+    out[8] = a[8] * b;
+    out[9] = a[9] * b;
+    out[10] = a[10] * b;
+    out[11] = a[11] * b;
+    out[12] = a[12] * b;
+    out[13] = a[13] * b;
+    out[14] = a[14] * b;
+    out[15] = a[15] * b;
+    return out;
+};
+
+/**
+ * Adds two mat4's after multiplying each element of the second operand by a scalar value.
+ *
+ * @param {mat4} out the receiving vector
+ * @param {mat4} a the first operand
+ * @param {mat4} b the second operand
+ * @param {Number} scale the amount to scale b's elements by before adding
+ * @returns {mat4} out
+ */
+mat4.multiplyScalarAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    out[3] = a[3] + (b[3] * scale);
+    out[4] = a[4] + (b[4] * scale);
+    out[5] = a[5] + (b[5] * scale);
+    out[6] = a[6] + (b[6] * scale);
+    out[7] = a[7] + (b[7] * scale);
+    out[8] = a[8] + (b[8] * scale);
+    out[9] = a[9] + (b[9] * scale);
+    out[10] = a[10] + (b[10] * scale);
+    out[11] = a[11] + (b[11] * scale);
+    out[12] = a[12] + (b[12] * scale);
+    out[13] = a[13] + (b[13] * scale);
+    out[14] = a[14] + (b[14] * scale);
+    out[15] = a[15] + (b[15] * scale);
+    return out;
+};
+
+/**
+ * Returns whether or not the matrices have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {mat4} a The first matrix.
+ * @param {mat4} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat4.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] &&
+           a[4] === b[4] && a[5] === b[5] && a[6] === b[6] && a[7] === b[7] &&
+           a[8] === b[8] && a[9] === b[9] && a[10] === b[10] && a[11] === b[11] &&
+           a[12] === b[12] && a[13] === b[13] && a[14] === b[14] && a[15] === b[15];
+};
+
+/**
+ * Returns whether or not the matrices have approximately the same elements in the same position.
+ *
+ * @param {mat4} a The first matrix.
+ * @param {mat4} b The second matrix.
+ * @returns {Boolean} True if the matrices are equal, false otherwise.
+ */
+mat4.equals = function (a, b) {
+    var a0  = a[0],  a1  = a[1],  a2  = a[2],  a3  = a[3],
+        a4  = a[4],  a5  = a[5],  a6  = a[6],  a7  = a[7],
+        a8  = a[8],  a9  = a[9],  a10 = a[10], a11 = a[11],
+        a12 = a[12], a13 = a[13], a14 = a[14], a15 = a[15];
+
+    var b0  = b[0],  b1  = b[1],  b2  = b[2],  b3  = b[3],
+        b4  = b[4],  b5  = b[5],  b6  = b[6],  b7  = b[7],
+        b8  = b[8],  b9  = b[9],  b10 = b[10], b11 = b[11],
+        b12 = b[12], b13 = b[13], b14 = b[14], b15 = b[15];
+
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+            Math.abs(a3 - b3) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+            Math.abs(a4 - b4) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+            Math.abs(a5 - b5) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+            Math.abs(a6 - b6) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+            Math.abs(a7 - b7) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+            Math.abs(a8 - b8) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a8), Math.abs(b8)) &&
+            Math.abs(a9 - b9) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a9), Math.abs(b9)) &&
+            Math.abs(a10 - b10) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a10), Math.abs(b10)) &&
+            Math.abs(a11 - b11) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a11), Math.abs(b11)) &&
+            Math.abs(a12 - b12) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a12), Math.abs(b12)) &&
+            Math.abs(a13 - b13) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a13), Math.abs(b13)) &&
+            Math.abs(a14 - b14) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a14), Math.abs(b14)) &&
+            Math.abs(a15 - b15) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a15), Math.abs(b15)));
+};
+
+
+
+module.exports = mat4;
+
+},{"./common.js":5}],10:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+var mat3 = require("./mat3.js");
+var vec3 = require("./vec3.js");
+var vec4 = require("./vec4.js");
+
+/**
+ * @class Quaternion
+ * @name quat
+ */
+var quat = {};
+
+/**
+ * Creates a new identity quat
+ *
+ * @returns {quat} a new quaternion
+ */
+quat.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    return out;
+};
+
+/**
+ * Sets a quaternion to represent the shortest rotation from one
+ * vector to another.
+ *
+ * Both vectors are assumed to be unit length.
+ *
+ * @param {quat} out the receiving quaternion.
+ * @param {vec3} a the initial vector
+ * @param {vec3} b the destination vector
+ * @returns {quat} out
+ */
+quat.rotationTo = (function() {
+    var tmpvec3 = vec3.create();
+    var xUnitVec3 = vec3.fromValues(1,0,0);
+    var yUnitVec3 = vec3.fromValues(0,1,0);
+
+    return function(out, a, b) {
+        var dot = vec3.dot(a, b);
+        if (dot < -0.999999) {
+            vec3.cross(tmpvec3, xUnitVec3, a);
+            if (vec3.length(tmpvec3) < 0.000001)
+                vec3.cross(tmpvec3, yUnitVec3, a);
+            vec3.normalize(tmpvec3, tmpvec3);
+            quat.setAxisAngle(out, tmpvec3, Math.PI);
+            return out;
+        } else if (dot > 0.999999) {
+            out[0] = 0;
+            out[1] = 0;
+            out[2] = 0;
+            out[3] = 1;
+            return out;
+        } else {
+            vec3.cross(tmpvec3, a, b);
+            out[0] = tmpvec3[0];
+            out[1] = tmpvec3[1];
+            out[2] = tmpvec3[2];
+            out[3] = 1 + dot;
+            return quat.normalize(out, out);
+        }
+    };
+})();
+
+/**
+ * Sets the specified quaternion with values corresponding to the given
+ * axes. Each axis is a vec3 and is expected to be unit length and
+ * perpendicular to all other specified axes.
+ *
+ * @param {vec3} view  the vector representing the viewing direction
+ * @param {vec3} right the vector representing the local "right" direction
+ * @param {vec3} up    the vector representing the local "up" direction
+ * @returns {quat} out
+ */
+quat.setAxes = (function() {
+    var matr = mat3.create();
+
+    return function(out, view, right, up) {
+        matr[0] = right[0];
+        matr[3] = right[1];
+        matr[6] = right[2];
+
+        matr[1] = up[0];
+        matr[4] = up[1];
+        matr[7] = up[2];
+
+        matr[2] = -view[0];
+        matr[5] = -view[1];
+        matr[8] = -view[2];
+
+        return quat.normalize(out, quat.fromMat3(out, matr));
+    };
+})();
+
+/**
+ * Creates a new quat initialized with values from an existing quaternion
+ *
+ * @param {quat} a quaternion to clone
+ * @returns {quat} a new quaternion
+ * @function
+ */
+quat.clone = vec4.clone;
+
+/**
+ * Creates a new quat initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @param {Number} w W component
+ * @returns {quat} a new quaternion
+ * @function
+ */
+quat.fromValues = vec4.fromValues;
+
+/**
+ * Copy the values from one quat to another
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the source quaternion
+ * @returns {quat} out
+ * @function
+ */
+quat.copy = vec4.copy;
+
+/**
+ * Set the components of a quat to the given values
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @param {Number} w W component
+ * @returns {quat} out
+ * @function
+ */
+quat.set = vec4.set;
+
+/**
+ * Set a quat to the identity quaternion
+ *
+ * @param {quat} out the receiving quaternion
+ * @returns {quat} out
+ */
+quat.identity = function(out) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 1;
+    return out;
+};
+
+/**
+ * Sets a quat from the given angle and rotation axis,
+ * then returns it.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {vec3} axis the axis around which to rotate
+ * @param {Number} rad the angle in radians
+ * @returns {quat} out
+ **/
+quat.setAxisAngle = function(out, axis, rad) {
+    rad = rad * 0.5;
+    var s = Math.sin(rad);
+    out[0] = s * axis[0];
+    out[1] = s * axis[1];
+    out[2] = s * axis[2];
+    out[3] = Math.cos(rad);
+    return out;
+};
+
+/**
+ * Gets the rotation axis and angle for a given
+ *  quaternion. If a quaternion is created with
+ *  setAxisAngle, this method will return the same
+ *  values as providied in the original parameter list
+ *  OR functionally equivalent values.
+ * Example: The quaternion formed by axis [0, 0, 1] and
+ *  angle -90 is the same as the quaternion formed by
+ *  [0, 0, 1] and 270. This method favors the latter.
+ * @param  {vec3} out_axis  Vector receiving the axis of rotation
+ * @param  {quat} q     Quaternion to be decomposed
+ * @return {Number}     Angle, in radians, of the rotation
+ */
+quat.getAxisAngle = function(out_axis, q) {
+    var rad = Math.acos(q[3]) * 2.0;
+    var s = Math.sin(rad / 2.0);
+    if (s != 0.0) {
+        out_axis[0] = q[0] / s;
+        out_axis[1] = q[1] / s;
+        out_axis[2] = q[2] / s;
+    } else {
+        // If s is zero, return any axis (no rotation - axis does not matter)
+        out_axis[0] = 1;
+        out_axis[1] = 0;
+        out_axis[2] = 0;
+    }
+    return rad;
+};
+
+/**
+ * Adds two quat's
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @returns {quat} out
+ * @function
+ */
+quat.add = vec4.add;
+
+/**
+ * Multiplies two quat's
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @returns {quat} out
+ */
+quat.multiply = function(out, a, b) {
+    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
+        bx = b[0], by = b[1], bz = b[2], bw = b[3];
+
+    out[0] = ax * bw + aw * bx + ay * bz - az * by;
+    out[1] = ay * bw + aw * by + az * bx - ax * bz;
+    out[2] = az * bw + aw * bz + ax * by - ay * bx;
+    out[3] = aw * bw - ax * bx - ay * by - az * bz;
+    return out;
+};
+
+/**
+ * Alias for {@link quat.multiply}
+ * @function
+ */
+quat.mul = quat.multiply;
+
+/**
+ * Scales a quat by a scalar number
+ *
+ * @param {quat} out the receiving vector
+ * @param {quat} a the vector to scale
+ * @param {Number} b amount to scale the vector by
+ * @returns {quat} out
+ * @function
+ */
+quat.scale = vec4.scale;
+
+/**
+ * Rotates a quaternion by the given angle about the X axis
+ *
+ * @param {quat} out quat receiving operation result
+ * @param {quat} a quat to rotate
+ * @param {number} rad angle (in radians) to rotate
+ * @returns {quat} out
+ */
+quat.rotateX = function (out, a, rad) {
+    rad *= 0.5;
+
+    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
+        bx = Math.sin(rad), bw = Math.cos(rad);
+
+    out[0] = ax * bw + aw * bx;
+    out[1] = ay * bw + az * bx;
+    out[2] = az * bw - ay * bx;
+    out[3] = aw * bw - ax * bx;
+    return out;
+};
+
+/**
+ * Rotates a quaternion by the given angle about the Y axis
+ *
+ * @param {quat} out quat receiving operation result
+ * @param {quat} a quat to rotate
+ * @param {number} rad angle (in radians) to rotate
+ * @returns {quat} out
+ */
+quat.rotateY = function (out, a, rad) {
+    rad *= 0.5;
+
+    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
+        by = Math.sin(rad), bw = Math.cos(rad);
+
+    out[0] = ax * bw - az * by;
+    out[1] = ay * bw + aw * by;
+    out[2] = az * bw + ax * by;
+    out[3] = aw * bw - ay * by;
+    return out;
+};
+
+/**
+ * Rotates a quaternion by the given angle about the Z axis
+ *
+ * @param {quat} out quat receiving operation result
+ * @param {quat} a quat to rotate
+ * @param {number} rad angle (in radians) to rotate
+ * @returns {quat} out
+ */
+quat.rotateZ = function (out, a, rad) {
+    rad *= 0.5;
+
+    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
+        bz = Math.sin(rad), bw = Math.cos(rad);
+
+    out[0] = ax * bw + ay * bz;
+    out[1] = ay * bw - ax * bz;
+    out[2] = az * bw + aw * bz;
+    out[3] = aw * bw - az * bz;
+    return out;
+};
+
+/**
+ * Calculates the W component of a quat from the X, Y, and Z components.
+ * Assumes that quaternion is 1 unit in length.
+ * Any existing W component will be ignored.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a quat to calculate W component of
+ * @returns {quat} out
+ */
+quat.calculateW = function (out, a) {
+    var x = a[0], y = a[1], z = a[2];
+
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = Math.sqrt(Math.abs(1.0 - x * x - y * y - z * z));
+    return out;
+};
+
+/**
+ * Calculates the dot product of two quat's
+ *
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @returns {Number} dot product of a and b
+ * @function
+ */
+quat.dot = vec4.dot;
+
+/**
+ * Performs a linear interpolation between two quat's
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {quat} out
+ * @function
+ */
+quat.lerp = vec4.lerp;
+
+/**
+ * Performs a spherical linear interpolation between two quat
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {quat} out
+ */
+quat.slerp = function (out, a, b, t) {
+    // benchmarks:
+    //    http://jsperf.com/quaternion-slerp-implementations
+
+    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
+        bx = b[0], by = b[1], bz = b[2], bw = b[3];
+
+    var        omega, cosom, sinom, scale0, scale1;
+
+    // calc cosine
+    cosom = ax * bx + ay * by + az * bz + aw * bw;
+    // adjust signs (if necessary)
+    if ( cosom < 0.0 ) {
+        cosom = -cosom;
+        bx = - bx;
+        by = - by;
+        bz = - bz;
+        bw = - bw;
+    }
+    // calculate coefficients
+    if ( (1.0 - cosom) > 0.000001 ) {
+        // standard case (slerp)
+        omega  = Math.acos(cosom);
+        sinom  = Math.sin(omega);
+        scale0 = Math.sin((1.0 - t) * omega) / sinom;
+        scale1 = Math.sin(t * omega) / sinom;
+    } else {
+        // "from" and "to" quaternions are very close
+        //  ... so we can do a linear interpolation
+        scale0 = 1.0 - t;
+        scale1 = t;
+    }
+    // calculate final values
+    out[0] = scale0 * ax + scale1 * bx;
+    out[1] = scale0 * ay + scale1 * by;
+    out[2] = scale0 * az + scale1 * bz;
+    out[3] = scale0 * aw + scale1 * bw;
+
+    return out;
+};
+
+/**
+ * Performs a spherical linear interpolation with two control points
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @param {quat} c the third operand
+ * @param {quat} d the fourth operand
+ * @param {Number} t interpolation amount
+ * @returns {quat} out
+ */
+quat.sqlerp = (function () {
+  var temp1 = quat.create();
+  var temp2 = quat.create();
+
+  return function (out, a, b, c, d, t) {
+    quat.slerp(temp1, a, d, t);
+    quat.slerp(temp2, b, c, t);
+    quat.slerp(out, temp1, temp2, 2 * t * (1 - t));
+
+    return out;
+  };
+}());
+
+/**
+ * Calculates the inverse of a quat
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a quat to calculate inverse of
+ * @returns {quat} out
+ */
+quat.invert = function(out, a) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+        dot = a0*a0 + a1*a1 + a2*a2 + a3*a3,
+        invDot = dot ? 1.0/dot : 0;
+
+    // TODO: Would be faster to return [0,0,0,0] immediately if dot == 0
+
+    out[0] = -a0*invDot;
+    out[1] = -a1*invDot;
+    out[2] = -a2*invDot;
+    out[3] = a3*invDot;
+    return out;
+};
+
+/**
+ * Calculates the conjugate of a quat
+ * If the quaternion is normalized, this function is faster than quat.inverse and produces the same result.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a quat to calculate conjugate of
+ * @returns {quat} out
+ */
+quat.conjugate = function (out, a) {
+    out[0] = -a[0];
+    out[1] = -a[1];
+    out[2] = -a[2];
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Calculates the length of a quat
+ *
+ * @param {quat} a vector to calculate length of
+ * @returns {Number} length of a
+ * @function
+ */
+quat.length = vec4.length;
+
+/**
+ * Alias for {@link quat.length}
+ * @function
+ */
+quat.len = quat.length;
+
+/**
+ * Calculates the squared length of a quat
+ *
+ * @param {quat} a vector to calculate squared length of
+ * @returns {Number} squared length of a
+ * @function
+ */
+quat.squaredLength = vec4.squaredLength;
+
+/**
+ * Alias for {@link quat.squaredLength}
+ * @function
+ */
+quat.sqrLen = quat.squaredLength;
+
+/**
+ * Normalize a quat
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a quaternion to normalize
+ * @returns {quat} out
+ * @function
+ */
+quat.normalize = vec4.normalize;
+
+/**
+ * Creates a quaternion from the given 3x3 rotation matrix.
+ *
+ * NOTE: The resultant quaternion is not normalized, so you should be sure
+ * to renormalize the quaternion yourself where necessary.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {mat3} m rotation matrix
+ * @returns {quat} out
+ * @function
+ */
+quat.fromMat3 = function(out, m) {
+    // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
+    // article "Quaternion Calculus and Fast Animation".
+    var fTrace = m[0] + m[4] + m[8];
+    var fRoot;
+
+    if ( fTrace > 0.0 ) {
+        // |w| > 1/2, may as well choose w > 1/2
+        fRoot = Math.sqrt(fTrace + 1.0);  // 2w
+        out[3] = 0.5 * fRoot;
+        fRoot = 0.5/fRoot;  // 1/(4w)
+        out[0] = (m[5]-m[7])*fRoot;
+        out[1] = (m[6]-m[2])*fRoot;
+        out[2] = (m[1]-m[3])*fRoot;
+    } else {
+        // |w| <= 1/2
+        var i = 0;
+        if ( m[4] > m[0] )
+          i = 1;
+        if ( m[8] > m[i*3+i] )
+          i = 2;
+        var j = (i+1)%3;
+        var k = (i+2)%3;
+
+        fRoot = Math.sqrt(m[i*3+i]-m[j*3+j]-m[k*3+k] + 1.0);
+        out[i] = 0.5 * fRoot;
+        fRoot = 0.5 / fRoot;
+        out[3] = (m[j*3+k] - m[k*3+j]) * fRoot;
+        out[j] = (m[j*3+i] + m[i*3+j]) * fRoot;
+        out[k] = (m[k*3+i] + m[i*3+k]) * fRoot;
+    }
+
+    return out;
+};
+
+/**
+ * Returns a string representation of a quatenion
+ *
+ * @param {quat} vec vector to represent as a string
+ * @returns {String} string representation of the vector
+ */
+quat.str = function (a) {
+    return 'quat(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+};
+
+/**
+ * Returns whether or not the quaternions have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {quat} a The first quaternion.
+ * @param {quat} b The second quaternion.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+quat.exactEquals = vec4.exactEquals;
+
+/**
+ * Returns whether or not the quaternions have approximately the same elements in the same position.
+ *
+ * @param {quat} a The first vector.
+ * @param {quat} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+quat.equals = vec4.equals;
+
+module.exports = quat;
+
+},{"./common.js":5,"./mat3.js":8,"./vec3.js":12,"./vec4.js":13}],11:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 2 Dimensional Vector
+ * @name vec2
+ */
+var vec2 = {};
+
+/**
+ * Creates a new, empty vec2
+ *
+ * @returns {vec2} a new 2D vector
+ */
+vec2.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(2);
+    out[0] = 0;
+    out[1] = 0;
+    return out;
+};
+
+/**
+ * Creates a new vec2 initialized with values from an existing vector
+ *
+ * @param {vec2} a vector to clone
+ * @returns {vec2} a new 2D vector
+ */
+vec2.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(2);
+    out[0] = a[0];
+    out[1] = a[1];
+    return out;
+};
+
+/**
+ * Creates a new vec2 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @returns {vec2} a new 2D vector
+ */
+vec2.fromValues = function(x, y) {
+    var out = new glMatrix.ARRAY_TYPE(2);
+    out[0] = x;
+    out[1] = y;
+    return out;
+};
+
+/**
+ * Copy the values from one vec2 to another
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the source vector
+ * @returns {vec2} out
+ */
+vec2.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    return out;
+};
+
+/**
+ * Set the components of a vec2 to the given values
+ *
+ * @param {vec2} out the receiving vector
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @returns {vec2} out
+ */
+vec2.set = function(out, x, y) {
+    out[0] = x;
+    out[1] = y;
+    return out;
+};
+
+/**
+ * Adds two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    return out;
+};
+
+/**
+ * Subtracts vector b from vector a
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    return out;
+};
+
+/**
+ * Alias for {@link vec2.subtract}
+ * @function
+ */
+vec2.sub = vec2.subtract;
+
+/**
+ * Multiplies two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.multiply = function(out, a, b) {
+    out[0] = a[0] * b[0];
+    out[1] = a[1] * b[1];
+    return out;
+};
+
+/**
+ * Alias for {@link vec2.multiply}
+ * @function
+ */
+vec2.mul = vec2.multiply;
+
+/**
+ * Divides two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.divide = function(out, a, b) {
+    out[0] = a[0] / b[0];
+    out[1] = a[1] / b[1];
+    return out;
+};
+
+/**
+ * Alias for {@link vec2.divide}
+ * @function
+ */
+vec2.div = vec2.divide;
+
+/**
+ * Math.ceil the components of a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to ceil
+ * @returns {vec2} out
+ */
+vec2.ceil = function (out, a) {
+    out[0] = Math.ceil(a[0]);
+    out[1] = Math.ceil(a[1]);
+    return out;
+};
+
+/**
+ * Math.floor the components of a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to floor
+ * @returns {vec2} out
+ */
+vec2.floor = function (out, a) {
+    out[0] = Math.floor(a[0]);
+    out[1] = Math.floor(a[1]);
+    return out;
+};
+
+/**
+ * Returns the minimum of two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.min = function(out, a, b) {
+    out[0] = Math.min(a[0], b[0]);
+    out[1] = Math.min(a[1], b[1]);
+    return out;
+};
+
+/**
+ * Returns the maximum of two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec2} out
+ */
+vec2.max = function(out, a, b) {
+    out[0] = Math.max(a[0], b[0]);
+    out[1] = Math.max(a[1], b[1]);
+    return out;
+};
+
+/**
+ * Math.round the components of a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to round
+ * @returns {vec2} out
+ */
+vec2.round = function (out, a) {
+    out[0] = Math.round(a[0]);
+    out[1] = Math.round(a[1]);
+    return out;
+};
+
+/**
+ * Scales a vec2 by a scalar number
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the vector to scale
+ * @param {Number} b amount to scale the vector by
+ * @returns {vec2} out
+ */
+vec2.scale = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    return out;
+};
+
+/**
+ * Adds two vec2's after scaling the second operand by a scalar value
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @param {Number} scale the amount to scale b by before adding
+ * @returns {vec2} out
+ */
+vec2.scaleAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    return out;
+};
+
+/**
+ * Calculates the euclidian distance between two vec2's
+ *
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {Number} distance between a and b
+ */
+vec2.distance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1];
+    return Math.sqrt(x*x + y*y);
+};
+
+/**
+ * Alias for {@link vec2.distance}
+ * @function
+ */
+vec2.dist = vec2.distance;
+
+/**
+ * Calculates the squared euclidian distance between two vec2's
+ *
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {Number} squared distance between a and b
+ */
+vec2.squaredDistance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1];
+    return x*x + y*y;
+};
+
+/**
+ * Alias for {@link vec2.squaredDistance}
+ * @function
+ */
+vec2.sqrDist = vec2.squaredDistance;
+
+/**
+ * Calculates the length of a vec2
+ *
+ * @param {vec2} a vector to calculate length of
+ * @returns {Number} length of a
+ */
+vec2.length = function (a) {
+    var x = a[0],
+        y = a[1];
+    return Math.sqrt(x*x + y*y);
+};
+
+/**
+ * Alias for {@link vec2.length}
+ * @function
+ */
+vec2.len = vec2.length;
+
+/**
+ * Calculates the squared length of a vec2
+ *
+ * @param {vec2} a vector to calculate squared length of
+ * @returns {Number} squared length of a
+ */
+vec2.squaredLength = function (a) {
+    var x = a[0],
+        y = a[1];
+    return x*x + y*y;
+};
+
+/**
+ * Alias for {@link vec2.squaredLength}
+ * @function
+ */
+vec2.sqrLen = vec2.squaredLength;
+
+/**
+ * Negates the components of a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to negate
+ * @returns {vec2} out
+ */
+vec2.negate = function(out, a) {
+    out[0] = -a[0];
+    out[1] = -a[1];
+    return out;
+};
+
+/**
+ * Returns the inverse of the components of a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to invert
+ * @returns {vec2} out
+ */
+vec2.inverse = function(out, a) {
+  out[0] = 1.0 / a[0];
+  out[1] = 1.0 / a[1];
+  return out;
+};
+
+/**
+ * Normalize a vec2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a vector to normalize
+ * @returns {vec2} out
+ */
+vec2.normalize = function(out, a) {
+    var x = a[0],
+        y = a[1];
+    var len = x*x + y*y;
+    if (len > 0) {
+        //TODO: evaluate use of glm_invsqrt here?
+        len = 1 / Math.sqrt(len);
+        out[0] = a[0] * len;
+        out[1] = a[1] * len;
+    }
+    return out;
+};
+
+/**
+ * Calculates the dot product of two vec2's
+ *
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {Number} dot product of a and b
+ */
+vec2.dot = function (a, b) {
+    return a[0] * b[0] + a[1] * b[1];
+};
+
+/**
+ * Computes the cross product of two vec2's
+ * Note that the cross product must by definition produce a 3D vector
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @returns {vec3} out
+ */
+vec2.cross = function(out, a, b) {
+    var z = a[0] * b[1] - a[1] * b[0];
+    out[0] = out[1] = 0;
+    out[2] = z;
+    return out;
+};
+
+/**
+ * Performs a linear interpolation between two vec2's
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the first operand
+ * @param {vec2} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec2} out
+ */
+vec2.lerp = function (out, a, b, t) {
+    var ax = a[0],
+        ay = a[1];
+    out[0] = ax + t * (b[0] - ax);
+    out[1] = ay + t * (b[1] - ay);
+    return out;
+};
+
+/**
+ * Generates a random vector with the given scale
+ *
+ * @param {vec2} out the receiving vector
+ * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @returns {vec2} out
+ */
+vec2.random = function (out, scale) {
+    scale = scale || 1.0;
+    var r = glMatrix.RANDOM() * 2.0 * Math.PI;
+    out[0] = Math.cos(r) * scale;
+    out[1] = Math.sin(r) * scale;
+    return out;
+};
+
+/**
+ * Transforms the vec2 with a mat2
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the vector to transform
+ * @param {mat2} m matrix to transform with
+ * @returns {vec2} out
+ */
+vec2.transformMat2 = function(out, a, m) {
+    var x = a[0],
+        y = a[1];
+    out[0] = m[0] * x + m[2] * y;
+    out[1] = m[1] * x + m[3] * y;
+    return out;
+};
+
+/**
+ * Transforms the vec2 with a mat2d
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the vector to transform
+ * @param {mat2d} m matrix to transform with
+ * @returns {vec2} out
+ */
+vec2.transformMat2d = function(out, a, m) {
+    var x = a[0],
+        y = a[1];
+    out[0] = m[0] * x + m[2] * y + m[4];
+    out[1] = m[1] * x + m[3] * y + m[5];
+    return out;
+};
+
+/**
+ * Transforms the vec2 with a mat3
+ * 3rd vector component is implicitly '1'
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the vector to transform
+ * @param {mat3} m matrix to transform with
+ * @returns {vec2} out
+ */
+vec2.transformMat3 = function(out, a, m) {
+    var x = a[0],
+        y = a[1];
+    out[0] = m[0] * x + m[3] * y + m[6];
+    out[1] = m[1] * x + m[4] * y + m[7];
+    return out;
+};
+
+/**
+ * Transforms the vec2 with a mat4
+ * 3rd vector component is implicitly '0'
+ * 4th vector component is implicitly '1'
+ *
+ * @param {vec2} out the receiving vector
+ * @param {vec2} a the vector to transform
+ * @param {mat4} m matrix to transform with
+ * @returns {vec2} out
+ */
+vec2.transformMat4 = function(out, a, m) {
+    var x = a[0],
+        y = a[1];
+    out[0] = m[0] * x + m[4] * y + m[12];
+    out[1] = m[1] * x + m[5] * y + m[13];
+    return out;
+};
+
+/**
+ * Perform some operation over an array of vec2s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec2. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec2s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+vec2.forEach = (function() {
+    var vec = vec2.create();
+
+    return function(a, stride, offset, count, fn, arg) {
+        var i, l;
+        if(!stride) {
+            stride = 2;
+        }
+
+        if(!offset) {
+            offset = 0;
+        }
+
+        if(count) {
+            l = Math.min((count * stride) + offset, a.length);
+        } else {
+            l = a.length;
+        }
+
+        for(i = offset; i < l; i += stride) {
+            vec[0] = a[i]; vec[1] = a[i+1];
+            fn(vec, vec, arg);
+            a[i] = vec[0]; a[i+1] = vec[1];
+        }
+
+        return a;
+    };
+})();
+
+/**
+ * Returns a string representation of a vector
+ *
+ * @param {vec2} vec vector to represent as a string
+ * @returns {String} string representation of the vector
+ */
+vec2.str = function (a) {
+    return 'vec2(' + a[0] + ', ' + a[1] + ')';
+};
+
+/**
+ * Returns whether or not the vectors exactly have the same elements in the same position (when compared with ===)
+ *
+ * @param {vec2} a The first vector.
+ * @param {vec2} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec2.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1];
+};
+
+/**
+ * Returns whether or not the vectors have approximately the same elements in the same position.
+ *
+ * @param {vec2} a The first vector.
+ * @param {vec2} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec2.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1];
+    var b0 = b[0], b1 = b[1];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)));
+};
+
+module.exports = vec2;
+
+},{"./common.js":5}],12:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 3 Dimensional Vector
+ * @name vec3
+ */
+var vec3 = {};
+
+/**
+ * Creates a new, empty vec3
+ *
+ * @returns {vec3} a new 3D vector
+ */
+vec3.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(3);
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    return out;
+};
+
+/**
+ * Creates a new vec3 initialized with values from an existing vector
+ *
+ * @param {vec3} a vector to clone
+ * @returns {vec3} a new 3D vector
+ */
+vec3.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(3);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    return out;
+};
+
+/**
+ * Creates a new vec3 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @returns {vec3} a new 3D vector
+ */
+vec3.fromValues = function(x, y, z) {
+    var out = new glMatrix.ARRAY_TYPE(3);
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    return out;
+};
+
+/**
+ * Copy the values from one vec3 to another
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the source vector
+ * @returns {vec3} out
+ */
+vec3.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    return out;
+};
+
+/**
+ * Set the components of a vec3 to the given values
+ *
+ * @param {vec3} out the receiving vector
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @returns {vec3} out
+ */
+vec3.set = function(out, x, y, z) {
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    return out;
+};
+
+/**
+ * Adds two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    return out;
+};
+
+/**
+ * Subtracts vector b from vector a
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    return out;
+};
+
+/**
+ * Alias for {@link vec3.subtract}
+ * @function
+ */
+vec3.sub = vec3.subtract;
+
+/**
+ * Multiplies two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.multiply = function(out, a, b) {
+    out[0] = a[0] * b[0];
+    out[1] = a[1] * b[1];
+    out[2] = a[2] * b[2];
+    return out;
+};
+
+/**
+ * Alias for {@link vec3.multiply}
+ * @function
+ */
+vec3.mul = vec3.multiply;
+
+/**
+ * Divides two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.divide = function(out, a, b) {
+    out[0] = a[0] / b[0];
+    out[1] = a[1] / b[1];
+    out[2] = a[2] / b[2];
+    return out;
+};
+
+/**
+ * Alias for {@link vec3.divide}
+ * @function
+ */
+vec3.div = vec3.divide;
+
+/**
+ * Math.ceil the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to ceil
+ * @returns {vec3} out
+ */
+vec3.ceil = function (out, a) {
+    out[0] = Math.ceil(a[0]);
+    out[1] = Math.ceil(a[1]);
+    out[2] = Math.ceil(a[2]);
+    return out;
+};
+
+/**
+ * Math.floor the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to floor
+ * @returns {vec3} out
+ */
+vec3.floor = function (out, a) {
+    out[0] = Math.floor(a[0]);
+    out[1] = Math.floor(a[1]);
+    out[2] = Math.floor(a[2]);
+    return out;
+};
+
+/**
+ * Returns the minimum of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.min = function(out, a, b) {
+    out[0] = Math.min(a[0], b[0]);
+    out[1] = Math.min(a[1], b[1]);
+    out[2] = Math.min(a[2], b[2]);
+    return out;
+};
+
+/**
+ * Returns the maximum of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.max = function(out, a, b) {
+    out[0] = Math.max(a[0], b[0]);
+    out[1] = Math.max(a[1], b[1]);
+    out[2] = Math.max(a[2], b[2]);
+    return out;
+};
+
+/**
+ * Math.round the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to round
+ * @returns {vec3} out
+ */
+vec3.round = function (out, a) {
+    out[0] = Math.round(a[0]);
+    out[1] = Math.round(a[1]);
+    out[2] = Math.round(a[2]);
+    return out;
+};
+
+/**
+ * Scales a vec3 by a scalar number
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to scale
+ * @param {Number} b amount to scale the vector by
+ * @returns {vec3} out
+ */
+vec3.scale = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    return out;
+};
+
+/**
+ * Adds two vec3's after scaling the second operand by a scalar value
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {Number} scale the amount to scale b by before adding
+ * @returns {vec3} out
+ */
+vec3.scaleAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    return out;
+};
+
+/**
+ * Calculates the euclidian distance between two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} distance between a and b
+ */
+vec3.distance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2];
+    return Math.sqrt(x*x + y*y + z*z);
+};
+
+/**
+ * Alias for {@link vec3.distance}
+ * @function
+ */
+vec3.dist = vec3.distance;
+
+/**
+ * Calculates the squared euclidian distance between two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} squared distance between a and b
+ */
+vec3.squaredDistance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2];
+    return x*x + y*y + z*z;
+};
+
+/**
+ * Alias for {@link vec3.squaredDistance}
+ * @function
+ */
+vec3.sqrDist = vec3.squaredDistance;
+
+/**
+ * Calculates the length of a vec3
+ *
+ * @param {vec3} a vector to calculate length of
+ * @returns {Number} length of a
+ */
+vec3.length = function (a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2];
+    return Math.sqrt(x*x + y*y + z*z);
+};
+
+/**
+ * Alias for {@link vec3.length}
+ * @function
+ */
+vec3.len = vec3.length;
+
+/**
+ * Calculates the squared length of a vec3
+ *
+ * @param {vec3} a vector to calculate squared length of
+ * @returns {Number} squared length of a
+ */
+vec3.squaredLength = function (a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2];
+    return x*x + y*y + z*z;
+};
+
+/**
+ * Alias for {@link vec3.squaredLength}
+ * @function
+ */
+vec3.sqrLen = vec3.squaredLength;
+
+/**
+ * Negates the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to negate
+ * @returns {vec3} out
+ */
+vec3.negate = function(out, a) {
+    out[0] = -a[0];
+    out[1] = -a[1];
+    out[2] = -a[2];
+    return out;
+};
+
+/**
+ * Returns the inverse of the components of a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to invert
+ * @returns {vec3} out
+ */
+vec3.inverse = function(out, a) {
+  out[0] = 1.0 / a[0];
+  out[1] = 1.0 / a[1];
+  out[2] = 1.0 / a[2];
+  return out;
+};
+
+/**
+ * Normalize a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to normalize
+ * @returns {vec3} out
+ */
+vec3.normalize = function(out, a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2];
+    var len = x*x + y*y + z*z;
+    if (len > 0) {
+        //TODO: evaluate use of glm_invsqrt here?
+        len = 1 / Math.sqrt(len);
+        out[0] = a[0] * len;
+        out[1] = a[1] * len;
+        out[2] = a[2] * len;
+    }
+    return out;
+};
+
+/**
+ * Calculates the dot product of two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} dot product of a and b
+ */
+vec3.dot = function (a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+};
+
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+vec3.cross = function(out, a, b) {
+    var ax = a[0], ay = a[1], az = a[2],
+        bx = b[0], by = b[1], bz = b[2];
+
+    out[0] = ay * bz - az * by;
+    out[1] = az * bx - ax * bz;
+    out[2] = ax * by - ay * bx;
+    return out;
+};
+
+/**
+ * Performs a linear interpolation between two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec3} out
+ */
+vec3.lerp = function (out, a, b, t) {
+    var ax = a[0],
+        ay = a[1],
+        az = a[2];
+    out[0] = ax + t * (b[0] - ax);
+    out[1] = ay + t * (b[1] - ay);
+    out[2] = az + t * (b[2] - az);
+    return out;
+};
+
+/**
+ * Performs a hermite interpolation with two control points
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {vec3} c the third operand
+ * @param {vec3} d the fourth operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec3} out
+ */
+vec3.hermite = function (out, a, b, c, d, t) {
+  var factorTimes2 = t * t,
+      factor1 = factorTimes2 * (2 * t - 3) + 1,
+      factor2 = factorTimes2 * (t - 2) + t,
+      factor3 = factorTimes2 * (t - 1),
+      factor4 = factorTimes2 * (3 - 2 * t);
+
+  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+  return out;
+};
+
+/**
+ * Performs a bezier interpolation with two control points
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @param {vec3} c the third operand
+ * @param {vec3} d the fourth operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec3} out
+ */
+vec3.bezier = function (out, a, b, c, d, t) {
+  var inverseFactor = 1 - t,
+      inverseFactorTimesTwo = inverseFactor * inverseFactor,
+      factorTimes2 = t * t,
+      factor1 = inverseFactorTimesTwo * inverseFactor,
+      factor2 = 3 * t * inverseFactorTimesTwo,
+      factor3 = 3 * factorTimes2 * inverseFactor,
+      factor4 = factorTimes2 * t;
+
+  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+  return out;
+};
+
+/**
+ * Generates a random vector with the given scale
+ *
+ * @param {vec3} out the receiving vector
+ * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @returns {vec3} out
+ */
+vec3.random = function (out, scale) {
+    scale = scale || 1.0;
+
+    var r = glMatrix.RANDOM() * 2.0 * Math.PI;
+    var z = (glMatrix.RANDOM() * 2.0) - 1.0;
+    var zScale = Math.sqrt(1.0-z*z) * scale;
+
+    out[0] = Math.cos(r) * zScale;
+    out[1] = Math.sin(r) * zScale;
+    out[2] = z * scale;
+    return out;
+};
+
+/**
+ * Transforms the vec3 with a mat4.
+ * 4th vector component is implicitly '1'
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {mat4} m matrix to transform with
+ * @returns {vec3} out
+ */
+vec3.transformMat4 = function(out, a, m) {
+    var x = a[0], y = a[1], z = a[2],
+        w = m[3] * x + m[7] * y + m[11] * z + m[15];
+    w = w || 1.0;
+    out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+    out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+    out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
+    return out;
+};
+
+/**
+ * Transforms the vec3 with a mat3.
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {mat4} m the 3x3 matrix to transform with
+ * @returns {vec3} out
+ */
+vec3.transformMat3 = function(out, a, m) {
+    var x = a[0], y = a[1], z = a[2];
+    out[0] = x * m[0] + y * m[3] + z * m[6];
+    out[1] = x * m[1] + y * m[4] + z * m[7];
+    out[2] = x * m[2] + y * m[5] + z * m[8];
+    return out;
+};
+
+/**
+ * Transforms the vec3 with a quat
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the vector to transform
+ * @param {quat} q quaternion to transform with
+ * @returns {vec3} out
+ */
+vec3.transformQuat = function(out, a, q) {
+    // benchmarks: http://jsperf.com/quaternion-transform-vec3-implementations
+
+    var x = a[0], y = a[1], z = a[2],
+        qx = q[0], qy = q[1], qz = q[2], qw = q[3],
+
+        // calculate quat * vec
+        ix = qw * x + qy * z - qz * y,
+        iy = qw * y + qz * x - qx * z,
+        iz = qw * z + qx * y - qy * x,
+        iw = -qx * x - qy * y - qz * z;
+
+    // calculate result * inverse quat
+    out[0] = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+    out[1] = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+    out[2] = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+    return out;
+};
+
+/**
+ * Rotate a 3D vector around the x-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+vec3.rotateX = function(out, a, b, c){
+   var p = [], r=[];
+	  //Translate point to the origin
+	  p[0] = a[0] - b[0];
+	  p[1] = a[1] - b[1];
+  	p[2] = a[2] - b[2];
+
+	  //perform rotation
+	  r[0] = p[0];
+	  r[1] = p[1]*Math.cos(c) - p[2]*Math.sin(c);
+	  r[2] = p[1]*Math.sin(c) + p[2]*Math.cos(c);
+
+	  //translate to correct position
+	  out[0] = r[0] + b[0];
+	  out[1] = r[1] + b[1];
+	  out[2] = r[2] + b[2];
+
+  	return out;
+};
+
+/**
+ * Rotate a 3D vector around the y-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+vec3.rotateY = function(out, a, b, c){
+  	var p = [], r=[];
+  	//Translate point to the origin
+  	p[0] = a[0] - b[0];
+  	p[1] = a[1] - b[1];
+  	p[2] = a[2] - b[2];
+
+  	//perform rotation
+  	r[0] = p[2]*Math.sin(c) + p[0]*Math.cos(c);
+  	r[1] = p[1];
+  	r[2] = p[2]*Math.cos(c) - p[0]*Math.sin(c);
+
+  	//translate to correct position
+  	out[0] = r[0] + b[0];
+  	out[1] = r[1] + b[1];
+  	out[2] = r[2] + b[2];
+
+  	return out;
+};
+
+/**
+ * Rotate a 3D vector around the z-axis
+ * @param {vec3} out The receiving vec3
+ * @param {vec3} a The vec3 point to rotate
+ * @param {vec3} b The origin of the rotation
+ * @param {Number} c The angle of rotation
+ * @returns {vec3} out
+ */
+vec3.rotateZ = function(out, a, b, c){
+  	var p = [], r=[];
+  	//Translate point to the origin
+  	p[0] = a[0] - b[0];
+  	p[1] = a[1] - b[1];
+  	p[2] = a[2] - b[2];
+
+  	//perform rotation
+  	r[0] = p[0]*Math.cos(c) - p[1]*Math.sin(c);
+  	r[1] = p[0]*Math.sin(c) + p[1]*Math.cos(c);
+  	r[2] = p[2];
+
+  	//translate to correct position
+  	out[0] = r[0] + b[0];
+  	out[1] = r[1] + b[1];
+  	out[2] = r[2] + b[2];
+
+  	return out;
+};
+
+/**
+ * Perform some operation over an array of vec3s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec3. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec3s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+vec3.forEach = (function() {
+    var vec = vec3.create();
+
+    return function(a, stride, offset, count, fn, arg) {
+        var i, l;
+        if(!stride) {
+            stride = 3;
+        }
+
+        if(!offset) {
+            offset = 0;
+        }
+
+        if(count) {
+            l = Math.min((count * stride) + offset, a.length);
+        } else {
+            l = a.length;
+        }
+
+        for(i = offset; i < l; i += stride) {
+            vec[0] = a[i]; vec[1] = a[i+1]; vec[2] = a[i+2];
+            fn(vec, vec, arg);
+            a[i] = vec[0]; a[i+1] = vec[1]; a[i+2] = vec[2];
+        }
+
+        return a;
+    };
+})();
+
+/**
+ * Get the angle between two 3D vectors
+ * @param {vec3} a The first operand
+ * @param {vec3} b The second operand
+ * @returns {Number} The angle in radians
+ */
+vec3.angle = function(a, b) {
+
+    var tempA = vec3.fromValues(a[0], a[1], a[2]);
+    var tempB = vec3.fromValues(b[0], b[1], b[2]);
+
+    vec3.normalize(tempA, tempA);
+    vec3.normalize(tempB, tempB);
+
+    var cosine = vec3.dot(tempA, tempB);
+
+    if(cosine > 1.0){
+        return 0;
+    } else {
+        return Math.acos(cosine);
+    }
+};
+
+/**
+ * Returns a string representation of a vector
+ *
+ * @param {vec3} vec vector to represent as a string
+ * @returns {String} string representation of the vector
+ */
+vec3.str = function (a) {
+    return 'vec3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ')';
+};
+
+/**
+ * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {vec3} a The first vector.
+ * @param {vec3} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec3.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+};
+
+/**
+ * Returns whether or not the vectors have approximately the same elements in the same position.
+ *
+ * @param {vec3} a The first vector.
+ * @param {vec3} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec3.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2];
+    var b0 = b[0], b1 = b[1], b2 = b[2];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)));
+};
+
+module.exports = vec3;
+
+},{"./common.js":5}],13:[function(require,module,exports){
+/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. */
+
+var glMatrix = require("./common.js");
+
+/**
+ * @class 4 Dimensional Vector
+ * @name vec4
+ */
+var vec4 = {};
+
+/**
+ * Creates a new, empty vec4
+ *
+ * @returns {vec4} a new 4D vector
+ */
+vec4.create = function() {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    return out;
+};
+
+/**
+ * Creates a new vec4 initialized with values from an existing vector
+ *
+ * @param {vec4} a vector to clone
+ * @returns {vec4} a new 4D vector
+ */
+vec4.clone = function(a) {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Creates a new vec4 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @param {Number} w W component
+ * @returns {vec4} a new 4D vector
+ */
+vec4.fromValues = function(x, y, z, w) {
+    var out = new glMatrix.ARRAY_TYPE(4);
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = w;
+    return out;
+};
+
+/**
+ * Copy the values from one vec4 to another
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the source vector
+ * @returns {vec4} out
+ */
+vec4.copy = function(out, a) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Set the components of a vec4 to the given values
+ *
+ * @param {vec4} out the receiving vector
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @param {Number} w W component
+ * @returns {vec4} out
+ */
+vec4.set = function(out, x, y, z, w) {
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = w;
+    return out;
+};
+
+/**
+ * Adds two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.add = function(out, a, b) {
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    return out;
+};
+
+/**
+ * Subtracts vector b from vector a
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.subtract = function(out, a, b) {
+    out[0] = a[0] - b[0];
+    out[1] = a[1] - b[1];
+    out[2] = a[2] - b[2];
+    out[3] = a[3] - b[3];
+    return out;
+};
+
+/**
+ * Alias for {@link vec4.subtract}
+ * @function
+ */
+vec4.sub = vec4.subtract;
+
+/**
+ * Multiplies two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.multiply = function(out, a, b) {
+    out[0] = a[0] * b[0];
+    out[1] = a[1] * b[1];
+    out[2] = a[2] * b[2];
+    out[3] = a[3] * b[3];
+    return out;
+};
+
+/**
+ * Alias for {@link vec4.multiply}
+ * @function
+ */
+vec4.mul = vec4.multiply;
+
+/**
+ * Divides two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.divide = function(out, a, b) {
+    out[0] = a[0] / b[0];
+    out[1] = a[1] / b[1];
+    out[2] = a[2] / b[2];
+    out[3] = a[3] / b[3];
+    return out;
+};
+
+/**
+ * Alias for {@link vec4.divide}
+ * @function
+ */
+vec4.div = vec4.divide;
+
+/**
+ * Math.ceil the components of a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to ceil
+ * @returns {vec4} out
+ */
+vec4.ceil = function (out, a) {
+    out[0] = Math.ceil(a[0]);
+    out[1] = Math.ceil(a[1]);
+    out[2] = Math.ceil(a[2]);
+    out[3] = Math.ceil(a[3]);
+    return out;
+};
+
+/**
+ * Math.floor the components of a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to floor
+ * @returns {vec4} out
+ */
+vec4.floor = function (out, a) {
+    out[0] = Math.floor(a[0]);
+    out[1] = Math.floor(a[1]);
+    out[2] = Math.floor(a[2]);
+    out[3] = Math.floor(a[3]);
+    return out;
+};
+
+/**
+ * Returns the minimum of two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.min = function(out, a, b) {
+    out[0] = Math.min(a[0], b[0]);
+    out[1] = Math.min(a[1], b[1]);
+    out[2] = Math.min(a[2], b[2]);
+    out[3] = Math.min(a[3], b[3]);
+    return out;
+};
+
+/**
+ * Returns the maximum of two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {vec4} out
+ */
+vec4.max = function(out, a, b) {
+    out[0] = Math.max(a[0], b[0]);
+    out[1] = Math.max(a[1], b[1]);
+    out[2] = Math.max(a[2], b[2]);
+    out[3] = Math.max(a[3], b[3]);
+    return out;
+};
+
+/**
+ * Math.round the components of a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to round
+ * @returns {vec4} out
+ */
+vec4.round = function (out, a) {
+    out[0] = Math.round(a[0]);
+    out[1] = Math.round(a[1]);
+    out[2] = Math.round(a[2]);
+    out[3] = Math.round(a[3]);
+    return out;
+};
+
+/**
+ * Scales a vec4 by a scalar number
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the vector to scale
+ * @param {Number} b amount to scale the vector by
+ * @returns {vec4} out
+ */
+vec4.scale = function(out, a, b) {
+    out[0] = a[0] * b;
+    out[1] = a[1] * b;
+    out[2] = a[2] * b;
+    out[3] = a[3] * b;
+    return out;
+};
+
+/**
+ * Adds two vec4's after scaling the second operand by a scalar value
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @param {Number} scale the amount to scale b by before adding
+ * @returns {vec4} out
+ */
+vec4.scaleAndAdd = function(out, a, b, scale) {
+    out[0] = a[0] + (b[0] * scale);
+    out[1] = a[1] + (b[1] * scale);
+    out[2] = a[2] + (b[2] * scale);
+    out[3] = a[3] + (b[3] * scale);
+    return out;
+};
+
+/**
+ * Calculates the euclidian distance between two vec4's
+ *
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {Number} distance between a and b
+ */
+vec4.distance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2],
+        w = b[3] - a[3];
+    return Math.sqrt(x*x + y*y + z*z + w*w);
+};
+
+/**
+ * Alias for {@link vec4.distance}
+ * @function
+ */
+vec4.dist = vec4.distance;
+
+/**
+ * Calculates the squared euclidian distance between two vec4's
+ *
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {Number} squared distance between a and b
+ */
+vec4.squaredDistance = function(a, b) {
+    var x = b[0] - a[0],
+        y = b[1] - a[1],
+        z = b[2] - a[2],
+        w = b[3] - a[3];
+    return x*x + y*y + z*z + w*w;
+};
+
+/**
+ * Alias for {@link vec4.squaredDistance}
+ * @function
+ */
+vec4.sqrDist = vec4.squaredDistance;
+
+/**
+ * Calculates the length of a vec4
+ *
+ * @param {vec4} a vector to calculate length of
+ * @returns {Number} length of a
+ */
+vec4.length = function (a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2],
+        w = a[3];
+    return Math.sqrt(x*x + y*y + z*z + w*w);
+};
+
+/**
+ * Alias for {@link vec4.length}
+ * @function
+ */
+vec4.len = vec4.length;
+
+/**
+ * Calculates the squared length of a vec4
+ *
+ * @param {vec4} a vector to calculate squared length of
+ * @returns {Number} squared length of a
+ */
+vec4.squaredLength = function (a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2],
+        w = a[3];
+    return x*x + y*y + z*z + w*w;
+};
+
+/**
+ * Alias for {@link vec4.squaredLength}
+ * @function
+ */
+vec4.sqrLen = vec4.squaredLength;
+
+/**
+ * Negates the components of a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to negate
+ * @returns {vec4} out
+ */
+vec4.negate = function(out, a) {
+    out[0] = -a[0];
+    out[1] = -a[1];
+    out[2] = -a[2];
+    out[3] = -a[3];
+    return out;
+};
+
+/**
+ * Returns the inverse of the components of a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to invert
+ * @returns {vec4} out
+ */
+vec4.inverse = function(out, a) {
+  out[0] = 1.0 / a[0];
+  out[1] = 1.0 / a[1];
+  out[2] = 1.0 / a[2];
+  out[3] = 1.0 / a[3];
+  return out;
+};
+
+/**
+ * Normalize a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to normalize
+ * @returns {vec4} out
+ */
+vec4.normalize = function(out, a) {
+    var x = a[0],
+        y = a[1],
+        z = a[2],
+        w = a[3];
+    var len = x*x + y*y + z*z + w*w;
+    if (len > 0) {
+        len = 1 / Math.sqrt(len);
+        out[0] = x * len;
+        out[1] = y * len;
+        out[2] = z * len;
+        out[3] = w * len;
+    }
+    return out;
+};
+
+/**
+ * Calculates the dot product of two vec4's
+ *
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @returns {Number} dot product of a and b
+ */
+vec4.dot = function (a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+};
+
+/**
+ * Performs a linear interpolation between two vec4's
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the first operand
+ * @param {vec4} b the second operand
+ * @param {Number} t interpolation amount between the two inputs
+ * @returns {vec4} out
+ */
+vec4.lerp = function (out, a, b, t) {
+    var ax = a[0],
+        ay = a[1],
+        az = a[2],
+        aw = a[3];
+    out[0] = ax + t * (b[0] - ax);
+    out[1] = ay + t * (b[1] - ay);
+    out[2] = az + t * (b[2] - az);
+    out[3] = aw + t * (b[3] - aw);
+    return out;
+};
+
+/**
+ * Generates a random vector with the given scale
+ *
+ * @param {vec4} out the receiving vector
+ * @param {Number} [scale] Length of the resulting vector. If ommitted, a unit vector will be returned
+ * @returns {vec4} out
+ */
+vec4.random = function (out, scale) {
+    scale = scale || 1.0;
+
+    //TODO: This is a pretty awful way of doing this. Find something better.
+    out[0] = glMatrix.RANDOM();
+    out[1] = glMatrix.RANDOM();
+    out[2] = glMatrix.RANDOM();
+    out[3] = glMatrix.RANDOM();
+    vec4.normalize(out, out);
+    vec4.scale(out, out, scale);
+    return out;
+};
+
+/**
+ * Transforms the vec4 with a mat4.
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the vector to transform
+ * @param {mat4} m matrix to transform with
+ * @returns {vec4} out
+ */
+vec4.transformMat4 = function(out, a, m) {
+    var x = a[0], y = a[1], z = a[2], w = a[3];
+    out[0] = m[0] * x + m[4] * y + m[8] * z + m[12] * w;
+    out[1] = m[1] * x + m[5] * y + m[9] * z + m[13] * w;
+    out[2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
+    out[3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
+    return out;
+};
+
+/**
+ * Transforms the vec4 with a quat
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a the vector to transform
+ * @param {quat} q quaternion to transform with
+ * @returns {vec4} out
+ */
+vec4.transformQuat = function(out, a, q) {
+    var x = a[0], y = a[1], z = a[2],
+        qx = q[0], qy = q[1], qz = q[2], qw = q[3],
+
+        // calculate quat * vec
+        ix = qw * x + qy * z - qz * y,
+        iy = qw * y + qz * x - qx * z,
+        iz = qw * z + qx * y - qy * x,
+        iw = -qx * x - qy * y - qz * z;
+
+    // calculate result * inverse quat
+    out[0] = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+    out[1] = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+    out[2] = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+    out[3] = a[3];
+    return out;
+};
+
+/**
+ * Perform some operation over an array of vec4s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec4. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec4s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+vec4.forEach = (function() {
+    var vec = vec4.create();
+
+    return function(a, stride, offset, count, fn, arg) {
+        var i, l;
+        if(!stride) {
+            stride = 4;
+        }
+
+        if(!offset) {
+            offset = 0;
+        }
+
+        if(count) {
+            l = Math.min((count * stride) + offset, a.length);
+        } else {
+            l = a.length;
+        }
+
+        for(i = offset; i < l; i += stride) {
+            vec[0] = a[i]; vec[1] = a[i+1]; vec[2] = a[i+2]; vec[3] = a[i+3];
+            fn(vec, vec, arg);
+            a[i] = vec[0]; a[i+1] = vec[1]; a[i+2] = vec[2]; a[i+3] = vec[3];
+        }
+
+        return a;
+    };
+})();
+
+/**
+ * Returns a string representation of a vector
+ *
+ * @param {vec4} vec vector to represent as a string
+ * @returns {String} string representation of the vector
+ */
+vec4.str = function (a) {
+    return 'vec4(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
+};
+
+/**
+ * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
+ *
+ * @param {vec4} a The first vector.
+ * @param {vec4} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec4.exactEquals = function (a, b) {
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+};
+
+/**
+ * Returns whether or not the vectors have approximately the same elements in the same position.
+ *
+ * @param {vec4} a The first vector.
+ * @param {vec4} b The second vector.
+ * @returns {Boolean} True if the vectors are equal, false otherwise.
+ */
+vec4.equals = function (a, b) {
+    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+    var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+    return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+            Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+            Math.abs(a2 - b2) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+            Math.abs(a3 - b3) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a3), Math.abs(b3)));
+};
+
+module.exports = vec4;
+
+},{"./common.js":5}],14:[function(require,module,exports){
 module.exports = function(strings) {
   if (typeof strings === 'string') strings = [strings]
   var exprs = [].slice.call(arguments,1)
@@ -16608,7 +23094,7 @@ module.exports = function(strings) {
   return parts.join('')
 }
 
-},{}],5:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -18401,7 +24887,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":1,"ieee754":6,"isarray":7}],6:[function(require,module,exports){
+},{"base64-js":1,"ieee754":16,"isarray":17}],16:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -18487,14 +24973,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],7:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],8:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.1.1
  * https://jquery.com/
@@ -28716,7 +35202,7 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],9:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // Spectrum Colorpicker v1.8.0
 // https://github.com/bgrins/spectrum
 // Author: Brian Grinstead
@@ -31041,7 +37527,7 @@ return jQuery;
 
 });
 
-},{"jquery":8}],10:[function(require,module,exports){
+},{"jquery":18}],20:[function(require,module,exports){
 // TinyColor v1.4.1
 // https://github.com/bgrins/TinyColor
 // Brian Grinstead, MIT License
@@ -32238,7 +38724,7 @@ else {
 
 })(Math);
 
-},{}],11:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 /*!
  * @license twgl.js 3.2.2 Copyright (c) 2015, Gregg Tavares All Rights Reserved.
  * Available via the MIT license.
@@ -40991,7 +47477,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ ])
 });
 ;
-},{}],12:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -42541,7 +49027,7 @@ return /******/ (function(modules) { // webpackBootstrap
   }
 }.call(this));
 
-},{}],13:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 let app = angular.module('WebGLVolumeRendererClient', ['semantic-ui', 'rzModule']);
 
 /* format for controllers:
@@ -42591,7 +49077,7 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":19,"./ng-directives/camera-settings-view":21,"./ng-directives/dataset-view":22,"./ng-directives/global-control-panel-view":23,"./ng-directives/links-and-views-view":24,"./ng-directives/local-control-panel-view":25,"./ng-directives/transfer-function-view":26}],14:[function(require,module,exports){
+},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":31,"./ng-directives/dataset-view":32,"./ng-directives/global-control-panel-view":33,"./ng-directives/links-and-views-view":34,"./ng-directives/local-control-panel-view":35,"./ng-directives/transfer-function-view":36}],24:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
@@ -42615,7 +49101,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":28}],15:[function(require,module,exports){
+},{"../../core/environment":38}],25:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -42747,7 +49233,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":27,"../../core/environment":28,"../../core/settings":41}],16:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38,"../../core/settings":53}],26:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42766,7 +49252,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":27,"../../core/environment":28}],17:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38}],27:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let LinkableModels = require('../../core/linkable-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
@@ -42862,7 +49348,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":28,"../../core/linkable-models":30,"../../widgets/split-view/view-splitter-master-controller":55}],18:[function(require,module,exports){
+},{"../../core/environment":38,"../../core/linkable-models":40,"../../widgets/split-view/view-splitter-master-controller":67}],28:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -42875,7 +49361,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":27,"../../core/environment":28}],19:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38}],29:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -42915,7 +49401,7 @@ module.exports = function ($scope) {
 
 };
 
-},{}],20:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -43025,7 +49511,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":28,"../../widgets/transfer-function/transfer-function-editor-v2":57,"jquery":8,"spectrum-colorpicker":9}],21:[function(require,module,exports){
+},{"../../core/environment":38,"../../widgets/transfer-function/transfer-function-editor-v2":69,"jquery":18,"spectrum-colorpicker":19}],31:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
@@ -43047,7 +49533,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/camera-settings-view-controller":14}],22:[function(require,module,exports){
+},{"../ng-controllers/camera-settings-view-controller":24}],32:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -43068,7 +49554,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":15}],23:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":25}],33:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43091,7 +49577,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":16}],24:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":26}],34:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -43113,7 +49599,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":17}],25:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":27}],35:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -43135,7 +49621,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":18}],26:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":28}],36:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -43166,7 +49652,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":28,"../ng-controllers/transfer-function-view-controller":20}],27:[function(require,module,exports){
+},{"../../core/environment":38,"../ng-controllers/transfer-function-view-controller":30}],37:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -43278,7 +49764,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":48,"blob-to-buffer":2}],28:[function(require,module,exports){
+},{"../main":60,"blob-to-buffer":2}],38:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -43388,6 +49874,7 @@ class Environment {
                     this.ViewManager.refresh();
                     break;
                 case '2':
+                    this.ViewManager._init();
                     break;
                 case '3':
                     break;
@@ -43483,6 +49970,10 @@ class Environment {
         return this.TransferFunctionManager.getTransferFunction(masterID);
     }
 
+    notifyTransferFunctionDidChangeAtEditor(tfEditorKey) {
+        this.ViewManager.transferFunctionDidChangeForSubviewID(tfEditorKey);
+    }
+
     /* Find the cell ID associated to the TF */
     getHistogramForTFEditor(tfEditorKey) {
         // 1. Find out which cell ID the TF editor is pointing to
@@ -43536,7 +50027,7 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":27,"../core/views/view-manager":43,"../datasets&selections/dataset-manager":44,"../widgets/split-view/view-splitter-master-controller":55,"../widgets/transfer-function/transfer-function":59,"../widgets/transfer-function/transfer-function-manager":58,"./interaction-modes":29}],29:[function(require,module,exports){
+},{"../client2server/websocket-client":37,"../core/views/view-manager":55,"../datasets&selections/dataset-manager":56,"../widgets/split-view/view-splitter-master-controller":67,"../widgets/transfer-function/transfer-function":71,"../widgets/transfer-function/transfer-function-manager":70,"./interaction-modes":39}],39:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -43591,9 +50082,10 @@ module.exports = {
     }
 }
 
-},{}],30:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
-let Camera = require('./models/camera');
+//let Camera = require('./models/camera');
+let Camera = require('./models/camera-orbiter');
 let Slicer = require('./models/slicer-model');
 let Sphere = require('./models/sphere-model');
 
@@ -43625,8 +50117,312 @@ module.exports = {
     Models: LinkableModels
 };
 
-},{"../widgets/transfer-function/transfer-function":59,"./models/camera":31,"./models/slicer-model":32,"./models/sphere-model":33}],31:[function(require,module,exports){
-let m4 = require('twgl.js').m4;
+},{"../widgets/transfer-function/transfer-function":71,"./models/camera-orbiter":42,"./models/slicer-model":43,"./models/sphere-model":44}],41:[function(require,module,exports){
+let twgl = require('twgl.js'),
+    m4 = twgl.m4,
+    v3 = twgl.v3;
+
+let glmvec4 = require('gl-matrix').vec4;
+
+let Quat = require('gl-matrix').quat;
+
+console.log(Quat);
+
+class Camera {
+    constructor(args) {
+        this.radius = args.radius || 1.0;
+
+        this.theta = args.theta  ||  Math.PI / 2;
+        this.phi = args.phi || Math.PI / 2;
+
+        this.target = args.target || v3.create(0, 0, 0);
+
+        this.projectionSettings = args.projectionSettings || {
+            fieldOfViewRadians: Math.PI / 10,
+            aspectRatio: 1, // Initial
+            zNear: 1.0,
+            zFar: 15.0
+        };
+
+        this.ROT_SPEED_X = args.ROT_SPEED_X || 2;
+        this.ROT_SPEED_Y = args.ROT_SPEED_Y || 2;
+
+        this.projection = null;
+        this.view = null;
+
+        this._updateViewMatrix();
+        this.setPerspective({});
+
+        this.mouseCache = {
+            isDrag: false,
+            mousedown: false,
+            mx: -1,
+            my: -1,
+            uv: null
+        }
+
+        this.upDir = 1;
+    }
+
+
+    rotate(dTheta, dPhi) {
+        if (this.upDir > 0) {
+            this.theta += this.ROT_SPEED_X * dTheta;
+        } else {
+            this.theta -= this.ROT_SPEED_X * dTheta;
+        }
+
+        this.phi += this.ROT_SPEED_Y * dPhi;
+
+        let _2PI = Math.PI * 2;
+
+        if (this.phi > _2PI)
+            this.phi -= _2PI;
+        else if (this.phi < -_2PI)
+            this.phi += _2PI;
+
+        if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
+            this.upDir = 1;
+        } else {
+            this.upDir = -1;
+        }
+
+        this._updateViewMatrix();
+    }
+
+    zoom(dist) {
+        this.radius -= dist;
+        this._updateViewMatrix();
+    }
+
+    pan(dx, dy) {
+
+    }
+
+    tick() {
+        // TODO
+    }
+
+    getEyePosition() {
+        let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
+        let y = this.radius * Math.cos(this.phi);
+        let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+
+        return v3.create(x, y, z);
+    }
+
+    toCartesian() {
+        let eye = this.getEyePosition();
+        let look = v3.normalize(eye);
+
+        let worldUp = v3.create(0.0, this.upDir, 0.0);
+
+        let right = v3.cross(look, worldUp);
+        let up = v3.cross(look, right);
+
+        return {
+            eye: eye,
+            right: right,
+            up: up,
+            target: this.target
+        }
+    }
+
+    setPerspective(args) {
+        this.projection = m4.perspective(
+            args.fieldOfViewRadians || this.projectionSettings.fieldOfViewRadians,
+            args.aspectRatio || this.projectionSettings.aspectRatio,
+            args.zNear || this.projectionSettings.zNear,
+            args.zFar || this.projectionSettings.zFar
+        );
+    }
+
+    _updateViewMatrix() {
+        let c = this.toCartesian();
+        this.view = m4.inverse(m4.lookAt(c.eye, c.target, c.up));
+    }
+
+    getWorldViewProjectionMatrix(aspectRatio) {
+        if (aspectRatio)
+            this.setPerspective({
+                aspectRatio: aspectRatio
+            });
+
+        // no world matrix, not needed ATM.
+
+        return m4.multiply(this.projection, this.view);
+    }
+
+    __unproject(devX, devY, devZ) {
+
+        let inverseVP = m4.inverse(m4.multiply(this.projection, this.view));
+
+        let homogenous = glmvec4.fromValues(devX, devY, devZ, 1.0);
+        let p = glmvec4.transformMat4(homogenous, homogenous, inverseVP),
+            w = p[3];
+
+        // Divide by w also
+        return v3.create(p[0]/w, p[1]/w, p[2]/w);
+    }
+
+    getRayFromMouseClick(vp01) {
+
+        // [0,1] -> [-1,1]
+        let device = {
+            x: vp01.x * 2.0 - 1.0,
+            y: -(vp01.y * 2.0 - 1.0) // Flip y
+        };
+
+        let p0 = this.__unproject(device.x, device.y, -1);
+        let p1 = this.__unproject(device.x, device.y, 1);
+
+        let homogenous = glmvec4.fromValues(device.x, device.y, -1.0, 1.0);
+
+        let inverseView = m4.inverse(this.view),
+            inverseP = m4.inverse(this.projection);
+
+        let rayFromEye = glmvec4.transformMat4(glmvec4.create(), homogenous, inverseP);
+        rayFromEye[2] = -1; // z
+        rayFromEye[3] = 1; // w
+
+        let rayFromEyeWORLD = glmvec4.transformMat4(glmvec4.create(), rayFromEye, inverseView);
+        rayFromEyeWORLD = v3.negate(v3.normalize(v3.create(rayFromEyeWORLD[0], rayFromEyeWORLD[1], rayFromEyeWORLD[2])));
+
+        let rayV2 = v3.normalize(v3.subtract(p1, p0));
+
+        return new Ray(this.getEyePosition(), rayV2);
+        //return new Ray(p0, rayV2);
+
+        //return {
+        //    eye: this.getEyePosition(),
+        //    ray: rayFromEyeWORLD
+        //};
+    }
+
+    /*  click(event) {
+        console.log("CLICK!");
+        console.log(event);
+        return rayInfo = this.getRayFromMouseClick(event.pos);
+    }
+*/
+    /* mouse(event) {
+         //console.log("Camera received event!");
+         //console.log(event);
+
+         let ROT_SPEED = 5;
+         let TRANS_SPEED = 5;
+
+         if (event.type === 'mousedown') {
+             this.mouseCache.mousedown = true;
+
+             this.mouseCache.mx = event.pos.x;
+             this.mouseCache.my = event.pos.y;
+
+             return;
+         } else if (event.type === 'mouseup') {
+             if (!this.mouseCache.isDrag)
+                 return this.click(event);
+
+             this.mouseCache.mousedown = false;
+             this.mouseCache.isDrag = false;
+             return;
+         } else if (event.type === 'mousemove') {
+             if (!this.mouseCache.mousedown) {
+                 return {this.getRayFromMouseClick(event.pos)};
+             }
+
+             let dx = event.pos.x - this.mouseCache.mx;
+             let dy = event.pos.y - this.mouseCache.my;
+
+             this.mouseCache.isDrag = true;
+
+             this.mouseCache.mx = event.pos.x;
+             this.mouseCache.my = event.pos.y;
+
+             dx *= ROT_SPEED;
+             dy *= ROT_SPEED;
+
+             switch (event.button) {
+                 case 0: // left -> rotate
+                     //                    this.modelTransformation.rotateXY(-1*dy, dx);
+                     this.rotate(dx, dy);
+                     this._updateViewMatrix();
+                     break;
+                 case 1: // middle -> zoom
+
+                     this.zoom(dx + dy);
+                     this._updateViewMatrix();
+                     break;
+                 case 2: // right
+                     break;
+                 default:
+                     break;
+             }
+         }
+     }*/
+}
+module.exports = Camera;
+
+
+class Ray {
+    constructor(eye, dir) {
+        this.eye = eye; // float32array[3]
+        this.dir = dir;
+    }
+
+    intersectsLine(p0, p1, threshold) {
+        let eye1 = this.eye,
+            eye2 = v3.add(this.eye, this.dir);
+
+        let dist1 = this._closestDistanceBetweenLines(eye1, eye2, p0, p1),
+            dist2 = this._closestDistanceBetweenLines(eye1, eye2, p1, p0); // Check both ways to stay on the line
+
+        let doesIntersect = Math.abs(dist1) === Math.abs(dist2) &&
+                dist1 <= threshold;
+
+
+    }
+
+    intersectsQuad(p0, p1, p2, p3) {
+
+    }
+
+    _closestDistanceBetweenLines(a0, a1, b0, b1, settings) {
+/*
+        let clampA0 = settings.clampA0 || false,
+            clampA1 = settings.clampA1 || false,
+            clampB0 = settings.clampB0 || false,
+            clampB1 = settings.clampB1 || false;
+*/
+
+        let v1 = v3.normalize(v3.subtract(a1, a0)),
+            v2 = v3.normalize(v3.subtract(b1, b0));
+
+        let v1Xv2 = v3.cross(v1, v2);
+
+        // Check if parallel
+        if (v3.length(v1Xv2) === 0) // Parallel
+            return Infinity;
+
+        // Check if intersect
+        let a0_b0 = v3.subtract(a0, b0);
+        let v1Xv2_dot_a0_b0 = v3.dot(v1Xv2, a0_b0);
+
+        if (v1Xv2_dot_a0_b0 === 0)
+            return 0; // Hit!
+
+
+        // Return distance between lines (no intersect)
+        return v1Xv2_dot_a0_b0 /
+            v3.length(v1Xv2);
+    }
+}
+
+},{"gl-matrix":4,"twgl.js":21}],42:[function(require,module,exports){
+let twgl = require('twgl.js'),
+    m4 = require('twgl.js').m4,
+    v3 = require('twgl.js').v3;
+
 let Transformations = require('./transformations');
 let InitialProjectionSettings = null; // TODO define in ext file, possibly settings!
 
@@ -43635,11 +50431,15 @@ let InitialProjectionSettings = null; // TODO define in ext file, possibly setti
  * camera that can toggle between ortho and perspective.
  * @memberof module:Core/Models
  */
-class Camera {
-    constructor(gl) {
-        this.eye = [1, 4, -6];
-        this.target = [0, 0, 0];
-        this.up = [0, 1, 0];
+class OrbiterCamera {
+    constructor(eye, projectionSettings) {
+        this.eye = eye || v3.create(1, 2, -2);
+
+        // Center of the unit sphere with radius 1
+        this.target = v3.create(0, 0, 0);
+        this.baseTarget = v3.create(0, 0, 0);
+
+        this.up = v3.create(0, 1, 0);
 
         // {
         //      fieldOfViewRadians
@@ -43647,13 +50447,14 @@ class Camera {
         //      zNear
         //      zFar
         // }
-        this.projectionSettings = {
+        this.projectionSettings = projectionSettings || {
             fieldOfViewRadians: Math.PI / 6,
-            aspectRatio: gl.canvas.clientWidth / gl.canvas.clientHeight,
+            aspectRatio: 1, // Initial
             zNear: 0.5,
-            zFar: 10
+            zFar: 7
         };
 
+        this.zoom = 1.0;
         this.projection = null; // Must be set so it takes into account width/height
         //this.setPerspective();
         this.modelTransformation = new Transformations();
@@ -43662,7 +50463,8 @@ class Camera {
         this.mouseCache = {
             isDrag: false,
             mx: -1,
-            my: -1
+            my: -1,
+            uv: null
         }
     }
 
@@ -43675,8 +50477,10 @@ class Camera {
 
         if (event.type === 'mousedown') {
             this.mouseCache.isDrag = true;
+
             this.mouseCache.mx = event.pos.x;
             this.mouseCache.my = event.pos.y;
+
             return;
         } else if (event.type === 'mouseup') {
             this.mouseCache.isDrag = false;
@@ -43684,22 +50488,49 @@ class Camera {
         }
 
         if (this.mouseCache.isDrag) {
-
             let dx = event.pos.x - this.mouseCache.mx;
             let dy = event.pos.y - this.mouseCache.my;
 
             this.mouseCache.mx = event.pos.x;
             this.mouseCache.my = event.pos.y;
 
-            dx *= ROT_SPEED;
+            dx *= ROT_SPEED * 2.5;
             dy *= ROT_SPEED;
+
+            let fwd = v3.subtract(this.target, this.eye);
+            let sideways = v3.cross(fwd, this.up);
+            let sidewaysN = v3.normalize(sideways);
+
+            let length = v3.length(fwd);
+
+            let moveSideways = v3.mulScalar(sidewaysN, -dx),
+                moveVertically = v3.mulScalar(this.up, dy);
 
             switch (event.button) {
                 case 0: // left -> rotate
-                    this.modelTransformation.rotateXY(-1*dy, dx);
+                    //                    this.modelTransformation.rotateXY(-1*dy, dx);
+                    v3.add(this.eye, moveVertically, this.eye);
+                    v3.add(this.eye, moveSideways, this.eye);
+
+                    let newLen = v3.length(v3.subtract(this.target, this.eye));
+                    let diff = length - newLen;
+                    v3.subtract(this.eye, v3.mulScalar(v3.normalize(fwd), diff), this.eye);
+
+                    let newFWD = v3.subtract(this.target, this.eye);
+
+                    // update UP
+                    this.up = v3.negate(v3.normalize(v3.cross(newFWD, sideways)));
+
                     break;
-                case 1: // middle -> translate
-                    this.modelTransformation.translate(-dx, -dy, 0);
+                case 1: // middle -> zoom
+
+
+                    v3.add(this.eye, moveVertically, this.eye);
+                    v3.add(this.eye, moveSideways, this.eye);
+
+                    v3.add(this.target, moveVertically, this.target);
+                    v3.add(this.target, moveSideways, this.target);
+
                     break;
                 case 2: // right
                     break;
@@ -43709,10 +50540,14 @@ class Camera {
         }
     }
 
-    setPerspective() {
+    setAspectRatio(aspectRatio) {
+        this.setPerspective(aspectRatio);
+    }
+
+    setPerspective(aspectRatio) {
         this.projection = m4.perspective(
             this.projectionSettings.fieldOfViewRadians,
-            this.projectionSettings.aspectRatio,
+            (aspectRatio || this.projectionSettings.aspectRatio),
             this.projectionSettings.zNear,
             this.projectionSettings.zFar
         );
@@ -43746,11 +50581,13 @@ class Camera {
         return m4.transpose(m4.inverse(this.getWorldMatrix()));
     }
 
-    getWorldViewProjectionMatrix() {
+    getWorldViewProjectionMatrix(aspectRatio) {
+        if (aspectRatio)
+            this.setPerspective(aspectRatio);
+
         let modelToWorld = this.modelTransformation.getTransformation();
         let worldToProjection = this.getViewProjectionMatrix();
         return m4.multiply(worldToProjection, modelToWorld);
-
     }
 
     getModelTransformation() {
@@ -43758,27 +50595,714 @@ class Camera {
     }
 }
 
-module.exports = Camera;
+module.exports = OrbiterCamera;
 
-},{"./transformations":34,"twgl.js":11}],32:[function(require,module,exports){
+},{"./transformations":45,"twgl.js":21}],43:[function(require,module,exports){
+let twgl = require('twgl.js'),
+    primitives = twgl.primitives,
+    m4 = twgl.m4,
+    v3 = twgl.v3;
+
+let CameraV2 = require('./camera-orbiter-v2');
+let MouseHandler = require('../mouse-handler');
+
+let OrbiterCamera = require('./camera-orbiter');
+
+// Create XY Quad
+primitives.createXYQuadVertices = function (size, xOffset, yOffset) {
+
+}
+
+primitives.createCenteredXYQuadVertices = function (size) {
+    return primitives.createXYQuadVertices(size, 0, 0); // [-size/2, size/2]
+}
+
+primitives.createCenteredYZQuadVertices = function (size) {
+    let XYQuadVertices = primitives.createXYQuadVerticesVertices(size, 0, 0);
+
+    // XY -> YZ Rotate 90 degrees around Y-axis
+    let YZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationX(Math.PI / 2));
+
+    return YZQuadVertices;
+}
+
+primitives.createCenteredXZQuadVertices = function (size) {
+    let XYQuadVertices = primitives.createXYQuadVertices(size, 0, 0);
+
+    // XY -> XZ Rotate 90 degrees around Z-axis
+    let XZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationZ(Math.PI / 2));
+
+    return XZQuadVertices;
+}
+
 /**
- * Represents an underlying discrete model of a slicer.
+ * Represents an underlying discrete model of a slicer. It only represents the
+ * slices itself, and will generate the geometry needed to render the
+ * _SLICER_ but how it affects rendering is up to other implementations.
  * @memberof module:Core/Models
  */
 class SlicerModel {
-    constructor() {
+    constructor(gl, viewManager, myID) {
 
+        this.gl = gl;
+        this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
+
+        // .get, .refresh
+
+        console.log("SlicerModel constrcutor!");
+
+        this.camera = new OrbiterCamera(v3.create(1, 3, -7), {
+            fieldOfViewRadians: Math.PI / 10,
+            aspectRatio: 1, // Initial
+            zNear: 1.0,
+            zFar: 15.0
+        });
+
+        this.camera = new CameraV2({
+            radius: 10.2,
+
+            theta: 0,
+            phi: 0,
+            //target: v3.create(0,0,0),
+
+            projectionSettings: {
+                fieldOfViewRadians: Math.PI / 10,
+                aspectRatio: 1, // Initial
+                zNear: 0.5,
+                zFar: 18.0
+            },
+
+            ROT_SPEED_X: 3.5,
+            ROT_SPEED_Y: 3.5
+        });
+
+
+        this.slicerBox = new LabeledSlicerBox(Math.sqrt(2));
+
+        this.uniforms = {
+            u_HighlightID: -1,
+            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_WorldViewProjection: -1,
+        };
+
+        this.attribArrays = {
+
+        };
+
+        this._refreshUniforms();
+        this._genAttribArrays();
+        this.mouseHandler = new MouseHandler({
+            clickTimeout: 150
+        });
+        this._bindMouseHandler();
+    }
+
+    _refreshUniforms() {
+        // Fetch uniforms from the slicer box
+        for (let key in this.slicerBox.uniforms)
+            this.uniforms[key] = this.slicerBox.uniforms[key];
+
+        // Fetch MVP from camera
+        this.uniforms.u_WorldViewProjection = this.camera.getWorldViewProjectionMatrix();
+    }
+
+    _genAttribArrays() {
+        this.attribArrays = this.slicerBox.getBufferArrays();
     }
 
     mouse(event) {
+        this.mouseHandler.handle(event);
+        if (1)
+            return;
+        // left click -> rotate / orbit camera
+        //let res = this.camera.mouse(event); // TEMP, TODO do raycasting to add/move slices etc
+
+        if (res) {
+            console.log("SlicerModel, did shoot ray");
+            console.log(res);
+        }
+
+        this._refreshUniforms();
+
+        // right click -> context menu?..
         console.log("Slicer mouse event");
         console.log(event);
+
+        let x0 = event.pos.x, // [0,1]
+            y0 = event.pos.y;
+
+        let x1 = (x0 * 2.0) - 1.0, // [0,1] -> [-1, 1]
+            y1 = -((y0 * 2.0) - 1.0);
+
+    }
+
+    getBuffers() {
+        let sideLength = Math.sqrt(2); // Will always just fit
+        // 1. Gen the cube vertices, 1 quad per side
+
+    }
+
+    _bindMouseHandler() {
+        let gl = this.gl;
+        this.mouseHandler.on('click', 'left', (state) => {
+            this.pickingBuffer.refresh(); // Render it onto FB before reading
+            console.log("MouseCLICK left");
+            let pb = this.pickingBuffer.get();
+            let dest = new Uint8Array(1.0 * 4);
+            let pixels = pb.readPixels(
+                state.x * pb.width,
+                state.y * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest, 0
+            );
+
+            let id = 50 * dest[0] / 255.0;
+
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+            return;
+
+
+            let ray = this.camera.getRayFromMouseClick({
+                x: state.x,
+                y: state.y
+            });
+            console.log("Shot ray: ");
+            console.log(ray);
+
+            this.slicerBox.highlightIntersected(ray);
+            this._refreshUniforms();
+            // Check if it intersects with any of the geometries...
+
+
+        });
+        this.mouseHandler.on('mousedown', 'left', (state) => {
+            console.log("MouseDOWN left");
+
+        });
+        this.mouseHandler.on('mouseup', 'left', (state) => {
+            console.log("MouseUP left");
+        });
+        this.mouseHandler.on('mousemove', 'left', (state) => {
+            console.log("Mousemove left");
+
+            this.pickingBuffer.refresh(); // Render it onto FB before reading
+            console.log("MouseCLICK left");
+            let pb = this.pickingBuffer.get();
+            let dest = new Uint8Array(1.0 * 4);
+            let pixels = pb.readPixels(
+                state.x * pb.width, state.y * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest, 0
+            );
+
+            let id = 50 * dest[0] / 255.0;
+
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+
+
+
+            let pbfb = this.pickingBuffer.get();
+
+            let ray = this.camera.getRayFromMouseClick({
+                x: state.x,
+                y: state.y
+            });
+            console.log("Shot ray: ");
+            console.log(ray);
+
+            this.slicerBox.highlightIntersected(ray);
+            this._refreshUniforms();
+
+        });
+        this.mouseHandler.on('drag', 'left', (state) => {
+            console.log("Drag left");
+            this.camera.rotate(state.dx, state.dy);
+            this._refreshUniforms();
+        });
+
     }
 }
 
 module.exports = SlicerModel;
 
-},{}],33:[function(require,module,exports){
+let genXYQuadVertexInfo = (p0, translate) => {
+    let x = p0[0],
+        y = p0[1],
+        z = p0[2];
+
+    return {
+        normal: 'Z',
+        p0: p0,
+        p1: [-x, y, z],
+        p2: [-x, -y, z],
+        p3: [x, -y, z],
+        offset: 0,
+        translate: translate  ||  0
+    }
+}
+
+let genXZQuadVertexInfo = (p0, translate) => {
+    let x = p0[0],
+        y = p0[1],
+        z = p0[2];
+
+    return {
+        normal: 'Y',
+        p0: p0,
+        p1: [x, y, -z],
+        p2: [-x, y, -z],
+        p3: [-x, y, z],
+        offset: 0,
+        translate: translate  ||  0
+    }
+}
+
+let genYZQuadVertexInfo = (p0, translate) => {
+    let x = p0[0],
+        y = p0[1],
+        z = p0[2];
+
+    return {
+        normal: 'X',
+        p0: p0,
+        p1: [x, y, -z],
+        p2: [x, -y, -z],
+        p3: [x, -y, z],
+        offset: 0,
+        translate: translate  ||  0
+    }
+}
+
+let genQuadWithNormal = (normalAxis, p0) => {
+    switch (normalAxis) {
+        case 'X':
+            return genYZQuadVertexInfo(p0);
+        case 'Y':
+            return genXZQuadVertexInfo(p0);
+        case 'Z':
+            return genXYQuadVertexInfo(p0);
+        default:
+            return -1;
+    }
+}
+
+let rotateFromYTo = (newDirection) => {
+    switch (newDirection) {
+        case 'X':
+            return m4.rotationZ(Math.PI / 2);
+        case 'Y':
+            return m4.identity();
+        case 'Z':
+            return m4.rotationX(Math.PI / 2);
+    }
+}
+
+let rotateFromXYTo = (newNormal) => {
+    switch (newNormal) {
+        case 'X': // YZ
+            return m4.rotationY(Math.PI / 2);
+        case 'Y': // XZ
+            return m4.rotationX(Math.PI / 2);
+        case 'Z': // XY
+            return m4.identity();
+    }
+}
+
+/**
+ *
+ *
+ * @method translateQuadVerticesToEdge
+ * @param {Object} normal normal of the quad, ex an XY quad has the normal Z
+ * @param {Object} direction which direction to translate it, can be seen as
+ * backwards (-n) or forwards(+n)
+ * @param {Object} offset how far to translate it
+ * @return {twgl.m4} translation the translation matrix
+ */
+let translateQuadVerticesToEdge = (normal, direction, offset) => {
+    let tx = normal === 'X' ? direction * offset : 0,
+        ty = normal === 'Y' ? direction * offset : 0,
+        tz = normal === 'Z' ? direction * offset : 0;
+
+    let translateVec = v3.create(tx, ty, tz);
+    return m4.translation(translateVec);
+}
+
+/**
+ *
+ *
+ * @method translateCylinderVerticesToEdge
+ * @param {Object} alongAxis axis the cylinder is centered and aligned along
+ * @param {Object} direction direction to translate it 2D-wise.
+ * ex if aligned along axis X, this will represent how much to translate it by
+ * offset along the Y (index 0) and Z (index 1) axis
+ * @param {Object} offset how far to translate the cylinder vertices. If creating
+ * a bounding box translate by size/2
+ * @return {twgl.m4} translation the translation matrix
+ */
+let translateCylinderVerticesToEdge = (alongAxis, direction, offset) => {
+    let translateVec = null;
+
+    switch (alongAxis) {
+        case 'X': // YZ
+            translateVec = v3.create(0, direction[0] * offset, direction[1] * offset);
+            break;
+        case 'Y': // XZ
+            translateVec = v3.create(direction[0] * offset, 0, direction[1] * offset);
+            break;
+        case 'Z': // XY
+            translateVec = v3.create(direction[0] * offset, direction[1] * offset, 0);
+            break;
+        default:
+            console.error("WTF is this alongAxis argument? : " + alongAxis + " ????... expecting 'X', 'Y' or 'Z'");
+            break;
+    }
+
+    return m4.translation(translateVec);
+}
+
+let UniqueIndexBag = require('../../widgets/split-view/unique-index-bag');
+
+/**
+ * Description for LabeledSlicerBox
+ * @class LabeledSlicerBox
+ * @constructor
+ */
+class LabeledSlicerBox {
+    /**
+     * Generates a labeled slicer box with the given size,
+     * centered around (0,0,0).
+     * It will assign an ID to each rail, face and slice,
+     * reason for this is to make highlighting via shaders manageable.
+     *
+     * @param {number} size
+     * @constructor
+     */
+    constructor(size) {
+        this.size = size;
+        this.quadIndexBag = new UniqueIndexBag(6); // ids [0,5] reserved for quads
+
+        this.rails = {};
+        this.faces = {};
+        this.slices = {};
+
+        this.tempsss = true; //TEMP!!
+
+        this.uniforms = {
+            u_HighlightID: -1,
+            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_RayDir: [0, 0, -1],
+            u_PickingRayOrigin: [0, 0, 10]
+        };
+
+        this.attribs = null;
+
+        let half = size / 2;
+        let id = 6;
+
+        this.quadID = -1;
+        this.qCounts = {
+            'X': 0,
+            'Y': 0,
+            'Z': 0
+        };
+
+        // Gen faces, 6x, need 2 start points, id range: [6, 11]
+        let p0s = [
+            [-half, -half, -half],
+            [half, half, half]
+        ];
+
+        let translateDirs = [
+            -1, // face center 2 back
+            1 // face center 2 front
+        ];
+
+        for (let i = 0; i < p0s.length; i++) {
+            let p0 = p0s[i];
+
+            let x = p0[0],
+                y = p0[1],
+                z = p0[2];
+
+            this.faces[id++] = genYZQuadVertexInfo(p0, translateDirs[i]);
+            this.faces[id++] = genXZQuadVertexInfo(p0, translateDirs[i]);
+            this.faces[id++] = genXYQuadVertexInfo(p0, translateDirs[i]);
+        }
+
+        // Gen rails, all 12 of them, label with IDs etc
+        p0s = [
+            [-size, -size, -size],
+            [-size, size, size],
+            [size, size, -size],
+            [size, -size, size]
+        ];
+
+        translateDirs = [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1]
+        ];
+
+        for (let i = 0; i < p0s.length; i++) {
+            let p0 = p0s[i];
+
+            let x = p0[0],
+                y = p0[1],
+                z = p0[2];
+
+            let p1 = [-x, y, z],
+                p2 = [x, -y, z],
+                p3 = [x, y, -z];
+
+            this.rails[id++] = {
+                p0: p0,
+                p1: p1,
+                direction: 'X',
+                translate: translateDirs[i]
+            };
+            this.rails[id++] = {
+                p0: p0,
+                p1: p2,
+                direction: 'Y',
+                translate: translateDirs[i]
+            };
+            this.rails[id++] = {
+                p0: p0,
+                p1: p3,
+                direction: 'Z',
+                translate: translateDirs[i]
+            };
+        }
+
+        this.getBufferArrays();
+    }
+
+    _getOffsetIndex(normal) {
+        switch (normal) {
+            case 'X':
+                return 0 + this.qCounts[normal];
+            case 'Y':
+                return 2 + this.qCounts[normal];
+            case 'Z':
+                return 4 + this.qCounts[normal];
+            default:
+                return -1;
+        }
+    }
+
+    _getDirectionIndex(normal) {
+        switch (normal) {
+            case 'X':
+                return 0;
+            case 'Y':
+                return 1;
+            case 'Z':
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    _getOffsetIndexOfQuadWithIndex(quadIndex) {
+        return this.uniforms.u_QuadOffsetIndices[quadIndex];
+    }
+
+    _setOffsetOfQuadWithIndex(quadIndex, offset) {
+        let offsetIndex = this.uniforms.u_QuadOffsetIndices[quadIndex];
+        this.uniforms.u_QuadOffsets[offsetIndex] = offset;
+    }
+
+    addQuad(normal, p0) {
+        if (this.qCounts[normal] === 2) // max 2 per direction
+            return;
+
+        let quadIndex = this.quadIndexBag.getIndex();
+        let offsetIndex = this._getOffsetIndex(normal);
+
+        // Point quad index to offset index
+        this.uniforms.u_QuadOffsetIndices[quadIndex] = offsetIndex;
+
+        this.slices[index] = genQuadWithNormal(normal, p0);
+        this.qCounts[normal]++;
+    }
+
+    moveQuadToOffset(quadID, offset) {
+        this._setOffsetOfQuadWithIndex(quadID, offset);
+    }
+
+    removeQuad(quadID) {
+        delete this.slices[quadID];
+        this.quadIndexBag.returnIndex(quadID);
+        this.qCounts[normal]--;
+        this.uniforms.u_QuadOffsetIndices[quadID] = -1; // Mark quad as inactive
+    }
+
+    getUniforms() {
+        return this.uniforms;
+    }
+
+    highlightID(id) {
+        this.uniforms.u_HighlightID = id;
+    }
+
+    highlightIntersected(ray) {
+        this.uniforms.u_PickingRayOrigin = ray.eye;
+        this.uniforms.u_RayDir = ray.dir;
+
+        //// 1. Intersect-test with rails
+        //for (let id in this.rails) {
+        //    let rail = this.rails[id];
+        //    console.log("Checking intersection w/ rail" + id);
+        //    if (ray.intersectsLine(rail.p0, rail.p1, 0.07)) {
+        //        this.uniforms.u_HighlightID = id;
+        //        console.log("RAY HIT RAIL WITH ID: " + id);
+        //        return;
+        //    }
+        //}
+//
+        //this.uniforms.u_HighlightID = this.tempsss ? 7 : 9;
+        //this.tempsss = !this.tempsss;
+    }
+
+    getBufferArrays() {
+        // All attrib arrays etc
+
+        if (this.attribs)
+            return this.attribs;
+
+        let Vertices = {};
+
+        let a_position = [],
+            a_direction = [],
+            a_id = [],
+            indices = [];
+
+        // 1. Generate polylines (cylinders) for all rails
+        for (let id in this.rails) {
+            let rail = this.rails[id];
+            let direction = this._getDirectionIndex(rail.direction);
+
+            let vertices = primitives.createCylinderVertices(
+                0.07, // Radius of cylinder
+                this.size, // Height of cylinder
+                5, //  radialSubdivisions The number of subdivisions around the cylinder
+                5, // verticalSubdivisions The number of subdivisions down the cylinder.
+                true, // topCap
+                true // bottomCap
+            );
+
+            let numVerts = vertices.position.length / 3;
+
+            // Append direction and a_id to them too. same size as num verts
+            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            vertices.direction.fill(direction);
+
+            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            vertices.id.fill(id);
+
+            // Rotate+Translate rails from centered along Y to respective position
+            let rotate = rotateFromYTo(rail.direction);
+            let translate = translateCylinderVerticesToEdge(
+                rail.direction,
+                rail.translate,
+                this.size / 2
+            );
+
+            let rotateThenTranslate = m4.multiply(translate, rotate);
+            primitives.reorientVertices(vertices, rotateThenTranslate);
+
+            let indexOffset = a_position.length / 3;
+
+            a_position.push(...vertices.position);
+            a_direction.push(...vertices.direction);
+            a_id.push(...vertices.id);
+            indices.push(...vertices.indices.map((i) => {
+                return i + indexOffset;
+            }));
+
+        }
+
+        // 2. Generate cube faces (quads)
+        for (let id in this.faces) {
+            let face = this.faces[id];
+            let direction = this._getDirectionIndex(face.normal);
+
+            let vertices = {};
+
+            let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
+            vbo.push(face.p0);
+            vbo.push(face.p1);
+            vbo.push(face.p2);
+            vbo.push(face.p3);
+
+            let ibo = primitives.createAugmentedTypedArray(3, 4, Int16Array);
+            ibo.push([0, 1, 2]);
+            ibo.push([0, 2, 3]);
+
+            vertices.position = vbo;
+            vertices.indices = ibo;
+
+            let numVerts = vertices.position.length / 3;
+
+            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            vertices.direction.fill(direction);
+
+            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            vertices.id.fill(id);
+
+            // Move quad from XY centered to edges
+            let rotate = rotateFromXYTo(face.normal);
+            let translate = translateQuadVerticesToEdge(face.normal, face.direction, this.size / 2);
+
+            let rotateThenTranslate = m4.multiply(translate, rotate);
+            //primitives.reorientPositions(vbo, m4.identity());
+
+            let indexOffset = a_position.length / 3;
+
+            a_position.push(...vertices.position);
+            a_direction.push(...vertices.direction);
+            a_id.push(...vertices.id);
+            indices.push(...vertices.indices.map((i) => {
+                return i + indexOffset
+            }));
+        }
+
+        let totalNumVertices = a_position.length / 3;
+
+        Vertices = { // twgl-friendly format for createBufferInfoFromArrays
+            position: {
+                numComponents: 3,
+                data: new Float32Array(a_position)
+            },
+            direction: {
+                numComponents: 1,
+                data: new Int16Array(a_direction)
+            },
+            id: {
+                numComponents: 1,
+                data: new Int16Array(a_id)
+            },
+            indices: {
+                numComponents: 3,
+                data: new Int16Array(indices)
+            }
+        };
+
+        this.attribs = Vertices;
+
+
+        return Vertices;
+    }
+}
+
+},{"../../widgets/split-view/unique-index-bag":66,"../mouse-handler":46,"./camera-orbiter":42,"./camera-orbiter-v2":41,"twgl.js":21}],44:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -43797,7 +51321,7 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],34:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4,
     v3 = twgl.v3;
@@ -43807,6 +51331,8 @@ class Transformations {
         this.rotation = m4.identity();
         this.translation = m4.identity();
         this.scale = m4.identity();
+
+        this.qRot =
 
         this.transformation = m4.identity();
     }
@@ -43859,7 +51385,118 @@ class Transformations {
 
 module.exports = Transformations;
 
-},{"twgl.js":11}],35:[function(require,module,exports){
+},{"twgl.js":21}],46:[function(require,module,exports){
+class MouseHandler {
+    constructor(config) {
+        this.isDrag = false;
+        this.clickTimeout = config.clickTimeout || 300; // default
+
+        this.timers = {
+            click: -1000000
+        };
+
+        this.callbacks = {
+            click: {},
+            mouseup: {},
+            mousedown: {},
+            mousemove: {}
+        };
+
+        this.state = {
+            x0: -1,
+            y0: -1,
+            x: -1,
+            y: -1,
+            dx: -1,
+            dy: -1
+        };
+    }
+
+    handle(event) {
+        // Update the state
+
+        this.state.x0 = this.state.x;
+        this.state.y0 = this.state.y;
+
+        this.state.x = event.pos.x;
+        this.state.y = event.pos.y;
+
+        this.state.dx = this.state.x - this.state.x0;
+        this.state.dy = this.state.y - this.state.y0;
+
+        if (event.type === 'mousedown') {
+            this.timers.click = Date.now();
+            this.isDrag = true;
+
+        } else if (event.type === 'mouseup') {
+            this.isDrag = false;
+            if ((Date.now() - this.timers.click) <= this.clickTimeout) {
+                // HANDLE CLICK
+                this._notifyIfExists('click', event.button);
+            } else {
+                this._notifyIfExists('mouseup', event.button);
+            }
+
+        } else if (event.type === 'mousemove') {
+            // Either drag or hover
+            if (this.isDrag)
+                this._notifyIfExists('drag', event.button);
+            else
+                this._notifyIfExists('mousemove', event.button);
+
+
+        }
+    }
+
+    __stringToButtonCode(buttonCode) {
+        switch (buttonCode) {
+            case 'left':
+                return 0;
+            case 'middle':
+                return 1;
+            case 'right':
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /**
+     * Delegates events to callbacks
+     * @private
+     * @property undefined
+     * @param {string} event the event as a string, possible values:
+     * 'mousedown', 'mouseup', 'click', 'mousemove'
+     * @param {number} buttonCode the button code, see __stringToButtonCode
+     */
+    _notifyIfExists(event, buttonCode) {
+        if (this.callbacks[event] &&
+            this.callbacks[event][buttonCode])
+            this.callbacks[event][buttonCode](this.state); // Pass the state into the callback
+    }
+
+    /**
+     * Attaches a callback to a given event
+     *
+     * @param {string} event the event. Possible values: 'mousedown', 'mouseup', 'click', 'mousemove', 'drag'
+     * @param {string} button the button. Possible values: 'left', 'right', 'middle'
+     * @param {function} callback the function that will be called on the event.
+     * the function can take in one argument, which is the state of the handler,
+     * dx, dy values etc which can be useful to bind to stuff.
+     */
+    on(event, button, callback) {
+        let buttonCode = this.__stringToButtonCode(button);
+
+        if (!this.callbacks[event])
+            this.callbacks[event] = {};
+
+        this.callbacks[event][buttonCode] = callback;
+    }
+}
+
+module.exports = MouseHandler;
+
+},{}],47:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
 
@@ -43915,6 +51552,22 @@ class ConfigurableRenderer {
             this.viewport.height);
     }
 
+    _applySubViewport(svp01) {
+
+        let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
+            subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
+
+
+        let subWidth = svp01.width * this.viewport.width,
+            subHeight = svp01.height * this.viewport.height;
+
+        this.gl.viewport(
+            subX0,
+            subY0,
+            subWidth,
+            subHeight);
+    }
+
     /**
      * Renders as instructed by the current configuration
      */
@@ -43927,17 +51580,27 @@ class ConfigurableRenderer {
             //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
             gl.useProgram(programInfo.program);
 
-            if (!step.frameBufferInfo)
+            if (!step.frameBufferInfo) {
                 this._applyViewport();
 
-            if (step.glSettings) {
-                for (let func in step.glSettings) {
-                    // Ex: {cullFace: 'BACK'} evalues into:
-                    // gl[cullFace](gl[BACK]) which is the same as
-                    // gl.cullFace(gl.BACK)
-                    gl[func](gl[step.glSettings[func]]);
-                }
+                if (step.subViewport)
+                    this._applySubViewport(step.subViewport);
             }
+
+            /*       if (step.glSettings) { // Single argument gl.X = gl.Y
+                       for (let func in step.glSettings) {
+                           // Ex: {cullFace: 'BACK'} evalues into:
+                           // gl[cullFace](gl[BACK]) which is the same as
+                           // gl.cullFace(gl.BACK)
+                           gl[func](gl[step.glSettings[func]]);
+                       }
+                   }*/
+
+            if (step.glSettings)
+                for (let func in step.glSettings) {
+                    let args = step.glSettings[func];
+                    gl[func].apply(gl, args);
+                }
 
             twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
             //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
@@ -44000,7 +51663,7 @@ module.exports = ConfigurableRenderer;
  * @memberof module:Core/Renderer
  **/
 
-},{"twgl.js":11}],36:[function(require,module,exports){
+},{"twgl.js":21}],48:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
@@ -44018,12 +51681,17 @@ class BufferManager {
     getBufferInfo(name) {
         return this.bufferObjects[name];
     }
+
+    createBufferInfoFromArrays(arrays, name) {
+        this.bufferObjects[name] = twgl.createBufferInfoFromArrays(this.gl, arrays);
+    }
 }
 
 module.exports = BufferManager;
 
-},{"../../geometry/box":47,"twgl.js":11}],37:[function(require,module,exports){
+},{"../../geometry/box":59,"twgl.js":21}],49:[function(require,module,exports){
 let twgl = require('twgl.js');
+let Environment = require('../environment');
 
 /**
  * Manages and creates frame buffers and textures.
@@ -44035,8 +51703,10 @@ class FrameBufferAndTextureManager {
      * @param {WebGL2Context} gl the webGL context the framebuffer manager is tied to
      * @constructor
      */
-    constructor(gl) {
+    constructor(gl, environmentRef) {
         this.gl = gl;
+        this.env = environmentRef;
+
         this.framebuffers = {
 
         };
@@ -44044,6 +51714,8 @@ class FrameBufferAndTextureManager {
         this.textures = {
 
         };
+
+        this.transferFunctionTextures = {}; // {subviewID : TextureObj}
     }
 
 
@@ -44091,7 +51763,7 @@ class FrameBufferAndTextureManager {
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
-            width:  gl.drawingBufferWidth,
+            width: gl.drawingBufferWidth,
             height: gl.drawingBufferHeight,
             min: gl.LINEAR,
             mag: gl.LINEAR,
@@ -44118,6 +51790,26 @@ class FrameBufferAndTextureManager {
 
         this.framebuffers[detail.name] = framebuffer;
         return framebuffer;
+    }
+
+    create2DPickingBufferFB(name, pickingFunction) {
+        // For now use the same thing
+        let fb = this.create2DTextureFB({
+            name: name
+        });
+
+        if(pickingFunction)
+            fb.pick = pickingFunction;
+
+        let gl = this.gl;
+
+        // Convenience method attached to not do the binding/unbinding
+        // manually
+        fb.readPixels = (x, y, w, h, format, type, dst, offset) => {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fb.framebuffer);
+            gl.readPixels(x, y, w, h, format, type, dst, offset);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
     }
 
 
@@ -44156,11 +51848,46 @@ class FrameBufferAndTextureManager {
                 premultiplyAlpha: false
             });
     }
+
+    createTransferFunction2DTexture(tfEditorKey) {
+        let gl = this.gl;
+
+        let TFEditor = tfEditorKey; // LOCAL or GLOBAL
+
+        // 1. Find out which subview the TF editor is currently pointing to
+        let subviewID = this.env.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
+
+        // 2. Get the canvas of the editor, so it can be loaded into a tex
+        let info = this.env.TransferFunctionManager.getCanvasForTFKey(tfEditorKey);
+        let isoToColorData = info.canvas,
+            bounds = info.textureBounds;
+
+        // 3. Load the canvas img data into a texture of height 1
+        let imgdata = isoToColorData.getContext('2d').getImageData(bounds.x, bounds.y, bounds.width, 1);
+        let buffer = imgdata.data; // UInt8ClampedArray, i.e all values [0,255]
+
+        // 4. Create the texture bound to the given subviewID
+        this.transferFunctionTextures[subviewID] = twgl.createTexture(gl, {
+            target: gl.TEXTURE_2D,
+            internalFormat: gl.RGBA,
+            width: bounds.width,
+            height: 1,
+            src: buffer,
+            premultiplyAlpha: false
+        });
+    }
+
+    getTransferFunction2DTexture(subviewID) {
+        if (!this.transferFunctionTextures[subviewID]) // default to global
+            return this.transferFunctionTextures['GLOBAL'];
+
+        return this.transferFunctionTextures[subviewID];
+    }
 }
 
 module.exports = FrameBufferAndTextureManager;
 
-},{"twgl.js":11}],38:[function(require,module,exports){
+},{"../environment":38,"twgl.js":21}],50:[function(require,module,exports){
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
 let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
@@ -44182,8 +51909,9 @@ class ModelSyncManager {
      * @class undefined
      * @constructor
      */
-    constructor(gl) {
-        this.gl = gl; // Some models need the GL context / canvas to initialize properly
+    constructor(viewManager) {
+        this.gl = viewManager.masterContext; // Some models need the GL context / canvas to initialize properly
+        this.viewManager = viewManager;
         this.classes = {};
 
         this.defaultModels = {};
@@ -44214,7 +51942,7 @@ class ModelSyncManager {
         for (let subviewID of subviewIDs) {
 
             // Initialize a new object
-            this.defaultModels[modelName][subviewID] = new Class(this.gl);
+            this.defaultModels[modelName][subviewID] = new Class(this.gl, this.viewManager, subviewID);
 
             // Initially point a subview to itself.
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -44280,7 +52008,7 @@ class ModelSyncManager {
     addSubview(subviewID) {
         for (let modelName in this.defaultModels) {
             // Construct a new object for the subview
-            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl);
+            this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl, this.viewManager, subviewID);
 
             // link to itself initially
             this.linkedModels[modelName][subviewID] = subviewID;
@@ -44310,7 +52038,7 @@ class ModelSyncManager {
         }
     }
 
-    _getModel(modelName, subviewID) {
+    getModel(modelName, subviewID) {
         return this.defaultModels[modelName][subviewID];
     }
 
@@ -44326,33 +52054,18 @@ class ModelSyncManager {
 
 module.exports = ModelSyncManager;
 
-},{"../../widgets/split-view/view-splitter-master-controller":55,"../linkable-models":30}],39:[function(require,module,exports){
+},{"../../widgets/split-view/view-splitter-master-controller":67,"../linkable-models":40}],51:[function(require,module,exports){
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
-
-// Naming convention: u_TheUniformName
-let SHADER_UNIFORM_NAMES = {
-    u_WorldViewProjection: 'u_WorldViewProjection',
-    u_IsoValueToColorOpacity: 'u_IsoValueToColorOpacity',
-    u_TexCoordToRayOrigin: 'u_TexCoordToRayOrigin',
-    u_TexCoordToRayEndPoint: 'u_TexCoordToRayEndPoint',
-    u_BoundingBoxNormalized: 'u_BoundingBoxNormalized',
-    u_SamplingRate: 'u_SamplingRate',
-    u_AspectRatio: 'u_AspectRatio'
-
-};
-
-// Naming convention: a_attributeName
-let VSHADER_ATTR_NAMES = {
-    a_position: 'a_position',
-};
-
-// Naming convention: v_attributeName, i.e shit passed from v-shader to f-shader!
-let FSHADER_ATTR_NAMES = {
-    v_bbPosition: 'v_bbPosition',
-    v_projectedPosition: 'v_projectedPosition'
-};
+/**---
+ *--- HOW TO ADD A SHADER PROGRAM:
+ *--- 1. Add the folder to the BUILTIN PROGRAMS as Foldername: 'Foldername'
+ *--- 2. Register the vertex and fragment shader with glslify + file path
+ *--- Shader program should now be available by calling getProgramInfo(name)
+ *---
+ *--- FOLDER STRUCTURE: Foldername/shader._.glsl , _ = v or f, or whatever other type
+ **/
 
 let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
@@ -44360,7 +52073,9 @@ let BUILTIN_PROGRAMS = {
     DebugCube: 'DebugCube',
     DebugVolume: 'DebugVolume',
     TextureToBBColor: 'TextureToBBColor',
-    TextureBackMinusFront : 'TextureBackMinusFront'
+    TextureBackMinusFront: 'TextureBackMinusFront',
+    SlicerBasic: 'SlicerBasic',
+    SlicerPicking: 'SlicerPicking'
 };
 
 
@@ -44389,24 +52104,29 @@ class ShaderManager {
         // file contents as strings, prior to running browserify
         // itself.
         // TLDR: Cannot use glslify dynamically.
-        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\n\nin vec4 a_position;\nout vec4 v_position;\nout vec4 v_projectedPosition;\n\nvoid main() {\n    vec4 projectedPosition = u_WorldViewProjection * a_position;\n\n    v_position = a_position;\n    v_projectedPosition = projectedPosition;\n\n    gl_Position = projectedPosition;\n}\n"]);
-        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\n#pragma glslify:  = require(../GLSLShared/)\n\nuniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\n\nin vec4 v_position; // Same as ray start position\nin vec4 v_projectedPosition;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    return float(iso) / 32736.0;\n}\n\nvoid main() {\n    // Transform from [-1,1] to [0,1]\n    vec2 texCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projectedPosition);\n\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, texCoord).xyz;\n    vec3 frontFaceGridPos = (v_position.xyz, u_BoundingBoxNormalized);\n    vec3 front2Back = (backfaceGridPos.xyz - frontFaceGridPos);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n\n    // 2. Start ray casting from pos, blend in alpha and such, output target is texture\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = frontFaceGridPos;//(v_position.xyz + vec3(1.0))/2.0; // [-1,1] -> [0,1]\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float isovalueNormalized; // OK!\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a;\n        color = isoRGBA.rgb;\n        //\n        //alpha *= (1.0 - accumulatedAlpha);\n        //alpha *= alphaScaleFactor;\n\n        // Accumulate color and opacity\n        //accumulatedColor += color * alpha;\n        //accumulatedAlpha += alpha;\n\n        alphaIn = isoRGBA.a;\n        alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    vec3 isovalueLookup = currentPos - vec3(0.5);\n    ///vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    //isovalue = isoAndGradientMag.r;\n    vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    vec3 colorTestRGB = colorTest.rgb;\n    float colorTestA = colorTest.a;\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha); // Block...\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_position + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    return float(iso) / 32736.0;\n}\n\nvoid main() {\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        color = isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n        accumulatedAlpha += alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
 
-        this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_gridPosition; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n    \n    gl_Position = projPos;// vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
+        this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_gridPosition; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    //projPos.x /= u_AspectRatio;\n\n    gl_Position = projPos;// vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_gridPosition;\nout vec4 outColor;\n\nvoid main() {\n    outColor = v_gridPosition;\n}\n"]);
 
         this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_LightWorldPos;\nuniform mat4 u_World;\nuniform mat4 u_ViewInverse;\nuniform mat4 u_WorldInverseTranspose;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\n\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\n\nvoid main() {\n    v_texCoord = a_texcoord;\n    v_position = (u_WorldViewProjection * a_position);\n    v_normal = (u_WorldInverseTranspose * vec4(a_normal, 0)).xyz;\n    v_surfaceToLight = u_LightWorldPos - (u_World * a_position).xyz;\n    v_surfaceToView = (u_ViewInverse[3] - (u_World * a_position)).xyz;\n    gl_Position = vec4(v_position.x/u_AspectRatio, v_position.y, v_position.z, v_position.w);\n}\n"]);
         this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nin vec2 v_texCoord;\nin vec3 v_normal;\nin vec3 v_surfaceToLight;\nin vec3 v_surfaceToView;\n\nuniform vec4 u_LightColor;\nuniform vec4 u_Ambient;\nuniform sampler2D u_Diffuse;\nuniform vec4 u_Specular;\nuniform float u_Shininess;\nuniform float u_SpecularFactor;\n\nvec4 lit(float l ,float h, float m) {\nreturn vec4(1.0,\nmax(l, 0.0),\n(l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n1.0);\n}\n\nout vec4 outColor;\n\nvoid main() {\n    vec4 diffuseColor = texture(u_Diffuse, v_texCoord);\n    vec3 a_normal = normalize(v_normal);\n    vec3 surfaceToLight = normalize(v_surfaceToLight);\n    vec3 surfaceToView = normalize(v_surfaceToView);\n    vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n\n    vec4 litR = lit(dot(a_normal, surfaceToLight),\n                    dot(a_normal, halfVector), u_Shininess);\n\n    outColor = vec4((\n    u_LightColor * (diffuseColor * litR.y + diffuseColor * u_Ambient +\n    u_Specular * litR.z * u_SpecularFactor)).rgb,\n    diffuseColor.a);\n\n}\n"]);
 
-        this.vertexShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_position; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_position = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    gl_Position = vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n} \n"]);
+        this.vertexShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_position; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_position = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    gl_Position = vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nout vec4 outColor;\n\nvoid main() {\n    outColor = vec4(0.7,0.1,0.9,1.0);//v_position;\n}\n"]);
 
-        this.vertexShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_projPosition; \n\nvoid main() {\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n    \n    v_projPosition = projPos;\n        \n    gl_Position = projPos;//vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n "]);
-        this.fragmentShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\n\nin vec4 v_projPosition;\nout vec4 outColor;\n\nvoid main() {\n    \n    vec2 screenCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projPosition);\n    //outColor = vec4(screenCoord, 0.5, 1.0);//\n    outColor = vec4(texture(u_TexCoordToRayOrigin, screenCoord).rgb, 1.0); //v_position;\n}\n "]);
+        this.vertexShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_projPosition;\n\nvoid main() {\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_projPosition = projPos;\n\n    gl_Position = projPos;//vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
+        this.fragmentShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\n\nin vec4 v_projPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec2 screenCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projPosition);\n    //outColor = vec4(screenCoord, 0.5, 1.0);//\n    outColor = vec4(texture(u_TexCoordToRayOrigin, screenCoord).rgb, 1.0); //v_position;\n}\n"]);
 
-        this.vertexShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_gridPosition; // [0,1] position within the bounding box coords\nout vec4 v_projPosition;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n    \n    v_projPosition = projPos;\n    \n    gl_Position = projPos;// vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
-        this.fragmentShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\n\nin vec4 v_gridPosition;\nin vec4 v_projPosition;\n\nout vec4 outColor;\n\nvoid main() {\n    \n    vec2 screenCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projPosition);\n    //outColor = vec4(screenCoord, 0.5, 1.0);//\n    vec3 backPosRGB = texture(u_TexCoordToRayOrigin, screenCoord).rgb;\n    vec3 frontPosRGB = v_gridPosition.rgb;\n    \n    vec3 front2back = backPosRGB - frontPosRGB;\n    \n    outColor = vec4(front2back, 1.0); //v_position;\n}\n "]);
+        this.vertexShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n"]);
+        this.fragmentShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nin vec3 v_gridPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nvoid main() {\n\n    vec3 backPosRGB = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2back = backPosRGB - v_gridPosition;\n\n    outColor = vec4(front2back, 1.0);\n}\n"]);
 
+        this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int QUAD = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_QuadOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// quad id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / quad,\n//NOTE: max 6 quads, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isQuad(int id) {\n    return 0 <= id && id <= 5;\n}\n\nbool isFace(int id) {\n    return 6 <= id && id <= 11;\n}\n\nmat4 displaceQuad(int id) {\n    int offsetIndex = u_QuadOffsetIndices[id];\n\n    if(offsetIndex == -1) {\n        // Inactive, discard!\n        v_discardMe = 1;\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0);\n    }\n\n    float offset = u_QuadOffsets[offsetIndex];\n\n    if(id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_position = vec3(a_position);\n\n    v_discardMe = 0; // default: do not discard the quad\n\n    // 2. Set position\n    if(isQuad(a_id)) { // Quad, then displace by offset.\n        mat4 displaceByOffset = displaceQuad(a_id);\n        gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n    } else if(isFace(a_id)) {\n        //v_discardMe = 1; // hide faces\n        gl_Position = u_WorldViewProjection * a_position;\n    }\n      else {\n        gl_Position = u_WorldViewProjection * a_position;\n    }\n}\n\n"]);
+        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_QuadOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    if(dist < 0.08)\n        outColor = vec4(0.5,1.0,1.0,1.0);\n    //outColor = v_color;\n}\n"]);
+
+        this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\n\nin vec4 a_position;\nin int a_id;\n\nout vec3 v_position;\n\nflat out int v_id;\n\nvoid main() {\n    v_id = a_id;\n    v_position = vec3(a_position);\n\n    gl_Position = u_WorldViewProjection * a_position;\n}\n\n"]);
+        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 50.0;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in int v_id;\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n\n    float r = float(v_id) / MAX_IDS;\n\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    // Encode ID into the red component\n    outColor = vec4(r,0.0,0.0,1.0);\n\n    if(dist < 0.08)\n        outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
 
 
         this._initBuiltinPrograms();
@@ -44467,7 +52187,7 @@ module.exports = ShaderManager;
  * @memberof module:Core/Renderer
  **/
 
-},{"glslify":4,"twgl.js":11}],40:[function(require,module,exports){
+},{"glslify":14,"twgl.js":21}],52:[function(require,module,exports){
 /**
  * Manages uniforms, maintains getter functions for all
  * uniforms, both private and shared (subview-wise)
@@ -44575,7 +52295,7 @@ class UniformManager {
 
 module.exports = UniformManager;
 
-},{}],41:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 let d3 = require('d3');
 
 /** @module Settings */
@@ -44701,9 +52421,9 @@ let SETTINGS = {
     },
     WSClient: {
         Timeouts: {
-            getDatasetList: 5000,
-            getDatasetHeader: 5000,
-            getDatasetIsovalues: 30000
+            getDatasetList: 10000,
+            getDatasetHeader: 10000,
+            getDatasetIsovalues: 100000
         },
         loadAutomaticallyByDefault: false
     },
@@ -44726,7 +52446,7 @@ let SETTINGS = {
 
 module.exports = SETTINGS;
 
-},{"d3":3}],42:[function(require,module,exports){
+},{"d3":3}],54:[function(require,module,exports){
 let ConfigurableRenderer = require('../rendering/configurable-renderer');
 
 /**
@@ -44762,14 +52482,15 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            volume: true,
-            slicer: false,
+            volume: false,
+            slicer: true,
             sphere: false
         }
 
         this.renderers = {
             volume: new ConfigurableRenderer(this.gl),
-            slicer: null,
+            slicer: new ConfigurableRenderer(this.gl),
+            SlicerPicking: new ConfigurableRenderer(this.gl),
             sphere: null
         };
 
@@ -44788,14 +52509,28 @@ class Subview {
             return 1; // default fallback
     }
 
+    renderSpecific(name) {
+        this.renderers[name].render();
+    }
+
+    notifyNeedsUpdate(name) {
+        this.needsUpdate[name] = true;
+    }
+
     render() {
-        if (this.needsUpdate.volume)
+        if (this.needsUpdate.volume) {
             this.renderers.volume.render();
-        //
-        //        this.renderers.slicer.render({
-        //            model: this.models.slicer,
-        //            viewport: this.viewports.slicer
-        //        });
+            //this.needsUpdate.volume = false;
+        }
+
+        if (this.needsUpdate.slicer) {
+            this.renderers.slicer.render();
+            //this.needsUpdate.slicer = false;
+        }
+        if (this.needsUpdate.SlicerPicking) {
+            this.renderers.SlicerPicking.render();
+            //this.needsUpdate.volume = false;
+        }
         //
         //        this.renderers.sphere.render({
         //            model: this.models.sphere,
@@ -44861,7 +52596,7 @@ class Subview {
 
 module.exports = Subview;
 
-},{"../rendering/configurable-renderer":35}],43:[function(require,module,exports){
+},{"../rendering/configurable-renderer":47}],55:[function(require,module,exports){
 let d3 = require('d3');
 
 let Subview = require('./subview');
@@ -44925,21 +52660,17 @@ class ViewManager {
         twgl.resizeCanvasToDisplaySize(this.masterContext.canvas);
 
 
-        this.modelSyncManager = new ModelSyncManager(this.masterContext);
+        this.modelSyncManager = new ModelSyncManager(this);
         this.shaderManager = new ShaderManager(this.masterContext);
-        this.FBAndTextureManager = new FBAndTextureManager(this.masterContext);
-        this.uniformManager = new UniformManager();
+        this.FBAndTextureManager = new FBAndTextureManager(this.masterContext, environmentRef);
+
+        this.uniformManagerVolume = new UniformManager();
+        this.uniformManagerSlicer = new UniformManager();
+
         this.bufferManager = new BufferManager(this.masterContext);
+
         this.boundingBoxBuffer = null; // Dependent on dataset
-
-
-        var arrays = {
-            position: [1, 1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, -1],
-            normal: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1],
-            texcoord: [1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-            indices: [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23],
-        };
-        this.boundingBoxBuffer2 = twgl.createBufferInfoFromArrays(this.masterContext, arrays);
+        this.slicerBuffer = null; // TEMP
 
         //twgl.bindFramebufferInfo(this.masterContext);
 
@@ -44954,7 +52685,8 @@ class ViewManager {
                 let modelName = OverlayCellEventToModel[subcellName];
                 let model = this.modelSyncManager.getActiveModel(modelName, cellID);
                 this.modelSyncManager.getActiveModel(modelName, cellID).mouse(event);
-                this.uniformManager.updateAll();
+                this.uniformManagerVolume.updateAll();
+                this.uniformManagerSlicer.updateAll();
             } else
             if (this.subviews[cellID])
                 this.subviews[cellID].notifyEventDidHappen(subcellName, event)
@@ -44986,7 +52718,7 @@ class ViewManager {
         this._debugDoRefresh = true;
 
         setTimeout(() => {
-            this._init();
+            //this._init();
         }, 1000);
     }
 
@@ -45001,12 +52733,21 @@ class ViewManager {
         //this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
 
         // Works!
+
+        this._genTextures();
+        //this._genBoundingBoxBuffer();
         this._genFrameBuffersAndTextureTargets();
         this._bindUniformManager();
         this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         this.addNewView(0);
+
+        let slicerBufferAttribs = this.modelSyncManager.getActiveModel('SLICER', 0).attribArrays;
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribs, 'SlicerBuffer');
+
+        //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
+
         this.refresh();
     }
 
@@ -45022,22 +52763,44 @@ class ViewManager {
         this.refresh();
     }
 
+    getPickingBufferInfo(name, id) {
+        let getter = () => {
+            return this.FBAndTextureManager.getFrameBuffer(name);
+        };
+        let refresh = () => {
+            this._renderPickingBuffer(name, id);
+        }
+
+        return {
+            get: getter,
+            refresh: refresh
+        };
+    }
+
+    _renderPickingBuffer(name, id) {
+        this.subviews[id].renderSpecific(name);
+    }
+
     _generateDebugConfigurationForSubview(subviewID) {
+        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
+
         let DebugConfig = {
-            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
                         cullFace: 'FRONT'
                     }
                 },
                 {
-                    programInfo: this.shaderManager.getProgramInfo('TextureBackMinusFront'),
+                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    bufferInfo: buffer,
+                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
                         cullFace: 'BACK'
                     }
@@ -45070,47 +52833,47 @@ class ViewManager {
             u_Diffuse: tex //this.FBAndTextureManager.getTexture('DebugTex'),
         };
         // Adding some as shared, some as unique (should work)
-        this.uniformManager.addUnique('u_LightWorldPos', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_LightWorldPos', (subviewID) => {
             return uniforms.u_LightWorldPos
         });
-        this.uniformManager.addUnique('u_LightColor', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_LightColor', (subviewID) => {
             return uniforms.u_LightColor
         });
-        this.uniformManager.addShared('u_Ambient', () => {
+        this.uniformManagerVolume.addShared('u_Ambient', () => {
             return uniforms.u_Ambient
         });
-        this.uniformManager.addShared('u_Specular', () => {
+        this.uniformManagerVolume.addShared('u_Specular', () => {
             return uniforms.u_Specular
         });
-        this.uniformManager.addShared('u_Shininess', () => {
+        this.uniformManagerVolume.addShared('u_Shininess', () => {
             return uniforms.u_Shininess
         });
-        this.uniformManager.addShared('u_SpecularFactor', () => {
+        this.uniformManagerVolume.addShared('u_SpecularFactor', () => {
             return uniforms.u_SpecularFactor
         });
-        this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
+        this.uniformManagerVolume.addShared('u_BoundingBoxNormalized', () => {
             return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
         });
-        this.uniformManager.addShared('u_Diffuse', () => {
+        this.uniformManagerVolume.addShared('u_Diffuse', () => {
             return this.FBAndTextureManager.getTexture('DebugTex'); //uniforms.u_Diffuse
         });
-        this.uniformManager.addUnique('u_ViewInverse', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_ViewInverse', (subviewID) => {
             //return uniforms.u_viewInverse;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
         });
-        this.uniformManager.addUnique('u_World', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_World', (subviewID) => {
             //return uniforms.u_world;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
         });
-        this.uniformManager.addUnique('u_WorldInverseTranspose', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_WorldInverseTranspose', (subviewID) => {
             //return uniforms.u_worldInverseTranspose;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
         });
-        this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_WorldViewProjection', (subviewID) => {
             //return uniforms.u_worldViewProjection;
             return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
         });
-        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_AspectRatio', (subviewID) => {
             return this.subviews[subviewID].getAspectRatio();
         });
     }
@@ -45118,18 +52881,14 @@ class ViewManager {
 
     _genFrameBuffersAndTextureTargets() {
         this.FBAndTextureManager.create2DTextureFB({
-            gl: this.masterContext,
-            name: 'FrontFace',
-            width: 300,
-            height: 150
+            name: 'FrontFace'
         });
 
         this.FBAndTextureManager.create2DTextureFB({
-            gl: this.masterContext,
-            name: 'BackFace',
-            width: 300,
-            height: 150
+            name: 'BackFace'
         });
+
+        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
     }
 
     datasetDidChange() {
@@ -45150,16 +52909,83 @@ class ViewManager {
             slices: h.slices,
             isovalues: dataset.isovalues
         });
+
+        this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
+    }
+
+    transferFunctionDidChange(tfKey) {
+        this.FBAndTextureManager.createTransferFunction2DTexture(tfKey);
+        this.uniformManagerVolume.updateAll();
     }
 
     _bindUniformManager() {
+        //this._bindUniformManagerVolume();
+        this._bindUniformManagerSlicer();
+
+    }
+
+    _bindUniformManagerSlicer() {
+        this.uniformManagerSlicer.addShared('u_SamplingRate', () => {
+            let d = this.env.getActiveDataset('GLOBAL');
+            if (!d)
+                return 0.1; // For debugging only
+
+            let h = d.header;
+            let m = Math.max(h.cols, h.rows, h.slices);
+
+            return 1.0 / m;
+        });
+        this.uniformManagerSlicer.addShared('u_DirectionColors', () => {
+            return new Float32Array([
+                1.0, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0
+            ]);
+        });
+
+        // unique
+        this.uniformManagerSlicer.addUnique('u_WorldViewProjection', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_WorldViewProjection;
+        });
+        this.uniformManagerSlicer.addUnique('u_QuadOffsets', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_QuadOffsets;
+        });
+        this.uniformManagerSlicer.addUnique('u_QuadOffsetIndices', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_QuadOffsetIndices;
+        });
+
+        this.uniformManagerSlicer.addUnique('u_HighlightID', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_HighlightID;
+        });
+        this.uniformManagerSlicer.addUnique('u_PickingRayOrigin', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_PickingRayOrigin;
+        });
+        this.uniformManagerSlicer.addUnique('u_RayDir', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_RayDir;
+        });
+    }
+
+
+    _bindUniformManagerVolume() {
         // 1. Set up getters
         // shared
-        this.uniformManager.addShared('u_BoundingBoxNormalized', () => {
-            return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
+        this.uniformManagerVolume.addShared('u_BoundingBoxNormalized', () => {
+            // return new Float32Array([1.0, 0.5, 0.7]); // TODO return the actual bounding box
 
-            //            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
-            //            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
+            let nbb = this.env.getActiveDataset('GLOBAL').header.normalizedBB;
+            return new Float32Array([nbb.width, nbb.height, nbb.depth]);
         });
 
         this.FBAndTextureManager.createDEBUG2DTexture('DebugTex');
@@ -45168,21 +52994,21 @@ class ViewManager {
             height: this.masterCanvas.height,
             name: 'DebugTex2'
         });
-        this.uniformManager.addShared('u_TexCoordToRayOrigin', () => {
+        this.uniformManagerVolume.addShared('u_TexCoordToRayOrigin', () => {
             return this.FBAndTextureManager.getTexture('FrontFace'); // FrontFace
         });
-        this.uniformManager.addShared('u_TexCoordToRayEndPoint', () => {
-            return null; //this.FBAndTextureManager.getTexture('BackFace');
+        this.uniformManagerVolume.addShared('u_TexCoordToRayEndPoint', () => {
+            return this.FBAndTextureManager.getTexture('BackFace');
         });
-        this.uniformManager.addShared('u_ModelXYZToIsoValue', () => {
-            return null; //this.FBAndTextureManager.getTexture('u_ModelXYZToIsoValue');
+        this.uniformManagerVolume.addShared('u_ModelXYZToIsoValue', () => {
+            return this.FBAndTextureManager.getTexture('u_ModelXYZToIsoValue');
         });
-        this.uniformManager.addShared('u_AlphaCorrectionExponent', () => {
+        this.uniformManagerVolume.addShared('u_AlphaCorrectionExponent', () => {
             // New sampling rate / base sampling rate.
             // Let it be 1 for now since sampling rate is not dynamic.
             return 1;
         });
-        this.uniformManager.addShared('u_SamplingRate', () => {
+        this.uniformManagerVolume.addShared('u_SamplingRate', () => {
             let d = this.env.getActiveDataset('GLOBAL');
             if (!d)
                 return 0.1; // For debugging only
@@ -45194,30 +53020,99 @@ class ViewManager {
         });
 
         // unique
-        this.uniformManager.addUnique('u_WorldViewProjection', (subviewID) => {
-            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix();
+        this.uniformManagerVolume.addUnique('u_WorldViewProjection', (subviewID) => {
+            let aspectRatio = this.subviews[subviewID].getAspectRatio();
+
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix(aspectRatio);
         });
-        this.uniformManager.addUnique('u_AspectRatio', (subviewID) => {
+        this.uniformManagerVolume.addUnique('u_AspectRatio', (subviewID) => {
             return this.subviews[subviewID].getAspectRatio();
         });
+        this.uniformManagerVolume.addUnique('u_IsoValueToColorOpacity', (subviewID) => {
+            // 1. Get the active model (in case linked)
+            let activeModel = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
 
-
+            // 2. Get the texture associated to the active model
+            return this.FBAndTextureManager.getTransferFunction2DTexture(activeModel);
+        });
     }
-
 
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
     }
 
+    _generateBasicSlicerConfigForSubview(subviewID) {
+        let gl = this.masterContext;
+
+        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let BasicSlicerConfig = {
+            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    glSettings: {
+                        disable: [gl.CULL_FACE],
+                        enable: [gl.BLEND],
+                        blendFunc: [gl.SRC_ALPHA, gl.ONE]
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    subViewport: {
+                        x0: 0.05,
+                        y0: 0.7,
+                        width: 0.3,
+                        height: 0.3
+                    },
+                    glSettings: {
+                        disable: [gl.CULL_FACE],
+                        disable: [gl.BLEND]
+                    }
+                }
+            ]
+        };
+
+
+
+        return BasicSlicerConfig;
+    }
+
+    _generateSlicerPickingBufferConfigForSubview(subviewID) {
+        let gl = this.masterContext;
+        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+
+        let PickingConfig = {
+            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    glSettings: {
+                        disable: [gl.CULL_FACE],
+                        disable: [gl.BLEND]
+                    }
+                }
+            ]
+        };
+
+        return PickingConfig;
+    }
+
     _generateBasicVolumeConfigForSubview(subviewID) {
+        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
         let BasicVolumeConfig = {
-            uniforms: this.uniformManager.getUniformBundle(subviewID),
+            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    bufferInfo: buffer, // The bounding box!
                     glSettings: {
                         cullFace: 'BACK'
                     }
@@ -45225,7 +53120,7 @@ class ViewManager {
                 {
                     programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    bufferInfo: buffer, // The bounding box!
                     glSettings: {
                         cullFace: 'FRONT'
                     }
@@ -45233,7 +53128,7 @@ class ViewManager {
                 {
                     programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
                     frameBufferInfo: null, // Render to screen
-                    bufferInfo: this.boundingBoxBuffer2, // The bounding box!
+                    bufferInfo: buffer, // The bounding box!
                     /*NEEDED UNIFORMS:
                     u_WorldViewProjection,    <- Depends on camera for model
                     u_BoundingBoxNormalized   <- In dataset header
@@ -45264,11 +53159,31 @@ class ViewManager {
 
     addNewView(id) {
         this.subviews[id] = new Subview(this.masterContext);
-        this.modelSyncManager.addSubview(id);
-        this.uniformManager.addSubview(id);
+        this.modelSyncManager.addSubview(id, this);
+        this.uniformManagerVolume.addSubview(id);
+        this.uniformManagerSlicer.addSubview(id);
         //        let config = this._generateBasicVolumeConfigForSubview(id);
-        let config = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('volume', config);
+
+        if (!this.slicerBuffer)
+            this.bufferManager.createBufferInfoFromArrays(
+                this.modelSyncManager.getActiveModel('SLICER', id).attribArrays,
+                'SlicerBuffer'
+            );
+        this.slicerBuffer = twgl.createBufferInfoFromArrays(
+            this.masterContext,
+            this.modelSyncManager.getActiveModel('SLICER', id).attribArrays
+        );
+
+        let volumeConfig = this._generateDebugConfigurationForSubview(id);
+        this.subviews[id].configureRenderer('volume', volumeConfig);
+
+        let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
+
+        let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
+            slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
+
+        this.subviews[id].configureRenderer('slicer', slicerConfig);
+        this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);
 
         this.syncWithLayout();
     }
@@ -45276,9 +53191,15 @@ class ViewManager {
     removeView(id) {
         delete this.subviews[id];
         this.modelSyncManager.removeSubview(id);
-        this.uniformManager.removeSubview(id);
+        this.uniformManagerVolume.removeSubview(id);
 
         this.syncWithLayout();
+    }
+
+    transferFunctionDidChangeForSubviewID(tfEditorKey) {
+        console.log("Updating TF tex... src: " + tfEditorKey);
+        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey);
+        this.uniformManagerVolume.updateAll();
     }
 
     /**
@@ -45320,6 +53241,8 @@ class ViewManager {
         let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
 
         // TODO move logic for this shit to a manager
+        this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+
         this.boundingBoxBuffer = twgl.createBufferInfoFromArrays(this.masterContext, {
             position: vertices.position,
             indices: vertices.indices,
@@ -45339,7 +53262,7 @@ class ViewManager {
             cam.getModelTransformation().rotateX(0.007);
 
 
-        this.uniformManager.updateAll();
+        this.uniformManagerVolume.updateAll();
     }
 
     __applyViewportPercentages(gl, args) {
@@ -45353,91 +53276,6 @@ class ViewManager {
 
     refresh() {
         let gl = this.masterContext;
-/*
-
-        //twgl.resizeCanvasToDisplaySize(gl.canvas);
-        //this.__applyViewportPercentages(gl, 0, 0, 1.0, 1.0);
-
-        this.uniformManager.updateAll();
-
-        let pos2RGBInfo = this.shaderManager.getProgramInfo('PositionToRGB');
-        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
-        let tex2FaceInfo = this.shaderManager.getProgramInfo('TextureToBBColor');
-
-        let tex = twgl.createTexture(gl, {
-            target: gl.TEXTURE_2D,
-            width:  gl.drawingBufferWidth,
-            height: gl.drawingBufferHeight,
-            min: gl.LINEAR,
-            mag: gl.LINEAR,
-            internalFormat: gl.RGBA,
-            format: gl.RGBA,
-            type: gl.UNSIGNED_BYTE,
-            wrap: gl.CLAMP_TO_EDGE,
-            //premultiplyAlpha: false,
-            //auto: true,
-            //src: null
-        });
-
-        let fb = twgl.createFramebufferInfo(gl, [{
-            attach: gl.COLOR_ATTACTMENT0,
-            format: gl.RGBA,
-            type: gl.UNSIGNED_BYTE,
-            target: gl.TEXTURE_22D,
-            level: 0,
-            attachment: tex
-        }]);
-
-        twgl.resizeCanvasToDisplaySize(gl.canvas);
-        this.__applyViewportPercentages(gl, 0, 0, 1.0, 1.0);
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        gl.enable(gl.CULL_FACE);
-
-        gl.useProgram(pos2RGBInfo.program);
-        gl.cullFace(gl.BACK);
-
-        let uniformBundle = this.uniformManager.getUniformBundle(0);
-
-        twgl.setBuffersAndAttributes(gl, pos2RGBInfo, bufferInfo);
-        twgl.setUniforms(pos2RGBInfo, uniformBundle);
-
-        twgl.bindFramebufferInfo(gl, fb);
-
-
-        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-       // twgl.drawBufferInfo(gl, pos2RGBInfo);
-
-        /* tex = twgl.createTexture(gl, {
-             min: gl.NEAREST,
-             mag: gl.NEAREST,
-             src: [
-                  255, 255, 255, 255,
-                  192, 192, 192, 255,
-                  192, 192, 192, 255,
-                  255, 255, 255, 255,
-                ],
-         });*/
-        /*
-        uniformBundle.u_TexCoordToRayOrigin = tex;
-
-        gl.cullFace(gl.BACK);
-        gl.useProgram(tex2FaceInfo.program);
-
-        twgl.setBuffersAndAttributes(gl, tex2FaceInfo, bufferInfo);
-        twgl.setUniforms(tex2FaceInfo, uniformBundle);
-
-        twgl.bindFramebufferInfo(gl, null);
-
-
-        uniformBundle = this.uniformManager.getUniformBundle(0);
-        uniformBundle.u_TexCoordToRayOrigin = tex;
-
-
-        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);*/
-
 
         twgl.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -45445,9 +53283,11 @@ class ViewManager {
         gl.enable(gl.CULL_FACE);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        for (let viewID in this.subviews) {
-            let view = this.subviews[viewID];
-            this._debugRotateCube(viewID);
+        for (let subviewID in this.subviews) {
+
+            //this._updateTextures(subviewID);
+            let view = this.subviews[subviewID];
+            //this._debugRotateCube(subviewID);
 
             if (!view)
                 continue;
@@ -45459,7 +53299,15 @@ class ViewManager {
         window.requestAnimationFrame(this.refresh.bind(this));
     }
 
+    _updateTextures(subviewID) {
+        let TFModelID = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
 
+        let check = Environment.TransferFunctionManager.checkNeedsUpdate(TFModelID);
+        if (check) {
+
+            this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
+        }
+    }
 
     __DEBUGRefreshView0() {
         console.log("__DEBUGRefreshView0()");
@@ -45470,7 +53318,7 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../geometry/box":47,"../../widgets/split-view/miniature-split-view-overlay":50,"../../widgets/split-view/subcell-layout":53,"../linkable-models":30,"../resource-managers/buffer-manager":36,"../resource-managers/frame-buffer-and-texture-manager":37,"../resource-managers/model-sync-manager":38,"../resource-managers/shader-manager":39,"../resource-managers/uniform-manager":40,"../settings":41,"./subview":42,"d3":3,"glslify":4,"twgl.js":11}],44:[function(require,module,exports){
+},{"../../geometry/box":59,"../../widgets/split-view/miniature-split-view-overlay":62,"../../widgets/split-view/subcell-layout":65,"../linkable-models":40,"../resource-managers/buffer-manager":48,"../resource-managers/frame-buffer-and-texture-manager":49,"../resource-managers/model-sync-manager":50,"../resource-managers/shader-manager":51,"../resource-managers/uniform-manager":52,"../settings":53,"./subview":54,"d3":3,"glslify":14,"twgl.js":21}],56:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -45595,7 +53443,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":45,"./volume-dataset":46}],45:[function(require,module,exports){
+},{"./selection":57,"./volume-dataset":58}],57:[function(require,module,exports){
 
 
 /**
@@ -45656,7 +53504,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],46:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -45743,7 +53591,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],47:[function(require,module,exports){
+},{"d3":3}],59:[function(require,module,exports){
   /**
    * Array of the indices of corners of each face of a cube.
    * @type {Array.<number[]>}
@@ -45880,7 +53728,7 @@ function createCuboidVertices(width, height, depth) {
 
 module.exports = createCuboidVertices;
 
-},{}],48:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 
 
 
@@ -45899,7 +53747,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":13,"./client2server/websocket-client":27,"./core/environment":28}],49:[function(require,module,exports){
+},{"./angular-assets/main-controller":23,"./client2server/websocket-client":37,"./core/environment":38}],61:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -46036,7 +53884,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":54,"underscore":12}],50:[function(require,module,exports){
+},{"./unique-index-bag":66,"underscore":22}],62:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -46263,7 +54111,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],51:[function(require,module,exports){
+},{"d3":3}],63:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -46813,7 +54661,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":49,"./splitbox":52,"d3":3,"jquery":8,"underscore":12}],52:[function(require,module,exports){
+},{"./link-group":61,"./splitbox":64,"d3":3,"jquery":18,"underscore":22}],64:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -47184,7 +55032,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":54,"underscore":12}],53:[function(require,module,exports){
+},{"./unique-index-bag":66,"underscore":22}],65:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -47422,7 +55270,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],54:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -47464,7 +55312,7 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":12}],55:[function(require,module,exports){
+},{"underscore":22}],67:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let LinkableModels = require('../../core/linkable-models').Models;
@@ -47688,7 +55536,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/linkable-models":30,"../../core/settings":41,"./miniature-split-view":51,"underscore":12}],56:[function(require,module,exports){
+},{"../../core/linkable-models":40,"../../core/settings":53,"./miniature-split-view":63,"underscore":22}],68:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -47825,7 +55673,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":10}],57:[function(require,module,exports){
+},{"tinycolor2":20}],69:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -48091,6 +55939,8 @@ class TransferFunctionEditor {
             .attr('class', 'tf-editor-background-canvas ng-id' + this.$scope$id)
             .attr('width', 400)
             .attr('height', 400); // 400x400 pixels to render on
+
+        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID(this.EnvironmentTFKey, this.$scope$id);
 
         this.svgMain = d3.select(this.container)
             .append('svg')
@@ -48480,6 +56330,11 @@ class TransferFunctionEditor {
         this._renderAxes(sizes);
 
         //this._renderColorOpacityBitmap();
+    }
+
+    _notifyTFDidChange() {
+        console.log("_notifyTFDidChange(" + this.EnvironmentTFKey + ")");
+        Environment.notifyTransferFunctionDidChangeAtEditor(this.EnvironmentTFKey);
     }
 
     _renderHistogramSelection(sizes) {
@@ -48913,7 +56768,11 @@ class TransferFunctionEditor {
         }
 
         context.putImageData(new ImageData(data2, width, height), 0, 0);
+
+        // CALL POSSIBLY OBSOLETE...
         Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
+
+        this._notifyTFDidChange();
     }
 
     /* Opacity interpolates down-up, color as usual */
@@ -49325,7 +57184,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":28,"../../core/settings":41,"./color-gradient":56,"d3":3,"jquery":8}],58:[function(require,module,exports){
+},{"../../core/environment":38,"../../core/settings":53,"./color-gradient":68,"d3":3,"jquery":18}],70:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -49502,7 +57361,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":59}],59:[function(require,module,exports){
+},{"./transfer-function":71}],71:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -49533,4 +57392,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":56,"d3":3}]},{},[48]);
+},{"./color-gradient":68,"d3":3}]},{},[60]);
