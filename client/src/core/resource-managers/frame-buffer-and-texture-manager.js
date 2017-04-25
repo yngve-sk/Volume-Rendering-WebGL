@@ -1,4 +1,5 @@
 let twgl = require('twgl.js');
+let Environment = require('../environment');
 
 /**
  * Manages and creates frame buffers and textures.
@@ -10,8 +11,10 @@ class FrameBufferAndTextureManager {
      * @param {WebGL2Context} gl the webGL context the framebuffer manager is tied to
      * @constructor
      */
-    constructor(gl) {
+    constructor(gl, environmentRef) {
         this.gl = gl;
+        this.env = environmentRef;
+
         this.framebuffers = {
 
         };
@@ -19,6 +22,8 @@ class FrameBufferAndTextureManager {
         this.textures = {
 
         };
+
+        this.transferFunctionTextures = {}; // {subviewID : TextureObj}
     }
 
 
@@ -66,7 +71,7 @@ class FrameBufferAndTextureManager {
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
-            width:  gl.drawingBufferWidth,
+            width: gl.drawingBufferWidth,
             height: gl.drawingBufferHeight,
             min: gl.LINEAR,
             mag: gl.LINEAR,
@@ -93,6 +98,26 @@ class FrameBufferAndTextureManager {
 
         this.framebuffers[detail.name] = framebuffer;
         return framebuffer;
+    }
+
+    create2DPickingBufferFB(name, pickingFunction) {
+        // For now use the same thing
+        let fb = this.create2DTextureFB({
+            name: name
+        });
+
+        if(pickingFunction)
+            fb.pick = pickingFunction;
+
+        let gl = this.gl;
+
+        // Convenience method attached to not do the binding/unbinding
+        // manually
+        fb.readPixels = (x, y, w, h, format, type, dst, offset) => {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fb.framebuffer);
+            gl.readPixels(x, y, w, h, format, type, dst, offset);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
     }
 
 
@@ -130,6 +155,41 @@ class FrameBufferAndTextureManager {
                 wrapR: gl.CLAMP_TO_EDGE,
                 premultiplyAlpha: false
             });
+    }
+
+    createTransferFunction2DTexture(tfEditorKey) {
+        let gl = this.gl;
+
+        let TFEditor = tfEditorKey; // LOCAL or GLOBAL
+
+        // 1. Find out which subview the TF editor is currently pointing to
+        let subviewID = this.env.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
+
+        // 2. Get the canvas of the editor, so it can be loaded into a tex
+        let info = this.env.TransferFunctionManager.getCanvasForTFKey(tfEditorKey);
+        let isoToColorData = info.canvas,
+            bounds = info.textureBounds;
+
+        // 3. Load the canvas img data into a texture of height 1
+        let imgdata = isoToColorData.getContext('2d').getImageData(bounds.x, bounds.y, bounds.width, 1);
+        let buffer = imgdata.data; // UInt8ClampedArray, i.e all values [0,255]
+
+        // 4. Create the texture bound to the given subviewID
+        this.transferFunctionTextures[subviewID] = twgl.createTexture(gl, {
+            target: gl.TEXTURE_2D,
+            internalFormat: gl.RGBA,
+            width: bounds.width,
+            height: 1,
+            src: buffer,
+            premultiplyAlpha: false
+        });
+    }
+
+    getTransferFunction2DTexture(subviewID) {
+        if (!this.transferFunctionTextures[subviewID]) // default to global
+            return this.transferFunctionTextures['GLOBAL'];
+
+        return this.transferFunctionTextures[subviewID];
     }
 }
 
