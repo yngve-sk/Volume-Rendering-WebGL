@@ -67,8 +67,10 @@ class ViewManager {
 
         this.uniformManagerVolume = new UniformManager();
         this.uniformManagerSlicer = new UniformManager();
+        this.uniformManagerUnitQuad = new UniformManager();
 
         this.bufferManager = new BufferManager(this.masterContext);
+        this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
 
         this.boundingBoxBuffer = null; // Dependent on dataset
         this.slicerBuffer = null; // TEMP
@@ -143,9 +145,6 @@ class ViewManager {
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         this.addNewView(0);
-
-        let slicerBufferAttribs = this.modelSyncManager.getActiveModel('SLICER', 0).attribArrays;
-        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribs, 'SlicerBuffer');
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
@@ -290,6 +289,10 @@ class ViewManager {
         });
 
         this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'UnitQuadTexture'
+        });
     }
 
     datasetDidChange() {
@@ -323,6 +326,12 @@ class ViewManager {
         //this._bindUniformManagerVolume();
         this._bindUniformManagerSlicer();
 
+    }
+
+    _bindUniformManagerUnitQuad() {
+        this.uniformManagerUnitQuad.addShared('u_QuadTexture', () => {
+            return this.FBAndTextureManager.getTexture('UnitQuadTexture');
+        });
     }
 
     _bindUniformManagerSlicer() {
@@ -447,22 +456,26 @@ class ViewManager {
         let gl = this.masterContext;
 
         let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
+        uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
+
         let BasicSlicerConfig = {
             uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
                     glSettings: {
                         disable: [gl.CULL_FACE],
                         enable: [gl.BLEND],
-                        blendFunc: [gl.SRC_ALPHA, gl.ONE]
+                        blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                        clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT]
                     }
                 },
-                {
+                /*{ // Render the picking buffer into a subview..
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
                     subViewport: {
                         x0: 0.05,
@@ -471,10 +484,26 @@ class ViewManager {
                         height: 0.3
                     },
                     glSettings: {
-                        disable: [gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST],
+//                        depthFunc: [gl.LESS],
+                        cullFace: [gl.BACK],
+                        disable: [gl.BLEND],
+                        //clear: [gl.COLOR_BUFFER_BIT]
+
+                    }
+                },*/
+                {
+                    programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    glSettings: {
+                        clear: [gl.COLOR_BUFFER_BIT],
+                        enable: [gl.CULL_FACE],
+                        cullFace: [gl.BACK],
                         disable: [gl.BLEND]
                     }
-                }
+                },
+
             ]
         };
 
@@ -493,10 +522,20 @@ class ViewManager {
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
                     glSettings: {
-                        disable: [gl.CULL_FACE],
-                        disable: [gl.BLEND]
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    glSettings: { // Same as before...
                     }
                 }
             ]
@@ -565,15 +604,12 @@ class ViewManager {
         this.uniformManagerSlicer.addSubview(id);
         //        let config = this._generateBasicVolumeConfigForSubview(id);
 
-        if (!this.slicerBuffer)
-            this.bufferManager.createBufferInfoFromArrays(
-                this.modelSyncManager.getActiveModel('SLICER', id).attribArrays,
-                'SlicerBuffer'
-            );
-        this.slicerBuffer = twgl.createBufferInfoFromArrays(
-            this.masterContext,
-            this.modelSyncManager.getActiveModel('SLICER', id).attribArrays
-        );
+        if (!this.bufferManager.hasBuffer('SlicerBuffer')) {
+            let slicerBufferAttribArrays = this.modelSyncManager.getActiveModel('SLICER', id).attribArrays;
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
+        }
 
         let volumeConfig = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', volumeConfig);
@@ -680,9 +716,9 @@ class ViewManager {
 
         twgl.resizeCanvasToDisplaySize(gl.canvas);
 
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //gl.enable(gl.DEPTH_TEST);
+        //gl.enable(gl.CULL_FACE);
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         for (let subviewID in this.subviews) {
 

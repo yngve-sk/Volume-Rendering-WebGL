@@ -44,6 +44,11 @@ primitives.createCenteredXZQuadVertices = function (size) {
 class SlicerModel {
     constructor(gl, viewManager, myID) {
 
+        window['HID' + myID] = (id) => {
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+        }
+
         this.gl = gl;
         this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
 
@@ -146,19 +151,32 @@ class SlicerModel {
     _bindMouseHandler() {
         let gl = this.gl;
         this.mouseHandler.on('click', 'left', (state) => {
+
+            let decodeRGBToID = (r, g, b) => {
+
+            }
+
+            let encodeIDToRGB = (id) => {
+                // assume ID is 32bit
+                // r g b
+                // 8 8 8
+            }
+
             this.pickingBuffer.refresh(); // Render it onto FB before reading
             console.log("MouseCLICK left");
             let pb = this.pickingBuffer.get();
             let dest = new Uint8Array(1.0 * 4);
             let pixels = pb.readPixels(
                 state.x * pb.width,
-                state.y * pb.height,
+                (1.0 - state.y) * pb.height,
                 1.0, 1.0,
                 gl.RGBA, gl.UNSIGNED_BYTE,
                 dest, 0
             );
 
-            let id = 50 * dest[0] / 255.0;
+            let id = parseInt(dest[0]);
+
+            console.log("Highlighting ID: " + id);
 
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
@@ -191,13 +209,7 @@ class SlicerModel {
             this.pickingBuffer.refresh(); // Render it onto FB before reading
             console.log("MouseCLICK left");
             let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4*pb.width*pb.height);
-            //let pixels = pb.readPixels(
-            //    state.x * pb.width, state.y * pb.height,
-            //    1.0, 1.0,
-            //    gl.RGBA, gl.UNSIGNED_BYTE,
-            //    dest, 0
-            //);
+            let dest = new Uint8Array(4 * pb.width * pb.height);
 
             let pixels = pb.readPixels(
                 0, 0,
@@ -206,19 +218,26 @@ class SlicerModel {
                 dest, 0
             );
 
+            let dest2 = new Uint8Array(4 * 1);
+            let pixels2 = pb.readPixels(
+                state.x * pb.width, (1.0 - state.y) * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest2, 0
+            );
 
             let debugcanvas = document.getElementById('debugcanvas');
             let gl2 = debugcanvas.getContext('2d');
+            debugcanvas.width = pb.width;
+            debugcanvas.height = pb.height;
             gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
             let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
             gl2.putImageData(imagedata, 0, 0);
 
-            let id = 50 * dest[0] / 255.0;
+            let id = dest2[0];
 
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
-
-
 
             let pbfb = this.pickingBuffer.get();
 
@@ -316,14 +335,21 @@ let rotateFromYTo = (newDirection) => {
     }
 }
 
-let rotateFromXYTo = (newNormal) => {
+let rotateFromXYTo = (newNormal, transDir) => {
+
+    // Starts as XY quad, normal goes in +Z direction...
+    // transDir = -1 means that...
+    // Y: Face in negative YZ, i.e rotate
+    //
+
+    let angle = -transDir * Math.PI / 2;
     switch (newNormal) {
         case 'X': // YZ
-            return m4.rotationY(Math.PI / 2);
+            return m4.rotationY(angle);
         case 'Y': // XZ
-            return m4.rotationX(Math.PI / 2);
+            return m4.rotationX(angle);
         case 'Z': // XY
-            return m4.identity();
+            return m4.rotationX(transDir === -1 ? 0 : Math.PI);
     }
 }
 
@@ -340,7 +366,7 @@ let rotateFromXYTo = (newNormal) => {
 let translateQuadVerticesToEdge = (normal, direction, offset) => {
     let tx = normal === 'X' ? direction * offset : 0,
         ty = normal === 'Y' ? direction * offset : 0,
-        tz = normal === 'Z' ? direction * offset : 0;
+        tz = normal === 'Z' ? -direction * offset : 0;
 
     let translateVec = v3.create(tx, ty, tz);
     return m4.translation(translateVec);
@@ -580,7 +606,7 @@ class LabeledSlicerBox {
         //        return;
         //    }
         //}
-//
+        //
         //this.uniforms.u_HighlightID = this.tempsss ? 7 : 9;
         //this.tempsss = !this.tempsss;
     }
@@ -593,17 +619,40 @@ class LabeledSlicerBox {
 
         let Vertices = {};
 
+        let RailVertices = {},
+            CubeFaceVertices = {};
+
         let a_position = [],
             a_direction = [],
             a_id = [],
             indices = [];
+
+        let a_positionCubeFace = [],
+            a_directionCubeFace = [],
+            a_idCubeFace = [],
+            indicesCubeFace = [];
+
+        let a_positionRails = [],
+            a_directionRails = [],
+            a_idRails = [],
+            indicesRails = [];
+
+        let numRailsDebug = 4;
+        let railNum = 0;
+
+        let xRails = [
+            12,
+            15,
+            18,
+            21
+                     ];
 
         // 1. Generate polylines (cylinders) for all rails
         for (let id in this.rails) {
             let rail = this.rails[id];
             let direction = this._getDirectionIndex(rail.direction);
 
-            let vertices = primitives.createCylinderVertices(
+            let railverts = primitives.createCylinderVertices(
                 0.07, // Radius of cylinder
                 this.size, // Height of cylinder
                 5, //  radialSubdivisions The number of subdivisions around the cylinder
@@ -612,14 +661,14 @@ class LabeledSlicerBox {
                 true // bottomCap
             );
 
-            let numVerts = vertices.position.length / 3;
+            let numVerts = railverts.position.length / 3;
 
             // Append direction and a_id to them too. same size as num verts
-            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.direction.fill(direction);
+            railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            railverts.direction.fill(direction);
 
-            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.id.fill(id);
+            railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            railverts.id.fill(id);
 
             // Rotate+Translate rails from centered along Y to respective position
             let rotate = rotateFromYTo(rail.direction);
@@ -630,17 +679,31 @@ class LabeledSlicerBox {
             );
 
             let rotateThenTranslate = m4.multiply(translate, rotate);
-            primitives.reorientVertices(vertices, rotateThenTranslate);
+            primitives.reorientVertices(railverts, rotateThenTranslate);
+
+            console.log("ID = " + id + " .... ");
+            console.log(rail);
+            console.log("-------");
 
             let indexOffset = a_position.length / 3;
 
-            a_position.push(...vertices.position);
-            a_direction.push(...vertices.direction);
-            a_id.push(...vertices.id);
-            indices.push(...vertices.indices.map((i) => {
+            a_position.push(...railverts.position);
+            a_direction.push(...railverts.direction);
+            a_id.push(...railverts.id);
+            indices.push(...railverts.indices.map((i) => {
                 return i + indexOffset;
             }));
 
+            let railIndexOffset = a_positionRails.length / 3;
+
+            a_positionRails.push(...railverts.position);
+            a_directionRails.push(...railverts.direction);
+            a_idRails.push(...railverts.id);
+            indicesRails.push(...railverts.indices.map((i) => {
+                return i + railIndexOffset;
+            }));
+            //if (railNum++ === numRailsDebug)
+            //    break;
         }
 
         // 2. Generate cube faces (quads)
@@ -648,7 +711,7 @@ class LabeledSlicerBox {
             let face = this.faces[id];
             let direction = this._getDirectionIndex(face.normal);
 
-            let vertices = {};
+            let cubefvs = {};
 
             let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
             vbo.push(face.p0);
@@ -660,31 +723,46 @@ class LabeledSlicerBox {
             ibo.push([0, 1, 2]);
             ibo.push([0, 2, 3]);
 
-            vertices.position = vbo;
-            vertices.indices = ibo;
+            cubefvs.position = vbo;
+            cubefvs.indices = ibo;
 
-            let numVerts = vertices.position.length / 3;
+            let numVerts = cubefvs.position.length / 3;
 
-            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.direction.fill(direction);
+            cubefvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            cubefvs.direction.fill(direction);
 
-            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.id.fill(id);
+            cubefvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            cubefvs.id.fill(id);
 
             // Move quad from XY centered to edges
-            let rotate = rotateFromXYTo(face.normal);
-            let translate = translateQuadVerticesToEdge(face.normal, face.direction, this.size / 2);
+            let rotate = rotateFromXYTo(face.normal, face.translate);
+            let translate = translateQuadVerticesToEdge(face.normal, face.translate, this.size / 2);
 
             let rotateThenTranslate = m4.multiply(translate, rotate);
             //primitives.reorientPositions(vbo, m4.identity());
 
+            if (face.normal === 'X' && face.translate === 1)
+                cubefvs.indices = cubefvs.indices.reverse();
+            else if (face.normal !== 'X' && face.translate === -1)
+                cubefvs.indices = cubefvs.indices.reverse();
+
+
             let indexOffset = a_position.length / 3;
 
-            a_position.push(...vertices.position);
-            a_direction.push(...vertices.direction);
-            a_id.push(...vertices.id);
-            indices.push(...vertices.indices.map((i) => {
+            a_position.push(...cubefvs.position);
+            a_direction.push(...cubefvs.direction);
+            a_id.push(...cubefvs.id);
+            indices.push(...cubefvs.indices.map((i) => {
                 return i + indexOffset
+            }));
+
+            let cubeFaceIndexOffset = a_positionCubeFace.length / 3;
+
+            a_positionCubeFace.push(...cubefvs.position);
+            a_directionCubeFace.push(...cubefvs.direction);
+            a_idCubeFace.push(...cubefvs.id);
+            indicesCubeFace.push(...cubefvs.indices.map((i) => {
+                return i + cubeFaceIndexOffset
             }));
         }
 
@@ -709,9 +787,54 @@ class LabeledSlicerBox {
             }
         };
 
-        this.attribs = Vertices;
+        RailVertices = { // twgl-friendly format for createBufferInfoFromArrays
+            position: {
+                numComponents: 3,
+                data: new Float32Array(a_positionRails)
+            },
+            direction: {
+                numComponents: 1,
+                data: new Int16Array(a_directionRails)
+            },
+            id: {
+                numComponents: 1,
+                data: new Int16Array(a_idRails)
+            },
+            indices: {
+                numComponents: 3,
+                data: new Int16Array(indicesRails)
+            }
+        };
+
+        CubeFaceVertices = { // twgl-friendly format for createBufferInfoFromArrays
+            position: {
+                numComponents: 3,
+                data: new Float32Array(a_positionCubeFace)
+            },
+            direction: {
+                numComponents: 1,
+                data: new Int16Array(a_directionCubeFace)
+            },
+            id: {
+                numComponents: 1,
+                data: new Int16Array(a_idCubeFace)
+            },
+            indices: {
+                numComponents: 3,
+                data: new Int16Array(indicesCubeFace)
+            }
+        };
 
 
-        return Vertices;
+        let attribs = {
+            Vertices: Vertices,
+            CubeFaceVertices: CubeFaceVertices,
+            RailVertices: RailVertices
+        };
+
+        this.attribs = attribs;
+
+
+        return attribs;
     }
 }

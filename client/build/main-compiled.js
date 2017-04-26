@@ -50644,6 +50644,11 @@ primitives.createCenteredXZQuadVertices = function (size) {
 class SlicerModel {
     constructor(gl, viewManager, myID) {
 
+        window['HID' + myID] = (id) => {
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+        }
+
         this.gl = gl;
         this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
 
@@ -50746,19 +50751,32 @@ class SlicerModel {
     _bindMouseHandler() {
         let gl = this.gl;
         this.mouseHandler.on('click', 'left', (state) => {
+
+            let decodeRGBToID = (r, g, b) => {
+
+            }
+
+            let encodeIDToRGB = (id) => {
+                // assume ID is 32bit
+                // r g b
+                // 8 8 8
+            }
+
             this.pickingBuffer.refresh(); // Render it onto FB before reading
             console.log("MouseCLICK left");
             let pb = this.pickingBuffer.get();
             let dest = new Uint8Array(1.0 * 4);
             let pixels = pb.readPixels(
                 state.x * pb.width,
-                state.y * pb.height,
+                (1.0 - state.y) * pb.height,
                 1.0, 1.0,
                 gl.RGBA, gl.UNSIGNED_BYTE,
                 dest, 0
             );
 
-            let id = 50 * dest[0] / 255.0;
+            let id = parseInt(dest[0]);
+
+            console.log("Highlighting ID: " + id);
 
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
@@ -50791,13 +50809,7 @@ class SlicerModel {
             this.pickingBuffer.refresh(); // Render it onto FB before reading
             console.log("MouseCLICK left");
             let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4*pb.width*pb.height);
-            //let pixels = pb.readPixels(
-            //    state.x * pb.width, state.y * pb.height,
-            //    1.0, 1.0,
-            //    gl.RGBA, gl.UNSIGNED_BYTE,
-            //    dest, 0
-            //);
+            let dest = new Uint8Array(4 * pb.width * pb.height);
 
             let pixels = pb.readPixels(
                 0, 0,
@@ -50806,19 +50818,26 @@ class SlicerModel {
                 dest, 0
             );
 
+            let dest2 = new Uint8Array(4 * 1);
+            let pixels2 = pb.readPixels(
+                state.x * pb.width, (1.0 - state.y) * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest2, 0
+            );
 
             let debugcanvas = document.getElementById('debugcanvas');
             let gl2 = debugcanvas.getContext('2d');
+            debugcanvas.width = pb.width;
+            debugcanvas.height = pb.height;
             gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
             let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
             gl2.putImageData(imagedata, 0, 0);
 
-            let id = 50 * dest[0] / 255.0;
+            let id = dest2[0];
 
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
-
-
 
             let pbfb = this.pickingBuffer.get();
 
@@ -50916,14 +50935,21 @@ let rotateFromYTo = (newDirection) => {
     }
 }
 
-let rotateFromXYTo = (newNormal) => {
+let rotateFromXYTo = (newNormal, transDir) => {
+
+    // Starts as XY quad, normal goes in +Z direction...
+    // transDir = -1 means that...
+    // Y: Face in negative YZ, i.e rotate
+    //
+
+    let angle = -transDir * Math.PI / 2;
     switch (newNormal) {
         case 'X': // YZ
-            return m4.rotationY(Math.PI / 2);
+            return m4.rotationY(angle);
         case 'Y': // XZ
-            return m4.rotationX(Math.PI / 2);
+            return m4.rotationX(angle);
         case 'Z': // XY
-            return m4.identity();
+            return m4.rotationX(transDir === -1 ? 0 : Math.PI);
     }
 }
 
@@ -50940,7 +50966,7 @@ let rotateFromXYTo = (newNormal) => {
 let translateQuadVerticesToEdge = (normal, direction, offset) => {
     let tx = normal === 'X' ? direction * offset : 0,
         ty = normal === 'Y' ? direction * offset : 0,
-        tz = normal === 'Z' ? direction * offset : 0;
+        tz = normal === 'Z' ? -direction * offset : 0;
 
     let translateVec = v3.create(tx, ty, tz);
     return m4.translation(translateVec);
@@ -51180,7 +51206,7 @@ class LabeledSlicerBox {
         //        return;
         //    }
         //}
-//
+        //
         //this.uniforms.u_HighlightID = this.tempsss ? 7 : 9;
         //this.tempsss = !this.tempsss;
     }
@@ -51193,17 +51219,40 @@ class LabeledSlicerBox {
 
         let Vertices = {};
 
+        let RailVertices = {},
+            CubeFaceVertices = {};
+
         let a_position = [],
             a_direction = [],
             a_id = [],
             indices = [];
+
+        let a_positionCubeFace = [],
+            a_directionCubeFace = [],
+            a_idCubeFace = [],
+            indicesCubeFace = [];
+
+        let a_positionRails = [],
+            a_directionRails = [],
+            a_idRails = [],
+            indicesRails = [];
+
+        let numRailsDebug = 4;
+        let railNum = 0;
+
+        let xRails = [
+            12,
+            15,
+            18,
+            21
+                     ];
 
         // 1. Generate polylines (cylinders) for all rails
         for (let id in this.rails) {
             let rail = this.rails[id];
             let direction = this._getDirectionIndex(rail.direction);
 
-            let vertices = primitives.createCylinderVertices(
+            let railverts = primitives.createCylinderVertices(
                 0.07, // Radius of cylinder
                 this.size, // Height of cylinder
                 5, //  radialSubdivisions The number of subdivisions around the cylinder
@@ -51212,14 +51261,14 @@ class LabeledSlicerBox {
                 true // bottomCap
             );
 
-            let numVerts = vertices.position.length / 3;
+            let numVerts = railverts.position.length / 3;
 
             // Append direction and a_id to them too. same size as num verts
-            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.direction.fill(direction);
+            railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            railverts.direction.fill(direction);
 
-            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.id.fill(id);
+            railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            railverts.id.fill(id);
 
             // Rotate+Translate rails from centered along Y to respective position
             let rotate = rotateFromYTo(rail.direction);
@@ -51230,17 +51279,31 @@ class LabeledSlicerBox {
             );
 
             let rotateThenTranslate = m4.multiply(translate, rotate);
-            primitives.reorientVertices(vertices, rotateThenTranslate);
+            primitives.reorientVertices(railverts, rotateThenTranslate);
+
+            console.log("ID = " + id + " .... ");
+            console.log(rail);
+            console.log("-------");
 
             let indexOffset = a_position.length / 3;
 
-            a_position.push(...vertices.position);
-            a_direction.push(...vertices.direction);
-            a_id.push(...vertices.id);
-            indices.push(...vertices.indices.map((i) => {
+            a_position.push(...railverts.position);
+            a_direction.push(...railverts.direction);
+            a_id.push(...railverts.id);
+            indices.push(...railverts.indices.map((i) => {
                 return i + indexOffset;
             }));
 
+            let railIndexOffset = a_positionRails.length / 3;
+
+            a_positionRails.push(...railverts.position);
+            a_directionRails.push(...railverts.direction);
+            a_idRails.push(...railverts.id);
+            indicesRails.push(...railverts.indices.map((i) => {
+                return i + railIndexOffset;
+            }));
+            //if (railNum++ === numRailsDebug)
+            //    break;
         }
 
         // 2. Generate cube faces (quads)
@@ -51248,7 +51311,7 @@ class LabeledSlicerBox {
             let face = this.faces[id];
             let direction = this._getDirectionIndex(face.normal);
 
-            let vertices = {};
+            let cubefvs = {};
 
             let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
             vbo.push(face.p0);
@@ -51260,31 +51323,46 @@ class LabeledSlicerBox {
             ibo.push([0, 1, 2]);
             ibo.push([0, 2, 3]);
 
-            vertices.position = vbo;
-            vertices.indices = ibo;
+            cubefvs.position = vbo;
+            cubefvs.indices = ibo;
 
-            let numVerts = vertices.position.length / 3;
+            let numVerts = cubefvs.position.length / 3;
 
-            vertices.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.direction.fill(direction);
+            cubefvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            cubefvs.direction.fill(direction);
 
-            vertices.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            vertices.id.fill(id);
+            cubefvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+            cubefvs.id.fill(id);
 
             // Move quad from XY centered to edges
-            let rotate = rotateFromXYTo(face.normal);
-            let translate = translateQuadVerticesToEdge(face.normal, face.direction, this.size / 2);
+            let rotate = rotateFromXYTo(face.normal, face.translate);
+            let translate = translateQuadVerticesToEdge(face.normal, face.translate, this.size / 2);
 
             let rotateThenTranslate = m4.multiply(translate, rotate);
             //primitives.reorientPositions(vbo, m4.identity());
 
+            if (face.normal === 'X' && face.translate === 1)
+                cubefvs.indices = cubefvs.indices.reverse();
+            else if (face.normal !== 'X' && face.translate === -1)
+                cubefvs.indices = cubefvs.indices.reverse();
+
+
             let indexOffset = a_position.length / 3;
 
-            a_position.push(...vertices.position);
-            a_direction.push(...vertices.direction);
-            a_id.push(...vertices.id);
-            indices.push(...vertices.indices.map((i) => {
+            a_position.push(...cubefvs.position);
+            a_direction.push(...cubefvs.direction);
+            a_id.push(...cubefvs.id);
+            indices.push(...cubefvs.indices.map((i) => {
                 return i + indexOffset
+            }));
+
+            let cubeFaceIndexOffset = a_positionCubeFace.length / 3;
+
+            a_positionCubeFace.push(...cubefvs.position);
+            a_directionCubeFace.push(...cubefvs.direction);
+            a_idCubeFace.push(...cubefvs.id);
+            indicesCubeFace.push(...cubefvs.indices.map((i) => {
+                return i + cubeFaceIndexOffset
             }));
         }
 
@@ -51309,10 +51387,55 @@ class LabeledSlicerBox {
             }
         };
 
-        this.attribs = Vertices;
+        RailVertices = { // twgl-friendly format for createBufferInfoFromArrays
+            position: {
+                numComponents: 3,
+                data: new Float32Array(a_positionRails)
+            },
+            direction: {
+                numComponents: 1,
+                data: new Int16Array(a_directionRails)
+            },
+            id: {
+                numComponents: 1,
+                data: new Int16Array(a_idRails)
+            },
+            indices: {
+                numComponents: 3,
+                data: new Int16Array(indicesRails)
+            }
+        };
+
+        CubeFaceVertices = { // twgl-friendly format for createBufferInfoFromArrays
+            position: {
+                numComponents: 3,
+                data: new Float32Array(a_positionCubeFace)
+            },
+            direction: {
+                numComponents: 1,
+                data: new Int16Array(a_directionCubeFace)
+            },
+            id: {
+                numComponents: 1,
+                data: new Int16Array(a_idCubeFace)
+            },
+            indices: {
+                numComponents: 3,
+                data: new Int16Array(indicesCubeFace)
+            }
+        };
 
 
-        return Vertices;
+        let attribs = {
+            Vertices: Vertices,
+            CubeFaceVertices: CubeFaceVertices,
+            RailVertices: RailVertices
+        };
+
+        this.attribs = attribs;
+
+
+        return attribs;
     }
 }
 
@@ -51513,6 +51636,7 @@ module.exports = MouseHandler;
 },{}],47:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
+let _ = require('underscore');
 
 /** @module Core/Renderer */
 
@@ -51566,20 +51690,37 @@ class ConfigurableRenderer {
             this.viewport.height);
     }
 
-    _applySubViewport(svp01) {
+    _applySubViewport(svp01, fbinfo) {
+        if (fbinfo) { // Use frame buffer as parent viewport
+            let subX0 = svp01.x0 * fbinfo.width,
+                subY0 = svp01.y0 * fbinfo.height;
 
-        let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
-            subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
+
+            let subWidth = svp01.width * fbinfo.width,
+                subHeight = svp01.height * fbinfo.height;
+
+            this.gl.viewport(
+                subX0,
+                subY0,
+                subWidth,
+                subHeight);
+
+        } else { // Use given viewport as parent
+            let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
+                subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
 
 
-        let subWidth = svp01.width * this.viewport.width,
-            subHeight = svp01.height * this.viewport.height;
+            let subWidth = svp01.width * this.viewport.width,
+                subHeight = svp01.height * this.viewport.height;
 
-        this.gl.viewport(
-            subX0,
-            subY0,
-            subWidth,
-            subHeight);
+            this.gl.viewport(
+                subX0,
+                subY0,
+                subWidth,
+                subHeight);
+        }
+
+
     }
 
     /**
@@ -51596,44 +51737,53 @@ class ConfigurableRenderer {
 
             if (!step.frameBufferInfo) {
                 this._applyViewport();
-
-                if (step.subViewport)
-                    this._applySubViewport(step.subViewport);
             }
 
-            /*       if (step.glSettings) { // Single argument gl.X = gl.Y
-                       for (let func in step.glSettings) {
-                           // Ex: {cullFace: 'BACK'} evalues into:
-                           // gl[cullFace](gl[BACK]) which is the same as
-                           // gl.cullFace(gl.BACK)
-                           gl[func](gl[step.glSettings[func]]);
-                       }
-                   }*/
-
-            if (step.glSettings)
-                for (let func in step.glSettings) {
-                    let args = step.glSettings[func];
-                    gl[func].apply(gl, args);
-                }
-
             twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
-            //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
             twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
-            /*twgl.bindFramebufferInfo(gl, step.frameBufferInfo.framebuffer, gl.DRAW_FRAMEBUFFER);*/
-            /*
-                        let fb = step.frameBufferInfo === null ? null : step.frameBufferInfo.framebuffer;
+            let applyGLSettings = () => {
+                for (let func in step.glSettings) {
+                    let args = step.glSettings[func];
 
-                        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
-            */
+                    if (_.contains(['enable', 'disable', 'clear'], func)) {
+                        for (let arg of args)
+                            gl[func].call(gl, arg);
+                    } else {
+                        gl[func].apply(gl, args);
+                    }
+                }
+            }
 
             if (step.frameBufferInfo) {
                 twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+                if (step.subViewport) // Also applies to frame bufs
+                    this._applySubViewport(step.subViewport, step.frameBufferInfo);
+
+                applyGLSettings();
+                //if (step.glSettings)
+                //    for (let func in step.glSettings) {
+                //        let args = step.glSettings[func];
+                //        gl[func].apply(gl, args);
+                //    }
+
                 //twgl.drawBufferInfo(gl, step.bufferInfo);
                 gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
 
             } else {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+                this._applyViewport();
+
+                if (step.subViewport)
+                    this._applySubViewport(step.subViewport);
+
+                applyGLSettings();
+                // if (step.glSettings)
+                //     for (let func in step.glSettings) {
+                //         let args = step.glSettings[func];
+                //         gl[func].apply(gl, args);
+                //     }
+
                 //twgl.drawBufferInfo(gl, step.bufferInfo);
                 gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
             }
@@ -51677,7 +51827,7 @@ module.exports = ConfigurableRenderer;
  * @memberof module:Core/Renderer
  **/
 
-},{"twgl.js":21}],48:[function(require,module,exports){
+},{"twgl.js":21,"underscore":22}],48:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
@@ -51698,6 +51848,14 @@ class BufferManager {
 
     createBufferInfoFromArrays(arrays, name) {
         this.bufferObjects[name] = twgl.createBufferInfoFromArrays(this.gl, arrays);
+    }
+
+    createFullScreenQuad(name) {
+        this.bufferObjects[name] = twgl.primitives.createXYQuadBufferInfo(this.gl);
+    }
+
+    hasBuffer(name) {
+        return this.bufferObjects.hasOwnProperty(name);
     }
 }
 
@@ -51777,8 +51935,8 @@ class FrameBufferAndTextureManager {
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
-            width: gl.drawingBufferWidth,
-            height: gl.drawingBufferHeight,
+            width: detail.width || gl.drawingBufferWidth,
+            height: detail.height || gl.drawingBufferHeight,
             min: gl.LINEAR,
             mag: gl.LINEAR,
             internalFormat: gl.RGBA,
@@ -51795,10 +51953,9 @@ class FrameBufferAndTextureManager {
             format: gl.RGBA,
             type: gl.UNSIGNED_BYTE,
             target: gl.TEXTURE_2D,
-            level: 0,
-            //auto: true,
+            level: 0, //auto: true,
             attachment: this.textures[detail.name]
-        }]);
+        }], detail.width, detail.height);
 
         twgl.bindFramebufferInfo(gl);
 
@@ -51809,10 +51966,12 @@ class FrameBufferAndTextureManager {
     create2DPickingBufferFB(name, pickingFunction) {
         // For now use the same thing
         let fb = this.create2DTextureFB({
-            name: name
+            name: name,
+            width: 1024,
+            height: 1024
         });
 
-        if(pickingFunction)
+        if (pickingFunction)
             fb.pick = pickingFunction;
 
         let gl = this.gl;
@@ -51822,7 +51981,7 @@ class FrameBufferAndTextureManager {
         fb.readPixels = (x, y, w, h, format, type, dst, offset) => {
             gl.bindFramebuffer(gl.FRAMEBUFFER, fb.framebuffer);
             gl.readPixels(x, y, w, h, format, type, dst, offset);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         }
     }
 
@@ -52089,7 +52248,8 @@ let BUILTIN_PROGRAMS = {
     TextureToBBColor: 'TextureToBBColor',
     TextureBackMinusFront: 'TextureBackMinusFront',
     SlicerBasic: 'SlicerBasic',
-    SlicerPicking: 'SlicerPicking'
+    SlicerPicking: 'SlicerPicking',
+    Texture2Quad: 'Texture2Quad'
 };
 
 
@@ -52140,7 +52300,10 @@ class ShaderManager {
         this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_QuadOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    if(dist < 0.08)\n        outColor = vec4(0.5,1.0,1.0,1.0);\n    //outColor = v_color;\n}\n"]);
 
         this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\n\nin vec4 a_position;\nin int a_id;\n\nout vec3 v_position;\n\nflat out int v_id;\n\nvoid main() {\n    v_id = a_id;\n    v_position = vec3(a_position);\n\n    gl_Position = u_WorldViewProjection * a_position;\n}\n\n"]);
-        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 50.0;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in int v_id;\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n\n    float r = float(v_id) / MAX_IDS;\n\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    // Encode ID into the red component\n    outColor = vec4(r,0.0,0.0,1.0);\n\n    if(dist < 0.08)\n        outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
+        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in int v_id;\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n\n    float r = float(v_id) / MAX_IDS;\n\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    // Encode ID into the red component\n    outColor = vec4(r,0.0,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
+
+        this.vertexShaders['Texture2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
+        this.fragmentShaders['Texture2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_QuadTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_QuadTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
 
 
         this._initBuiltinPrograms();
@@ -52680,8 +52843,10 @@ class ViewManager {
 
         this.uniformManagerVolume = new UniformManager();
         this.uniformManagerSlicer = new UniformManager();
+        this.uniformManagerUnitQuad = new UniformManager();
 
         this.bufferManager = new BufferManager(this.masterContext);
+        this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
 
         this.boundingBoxBuffer = null; // Dependent on dataset
         this.slicerBuffer = null; // TEMP
@@ -52756,9 +52921,6 @@ class ViewManager {
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
 
         this.addNewView(0);
-
-        let slicerBufferAttribs = this.modelSyncManager.getActiveModel('SLICER', 0).attribArrays;
-        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribs, 'SlicerBuffer');
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
@@ -52903,6 +53065,10 @@ class ViewManager {
         });
 
         this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'UnitQuadTexture'
+        });
     }
 
     datasetDidChange() {
@@ -52936,6 +53102,12 @@ class ViewManager {
         //this._bindUniformManagerVolume();
         this._bindUniformManagerSlicer();
 
+    }
+
+    _bindUniformManagerUnitQuad() {
+        this.uniformManagerUnitQuad.addShared('u_QuadTexture', () => {
+            return this.FBAndTextureManager.getTexture('UnitQuadTexture');
+        });
     }
 
     _bindUniformManagerSlicer() {
@@ -53060,22 +53232,26 @@ class ViewManager {
         let gl = this.masterContext;
 
         let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
+        uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
+
         let BasicSlicerConfig = {
             uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
                     glSettings: {
                         disable: [gl.CULL_FACE],
                         enable: [gl.BLEND],
-                        blendFunc: [gl.SRC_ALPHA, gl.ONE]
+                        blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                        clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT]
                     }
                 },
-                {
+                /*{ // Render the picking buffer into a subview..
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
                     subViewport: {
                         x0: 0.05,
@@ -53084,10 +53260,26 @@ class ViewManager {
                         height: 0.3
                     },
                     glSettings: {
-                        disable: [gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST],
+//                        depthFunc: [gl.LESS],
+                        cullFace: [gl.BACK],
+                        disable: [gl.BLEND],
+                        //clear: [gl.COLOR_BUFFER_BIT]
+
+                    }
+                },*/
+                {
+                    programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
+                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    glSettings: {
+                        clear: [gl.COLOR_BUFFER_BIT],
+                        enable: [gl.CULL_FACE],
+                        cullFace: [gl.BACK],
                         disable: [gl.BLEND]
                     }
-                }
+                },
+
             ]
         };
 
@@ -53106,10 +53298,20 @@ class ViewManager {
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
                     glSettings: {
-                        disable: [gl.CULL_FACE],
-                        disable: [gl.BLEND]
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                },
+                {
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    glSettings: { // Same as before...
                     }
                 }
             ]
@@ -53178,15 +53380,12 @@ class ViewManager {
         this.uniformManagerSlicer.addSubview(id);
         //        let config = this._generateBasicVolumeConfigForSubview(id);
 
-        if (!this.slicerBuffer)
-            this.bufferManager.createBufferInfoFromArrays(
-                this.modelSyncManager.getActiveModel('SLICER', id).attribArrays,
-                'SlicerBuffer'
-            );
-        this.slicerBuffer = twgl.createBufferInfoFromArrays(
-            this.masterContext,
-            this.modelSyncManager.getActiveModel('SLICER', id).attribArrays
-        );
+        if (!this.bufferManager.hasBuffer('SlicerBuffer')) {
+            let slicerBufferAttribArrays = this.modelSyncManager.getActiveModel('SLICER', id).attribArrays;
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
+            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
+        }
 
         let volumeConfig = this._generateDebugConfigurationForSubview(id);
         this.subviews[id].configureRenderer('volume', volumeConfig);
@@ -53293,9 +53492,9 @@ class ViewManager {
 
         twgl.resizeCanvasToDisplaySize(gl.canvas);
 
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //gl.enable(gl.DEPTH_TEST);
+        //gl.enable(gl.CULL_FACE);
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         for (let subviewID in this.subviews) {
 

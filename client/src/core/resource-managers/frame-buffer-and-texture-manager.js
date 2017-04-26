@@ -71,8 +71,8 @@ class FrameBufferAndTextureManager {
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
-            width: gl.drawingBufferWidth,
-            height: gl.drawingBufferHeight,
+            width: detail.width || gl.drawingBufferWidth,
+            height: detail.height || gl.drawingBufferHeight,
             min: gl.LINEAR,
             mag: gl.LINEAR,
             internalFormat: gl.RGBA,
@@ -89,10 +89,9 @@ class FrameBufferAndTextureManager {
             format: gl.RGBA,
             type: gl.UNSIGNED_BYTE,
             target: gl.TEXTURE_2D,
-            level: 0,
-            //auto: true,
+            level: 0, //auto: true,
             attachment: this.textures[detail.name]
-        }]);
+        }], detail.width, detail.height);
 
         twgl.bindFramebufferInfo(gl);
 
@@ -103,10 +102,12 @@ class FrameBufferAndTextureManager {
     create2DPickingBufferFB(name, pickingFunction) {
         // For now use the same thing
         let fb = this.create2DTextureFB({
-            name: name
+            name: name,
+            width: 1024,
+            height: 1024
         });
 
-        if(pickingFunction)
+        if (pickingFunction)
             fb.pick = pickingFunction;
 
         let gl = this.gl;
@@ -116,7 +117,7 @@ class FrameBufferAndTextureManager {
         fb.readPixels = (x, y, w, h, format, type, dst, offset) => {
             gl.bindFramebuffer(gl.FRAMEBUFFER, fb.framebuffer);
             gl.readPixels(x, y, w, h, format, type, dst, offset);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         }
     }
 

@@ -2,7 +2,7 @@
 precision highp float;
 precision mediump int;
 
-const float MAX_IDS = 50.0;
+const float MAX_IDS = 255.0;
 
 uniform vec3 u_PickingRayOrigin;
 uniform vec3 u_RayDir;
@@ -28,7 +28,8 @@ void main() {
     // Encode ID into the red component
     outColor = vec4(r,0.0,0.0,1.0);
 
-    if(dist < 0.08)
-        outColor = vec4(0.5,1.0,1.0,1.0);
+    // DEBUG ONLY!!!
+    //if(dist < 0.08)
+    //    outColor = vec4(0.5,1.0,1.0,1.0);
 
 }

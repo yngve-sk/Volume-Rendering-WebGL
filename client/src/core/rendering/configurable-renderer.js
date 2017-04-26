@@ -1,5 +1,6 @@
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
+let _ = require('underscore');
 
 /** @module Core/Renderer */
 
@@ -53,20 +54,37 @@ class ConfigurableRenderer {
             this.viewport.height);
     }
 
-    _applySubViewport(svp01) {
+    _applySubViewport(svp01, fbinfo) {
+        if (fbinfo) { // Use frame buffer as parent viewport
+            let subX0 = svp01.x0 * fbinfo.width,
+                subY0 = svp01.y0 * fbinfo.height;
 
-        let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
-            subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
+
+            let subWidth = svp01.width * fbinfo.width,
+                subHeight = svp01.height * fbinfo.height;
+
+            this.gl.viewport(
+                subX0,
+                subY0,
+                subWidth,
+                subHeight);
+
+        } else { // Use given viewport as parent
+            let subX0 = this.viewport.x0 + svp01.x0 * this.viewport.width,
+                subY0 = this.viewport.y0 + svp01.y0 * this.viewport.height;
 
 
-        let subWidth = svp01.width * this.viewport.width,
-            subHeight = svp01.height * this.viewport.height;
+            let subWidth = svp01.width * this.viewport.width,
+                subHeight = svp01.height * this.viewport.height;
 
-        this.gl.viewport(
-            subX0,
-            subY0,
-            subWidth,
-            subHeight);
+            this.gl.viewport(
+                subX0,
+                subY0,
+                subWidth,
+                subHeight);
+        }
+
+
     }
 
     /**
@@ -83,44 +101,53 @@ class ConfigurableRenderer {
 
             if (!step.frameBufferInfo) {
                 this._applyViewport();
-
-                if (step.subViewport)
-                    this._applySubViewport(step.subViewport);
             }
 
-            /*       if (step.glSettings) { // Single argument gl.X = gl.Y
-                       for (let func in step.glSettings) {
-                           // Ex: {cullFace: 'BACK'} evalues into:
-                           // gl[cullFace](gl[BACK]) which is the same as
-                           // gl.cullFace(gl.BACK)
-                           gl[func](gl[step.glSettings[func]]);
-                       }
-                   }*/
-
-            if (step.glSettings)
-                for (let func in step.glSettings) {
-                    let args = step.glSettings[func];
-                    gl[func].apply(gl, args);
-                }
-
             twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
-            //twgl.setUniforms(programInfo, step.uniforms); // One bundle per step
             twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
-            /*twgl.bindFramebufferInfo(gl, step.frameBufferInfo.framebuffer, gl.DRAW_FRAMEBUFFER);*/
-            /*
-                        let fb = step.frameBufferInfo === null ? null : step.frameBufferInfo.framebuffer;
+            let applyGLSettings = () => {
+                for (let func in step.glSettings) {
+                    let args = step.glSettings[func];
 
-                        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
-            */
+                    if (_.contains(['enable', 'disable', 'clear'], func)) {
+                        for (let arg of args)
+                            gl[func].call(gl, arg);
+                    } else {
+                        gl[func].apply(gl, args);
+                    }
+                }
+            }
 
             if (step.frameBufferInfo) {
                 twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+                if (step.subViewport) // Also applies to frame bufs
+                    this._applySubViewport(step.subViewport, step.frameBufferInfo);
+
+                applyGLSettings();
+                //if (step.glSettings)
+                //    for (let func in step.glSettings) {
+                //        let args = step.glSettings[func];
+                //        gl[func].apply(gl, args);
+                //    }
+
                 //twgl.drawBufferInfo(gl, step.bufferInfo);
                 gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
 
             } else {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+                this._applyViewport();
+
+                if (step.subViewport)
+                    this._applySubViewport(step.subViewport);
+
+                applyGLSettings();
+                // if (step.glSettings)
+                //     for (let func in step.glSettings) {
+                //         let args = step.glSettings[func];
+                //         gl[func].apply(gl, args);
+                //     }
+
                 //twgl.drawBufferInfo(gl, step.bufferInfo);
                 gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
             }

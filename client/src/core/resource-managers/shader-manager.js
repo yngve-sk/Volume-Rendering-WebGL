@@ -18,7 +18,8 @@ let BUILTIN_PROGRAMS = {
     TextureToBBColor: 'TextureToBBColor',
     TextureBackMinusFront: 'TextureBackMinusFront',
     SlicerBasic: 'SlicerBasic',
-    SlicerPicking: 'SlicerPicking'
+    SlicerPicking: 'SlicerPicking',
+    Texture2Quad: 'Texture2Quad'
 };
 
 
@@ -70,6 +71,9 @@ class ShaderManager {
 
         this.vertexShaders['SlicerPicking'] = glsl.file('../rendering/shaders/Slicer/Picking/shader.v.glsl');
         this.fragmentShaders['SlicerPicking'] = glsl.file('../rendering/shaders/Slicer/Picking/shader.f.glsl');
+
+        this.vertexShaders['Texture2Quad'] = glsl.file('../rendering/shaders/Texture2Quad/shader.v.glsl');
+        this.fragmentShaders['Texture2Quad'] = glsl.file('../rendering/shaders/Texture2Quad/shader.f.glsl');
 
 
         this._initBuiltinPrograms();
