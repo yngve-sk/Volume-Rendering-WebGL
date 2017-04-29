@@ -4,13 +4,16 @@ let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
 let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
 let AllModels = require('../linkable-models').Models;
 
+/**
+ * @module Core/ResourceManagers
+ **/
 
 /**
  * Keeps track of all models for all views, including one pointer per view,
  * pointing to a model, this allows for linking / unlinking views.
  * This is what binds the models to the subviews, while still allowing for
  * simple linking/unlinking operations.
- * @memberof module:Core/View
+ * @memberof module:Core/ResourceManagers
  */
 class ModelSyncManager {
 

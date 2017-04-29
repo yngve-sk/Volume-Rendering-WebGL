@@ -18,6 +18,11 @@
     white-space: nowrap;
     background: #838383;
     color: white;
+    position: relative;
+}
+
+#webgl-canvas-container {
+    position: absolute;
 }
 
 .splitter {

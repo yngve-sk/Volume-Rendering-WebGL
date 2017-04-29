@@ -14,11 +14,11 @@ let LinkableModels = {
         class: Camera
     },
     SLICER: {
-        name: 'SLICER',
+        name: 'Slicer',
         class: Slicer
     },
     SPHERE: {
-        name: 'SPHERE',
+        name: 'Sphere',
         class: Sphere
     }
 };

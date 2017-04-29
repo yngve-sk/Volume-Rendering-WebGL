@@ -6,11 +6,15 @@ let SubcellLayout = require('../../widgets/split-view/subcell-layout');
 
 let Models = require('../linkable-models').Models;
 
+let ConfigurationManager = require('../resource-managers/configuration-manager');
 let ShaderManager = require('../resource-managers/shader-manager');
 let FBAndTextureManager = require('../resource-managers/frame-buffer-and-texture-manager');
 let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
+
+let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
+
 
 
 let Settings = require('../settings').Views.ViewManager,
@@ -23,9 +27,9 @@ let glsl = require('glslify');
 
 
 let OverlayCellEventToModel = {
-    'sphere': 'SPHERE',
-    'volume': 'CAMERA',
-    'slicer': 'SLICER'
+    'Sphere': 'Sphere',
+    'Volume': 'CAMERA',
+    'Slicer': 'Slicer'
 };
 
 /** @module Core/View */
@@ -60,7 +64,7 @@ class ViewManager {
 
         twgl.resizeCanvasToDisplaySize(this.masterContext.canvas);
 
-
+        this.configurationManager = new ConfigurationManager(this);
         this.modelSyncManager = new ModelSyncManager(this);
         this.shaderManager = new ShaderManager(this.masterContext);
         this.FBAndTextureManager = new FBAndTextureManager(this.masterContext, environmentRef);
@@ -138,17 +142,62 @@ class ViewManager {
         // Works!
 
         this._genTextures();
-        //this._genBoundingBoxBuffer();
         this._genFrameBuffersAndTextureTargets();
-        this._bindUniformManager();
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
-        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+        this._genBuffers();
+        this._bindUniformManagers();
 
         this.addNewView(0);
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
         this.refresh();
+    }
+
+    _genTextures() {
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        if (!dataset)
+            return;
+
+        let h = dataset.header;
+
+        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+            cols: h.cols,
+            rows: h.rows,
+            slices: h.slices,
+            isovalues: dataset.isovalues
+        });
+
+        this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
+    }
+
+    _genFrameBuffersAndTextureTargets() {
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'FrontFace'
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'BackFace'
+        });
+
+        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'UnitQuadTexture'
+        });
+    }
+
+    _genBuffers() {
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
+
+        let slicerBufferAttribArrays = GetSlicerBufferAttribArrays();
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.SliceVertices, 'SlicerSliceBuffer');
+
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailPickingBufferVertices, 'SlicerRailPBBuffer');
     }
 
     _initDebug() {
@@ -178,6 +227,7 @@ class ViewManager {
     }
 
     _renderPickingBuffer(name, id) {
+        this.uniformManagerSlicer.updateAll();
         this.subviews[id].renderSpecific(name);
     }
 
@@ -259,39 +309,22 @@ class ViewManager {
         });
         this.uniformManagerVolume.addUnique('u_ViewInverse', (subviewID) => {
             //return uniforms.u_viewInverse;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getLookAt();
         });
         this.uniformManagerVolume.addUnique('u_World', (subviewID) => {
             //return uniforms.u_world;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldMatrix();
         });
         this.uniformManagerVolume.addUnique('u_WorldInverseTranspose', (subviewID) => {
             //return uniforms.u_worldInverseTranspose;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldInverseTranspose();
         });
         this.uniformManagerVolume.addUnique('u_WorldViewProjection', (subviewID) => {
             //return uniforms.u_worldViewProjection;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix();
         });
         this.uniformManagerVolume.addUnique('u_AspectRatio', (subviewID) => {
             return this.subviews[subviewID].getAspectRatio();
-        });
-    }
-
-
-    _genFrameBuffersAndTextureTargets() {
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'FrontFace'
-        });
-
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'BackFace'
-        });
-
-        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
-
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'UnitQuadTexture'
         });
     }
 
@@ -299,30 +332,12 @@ class ViewManager {
         this._init();
     }
 
-    _genTextures() {
-        let dataset = this.env.getActiveDataset('GLOBAL');
-        if (!dataset)
-            return;
-
-        let h = dataset.header;
-
-        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
-            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
-            cols: h.cols,
-            rows: h.rows,
-            slices: h.slices,
-            isovalues: dataset.isovalues
-        });
-
-        this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
-    }
-
     transferFunctionDidChange(tfKey) {
         this.FBAndTextureManager.createTransferFunction2DTexture(tfKey);
         this.uniformManagerVolume.updateAll();
     }
 
-    _bindUniformManager() {
+    _bindUniformManagers() {
         //this._bindUniformManagerVolume();
         this._bindUniformManagerSlicer();
 
@@ -335,34 +350,16 @@ class ViewManager {
     }
 
     _bindUniformManagerSlicer() {
-        this.uniformManagerSlicer.addShared('u_SamplingRate', () => {
-            let d = this.env.getActiveDataset('GLOBAL');
-            if (!d)
-                return 0.1; // For debugging only
-
-            let h = d.header;
-            let m = Math.max(h.cols, h.rows, h.slices);
-
-            return 1.0 / m;
-        });
-        this.uniformManagerSlicer.addShared('u_DirectionColors', () => {
-            return new Float32Array([
-                1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0
-            ]);
-        });
-
         // unique
         this.uniformManagerSlicer.addUnique('u_WorldViewProjection', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
             return slicerModel.uniforms.u_WorldViewProjection;
         });
-        this.uniformManagerSlicer.addUnique('u_QuadOffsets', (subviewID) => {
+        this.uniformManagerSlicer.addUnique('u_SliceOffsets', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
-            return slicerModel.uniforms.u_QuadOffsets;
+            return slicerModel.uniforms.u_SliceOffsets;
         });
         this.uniformManagerSlicer.addUnique('u_QuadOffsetIndices', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
@@ -385,8 +382,27 @@ class ViewManager {
 
             return slicerModel.uniforms.u_RayDir;
         });
-    }
+        this.uniformManagerSlicer.addUnique('u_Size', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
+            return slicerModel.uniforms.u_Size;
+        });
+        this.uniformManagerSlicer.addUnique('u_IntersectionPointDebug', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_IntersectionPointDebug;
+        });
+        this.uniformManagerSlicer.addUnique('u_DraggedSliceIndices', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_DraggedSliceIndices;
+        });
+        this.uniformManagerSlicer.addUnique('u_ActiveDragRailID', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_ActiveDragRailID;
+        });
+    }
 
     _bindUniformManagerVolume() {
         // 1. Set up getters
@@ -455,7 +471,7 @@ class ViewManager {
     _generateBasicSlicerConfigForSubview(subviewID) {
         let gl = this.masterContext;
 
-        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
         let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
         uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
 
@@ -464,13 +480,19 @@ class ViewManager {
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: null,
+                    //frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
+                    //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
                     glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.DEPTH_BUFFER_BIT],
                         disable: [gl.CULL_FACE],
                         enable: [gl.BLEND],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                        clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT]
+                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
                     }
                 },
                 /*{ // Render the picking buffer into a subview..
@@ -492,7 +514,7 @@ class ViewManager {
 
                     }
                 },*/
-                {
+               /* {
                     programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
@@ -502,7 +524,7 @@ class ViewManager {
                         cullFace: [gl.BACK],
                         disable: [gl.BLEND]
                     }
-                },
+                },*/
 
             ]
         };
@@ -514,7 +536,7 @@ class ViewManager {
 
     _generateSlicerPickingBufferConfigForSubview(subviewID) {
         let gl = this.masterContext;
-        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
         let PickingConfig = {
             uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
@@ -524,20 +546,41 @@ class ViewManager {
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
                     glSettings: {
-                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST],
                         cullFace: [gl.BACK],
                         depthFunc: [gl.LESS],
-                        disable: [gl.BLEND],
+                        disable: [gl.BLEND, gl.CULL_FACE],
                         clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
                     }
                 },
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
+                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
                     glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND],
                     }
-                }
+                },
+                /*{
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+//                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.CULL_FACE,gl.BLEND],
+                        //enable: [gl.BLEND],
+                        //blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                    }
+                }*/
             ]
         };
 
@@ -597,31 +640,30 @@ class ViewManager {
 
     }
 
-    addNewView(id) {
+    addNewView(id, initialConfigurations) {
         this.subviews[id] = new Subview(this.masterContext);
         this.modelSyncManager.addSubview(id, this);
         this.uniformManagerVolume.addSubview(id);
         this.uniformManagerSlicer.addSubview(id);
         //        let config = this._generateBasicVolumeConfigForSubview(id);
 
-        if (!this.bufferManager.hasBuffer('SlicerBuffer')) {
-            let slicerBufferAttribArrays = this.modelSyncManager.getActiveModel('SLICER', id).attribArrays;
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
-        }
+        this.configurationManager.configureSubview(id, initialConfigurations || {
+            Volume: 'Basic',
+            Slicer: 'Basic',
+            SlicerPicking: 'Basic'
+        });
 
-        let volumeConfig = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('volume', volumeConfig);
+        /*     let volumeConfig = this._generateDebugConfigurationForSubview(id);
+        this.subviews[id].configureRenderer('Volume', volumeConfig);
 
         let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
 
         let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
             slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
 
-        this.subviews[id].configureRenderer('slicer', slicerConfig);
+        this.subviews[id].configureRenderer('Slicer', slicerConfig);
         this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);
-
+*/
         this.syncWithLayout();
     }
 
@@ -689,7 +731,7 @@ class ViewManager {
     }
 
     _debugRotateCube(subviewID) {
-        let cam = this.modelSyncManager.getActiveModel('CAMERA', subviewID);
+        let cam = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
 
         if (subviewID % 6 === 0)
             cam.getModelTransformation().rotateZ(-0.007);

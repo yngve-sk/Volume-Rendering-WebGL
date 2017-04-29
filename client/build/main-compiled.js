@@ -49065,6 +49065,7 @@ app.directive('cameraSettingsView', require('./ng-directives/camera-settings-vie
 
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
+app.directive('vrToolbar', require('./ng-directives/toolbar-view'));
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
 
 //require('./angular-semantic-ui.min');
@@ -49077,7 +49078,7 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":31,"./ng-directives/dataset-view":32,"./ng-directives/global-control-panel-view":33,"./ng-directives/links-and-views-view":34,"./ng-directives/local-control-panel-view":35,"./ng-directives/transfer-function-view":36}],24:[function(require,module,exports){
+},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":32,"./ng-directives/dataset-view":33,"./ng-directives/global-control-panel-view":34,"./ng-directives/links-and-views-view":35,"./ng-directives/local-control-panel-view":36,"./ng-directives/toolbar-view":37,"./ng-directives/transfer-function-view":38}],24:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
@@ -49101,7 +49102,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":38}],25:[function(require,module,exports){
+},{"../../core/environment":40}],25:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -49233,7 +49234,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38,"../../core/settings":53}],26:[function(require,module,exports){
+},{"../../client2server/websocket-client":39,"../../core/environment":40,"../../core/settings":58}],26:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49252,7 +49253,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38}],27:[function(require,module,exports){
+},{"../../client2server/websocket-client":39,"../../core/environment":40}],27:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let LinkableModels = require('../../core/linkable-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
@@ -49348,7 +49349,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":38,"../../core/linkable-models":40,"../../widgets/split-view/view-splitter-master-controller":67}],28:[function(require,module,exports){
+},{"../../core/environment":40,"../../core/linkable-models":43,"../../widgets/split-view/view-splitter-master-controller":72}],28:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49361,7 +49362,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38}],29:[function(require,module,exports){
+},{"../../client2server/websocket-client":39,"../../core/environment":40}],29:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -49402,6 +49403,69 @@ module.exports = function ($scope) {
 };
 
 },{}],30:[function(require,module,exports){
+let Environment = require('../../core/environment');
+let InteractionModeManager = require('../../core/interaction-modes-v2');
+
+let controller = function ($scope) {
+    $scope.DOMReady = () => {
+
+        let selected = {
+            'Slicer': null,
+            'Sphere': null,
+            '3d': null
+        }
+
+        let setSelected = (view, newSelected) => {
+            if (selected[view])
+                $(selected[view]).removeClass('vr-toolbar-selected');
+
+            selected[view] = newSelected;
+            $(selected[view]).addClass('vr-toolbar-selected');
+        }
+
+        $('#slicer-toolbar').toolbar({
+            content: '#slicer-toolbar-options',
+            position: 'bottom',
+            hideOnClick: true,
+            event: 'click',
+            animation: 'standard'
+        });
+
+        $('#slicer-toolbar').on('toolbarItemClick', (item, source, item3) => {
+            console.log(item);
+            let action = source.getAttribute('action');
+            console.log(source);
+            setSelected('Slicer', source);
+
+            InteractionModeManager.setInteractionMode('Slicer', action);
+        });
+
+        $('#3d-toolbar').toolbar({
+            content: '#3d-toolbar-options',
+            position: 'bottom',
+            hideOnClick: true,
+            event: 'click',
+            animation: 'standard'
+        });
+
+        $('#3d-toolbar').on('toolbarItemClick', (item, source, item3) => {
+            console.log(item);
+            let action = source.getAttribute('action');
+            console.log(source);
+            setSelected('3d', source);
+
+
+            InteractionModeManager.setInteractionMode('3d', action);
+        });
+
+
+    }
+
+}
+
+module.exports = controller;
+
+},{"../../core/environment":40,"../../core/interaction-modes-v2":41}],31:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -49511,7 +49575,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":38,"../../widgets/transfer-function/transfer-function-editor-v2":69,"jquery":18,"spectrum-colorpicker":19}],31:[function(require,module,exports){
+},{"../../core/environment":40,"../../widgets/transfer-function/transfer-function-editor-v2":74,"jquery":18,"spectrum-colorpicker":19}],32:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
@@ -49533,7 +49597,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/camera-settings-view-controller":24}],32:[function(require,module,exports){
+},{"../ng-controllers/camera-settings-view-controller":24}],33:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -49554,7 +49618,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":25}],33:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":25}],34:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49577,7 +49641,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":26}],34:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":26}],35:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -49599,7 +49663,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":27}],35:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":27}],36:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49621,7 +49685,29 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":28}],36:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":28}],37:[function(require,module,exports){
+let toolbarController = require('../ng-controllers/toolbar-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: {},
+        controller: toolbarController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+                console.log("attrs");
+
+                scope.DOMReady(); // Call code AFTER shit is loaded
+                // avoid executing code on DOM before it is initialized!
+            }, 0); //Calling a scoped method
+        },
+        templateUrl: 'src/angular-assets/ng-templates/toolbar-view-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/toolbar-controller":30}],38:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -49652,7 +49738,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":38,"../ng-controllers/transfer-function-view-controller":30}],37:[function(require,module,exports){
+},{"../../core/environment":40,"../ng-controllers/transfer-function-view-controller":31}],39:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -49764,7 +49850,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":60,"blob-to-buffer":2}],38:[function(require,module,exports){
+},{"../main":65,"blob-to-buffer":2}],40:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -50027,7 +50113,51 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":37,"../core/views/view-manager":55,"../datasets&selections/dataset-manager":56,"../widgets/split-view/view-splitter-master-controller":67,"../widgets/transfer-function/transfer-function":71,"../widgets/transfer-function/transfer-function-manager":70,"./interaction-modes":39}],39:[function(require,module,exports){
+},{"../client2server/websocket-client":39,"../core/views/view-manager":60,"../datasets&selections/dataset-manager":61,"../widgets/split-view/view-splitter-master-controller":72,"../widgets/transfer-function/transfer-function":76,"../widgets/transfer-function/transfer-function-manager":75,"./interaction-modes":42}],41:[function(require,module,exports){
+let _ = require('underscore');
+
+class InteractionModeManager {
+    constructor() {
+
+        this.allModes = {
+            'Slicer': ['add', 'remove', 'rotate'],
+            'Sphere': [''],
+            '3d': ['rotate', 'select-point', 'select-ray', 'measure']
+        };
+
+        this.modes = {
+            'Slicer': 'rotate',
+            'Sphere': null,
+            '3d': null
+        };
+
+        this.verifyMode = true;
+    }
+
+    setInteractionMode(category, mode) {
+        if (this.verifyMode && !(_.contains(this.allModes[category], mode)))
+            console.error("Category " + category + " does not have the mode " + mode + " available, available modes: " + this.allModes[category]);
+
+        this.modes[category] = mode;
+    }
+
+    getInteractionMode(category) {
+        return this.modes[category];
+    }
+
+    getInteractionModeGetterForCategory(category) {
+        let getter = () => {
+            return this.getInteractionMode(category);
+        };
+
+        return getter;
+    }
+}
+
+
+module.exports = new InteractionModeManager();
+
+},{"underscore":22}],42:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -50082,7 +50212,7 @@ module.exports = {
     }
 }
 
-},{}],40:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
 //let Camera = require('./models/camera');
 let Camera = require('./models/camera-orbiter');
@@ -50099,11 +50229,11 @@ let LinkableModels = {
         class: Camera
     },
     SLICER: {
-        name: 'SLICER',
+        name: 'Slicer',
         class: Slicer
     },
     SPHERE: {
-        name: 'SPHERE',
+        name: 'Sphere',
         class: Sphere
     }
 };
@@ -50117,7 +50247,7 @@ module.exports = {
     Models: LinkableModels
 };
 
-},{"../widgets/transfer-function/transfer-function":71,"./models/camera-orbiter":42,"./models/slicer-model":43,"./models/sphere-model":44}],41:[function(require,module,exports){
+},{"../widgets/transfer-function/transfer-function":76,"./models/camera-orbiter":45,"./models/slicer-model":47,"./models/sphere-model":48}],44:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = twgl.m4,
     v3 = twgl.v3;
@@ -50125,6 +50255,7 @@ let twgl = require('twgl.js'),
 let glmvec4 = require('gl-matrix').vec4;
 
 let Quat = require('gl-matrix').quat;
+let _ = require('underscore');
 
 console.log(Quat);
 
@@ -50162,6 +50293,8 @@ class Camera {
         }
 
         this.upDir = 1;
+
+        this.rotate(0.000001, 0.000001); // Init...
     }
 
 
@@ -50262,7 +50395,7 @@ class Camera {
             w = p[3];
 
         // Divide by w also
-        return v3.create(p[0]/w, p[1]/w, p[2]/w);
+        return v3.create(p[0] / w, p[1] / w, p[2] / w);
     }
 
     getRayFromMouseClick(vp01) {
@@ -50290,7 +50423,7 @@ class Camera {
 
         let rayV2 = v3.normalize(v3.subtract(p1, p0));
 
-        return new Ray(this.getEyePosition(), rayV2);
+        return new Ray(this.getEyePosition(), rayV2, this.size);
         //return new Ray(p0, rayV2);
 
         //return {
@@ -50344,7 +50477,7 @@ class Camera {
 
              switch (event.button) {
                  case 0: // left -> rotate
-                     //                    this.modelTransformation.rotateXY(-1*dy, dx);
+                     //                    this.modelTransformation.rotateYZ(-1*dy, dx);
                      this.rotate(dx, dy);
                      this._updateViewMatrix();
                      break;
@@ -50365,9 +50498,10 @@ module.exports = Camera;
 
 
 class Ray {
-    constructor(eye, dir) {
+    constructor(eye, dir, bbSize) {
         this.eye = eye; // float32array[3]
         this.dir = dir;
+        this.bbSize = bbSize;
     }
 
     intersectsLine(p0, p1, threshold) {
@@ -50378,9 +50512,158 @@ class Ray {
             dist2 = this._closestDistanceBetweenLines(eye1, eye2, p1, p0); // Check both ways to stay on the line
 
         let doesIntersect = Math.abs(dist1) === Math.abs(dist2) &&
-                dist1 <= threshold;
+            dist1 <= threshold;
 
 
+    }
+
+    intersectsPlaneV2(p0, n) {
+        // (p - p0) * n = 0
+        // this line is this.eye + d*this.dir
+
+        // d*this.dir dot n + (this.eye - p0) dot n = 0
+
+        let p0_minus_eye = v3.subtract(p0, this.eye);
+
+        let top = v3.dot(p0_minus_eye, n);
+        let dir_dot_n = v3.dot(v3.normalize(this.dir), n);
+
+        if (dir_dot_n === 0) // parallel {
+            return null;
+        else {
+            let distance = top / dir_dot_n;
+            let intersectPoint = v3.add(this.eye, v3.mulScalar(v3.normalize(this.dir), distance));
+            return {
+                distance: distance,
+                point: intersectPoint
+            };
+        }
+
+    }
+
+
+
+
+    intersectsPlane(p0, dx, dy, dz) {
+        let planeNormal = v3.normalize(v3.create(dx, dy, dz));
+        let dirN = v3.normalize(this.dir);
+        let dist = -v3.dot(planeNormal, p0);
+
+        let dotproduct = v3.dot(dirN, planeNormal);
+        let normalDotOrigin = v3.dot(this.eye, planeNormal);
+
+        if (dotproduct !== 0) {
+            var k = -(normalDotOrigin + dist) / dotproduct;
+            if (k < 0)
+                return null;
+            let v0 = v3.mulScalar(dirN, k);
+            return v3.add(this.eye, v0);
+        } else if (normalDotOrigin + dist === 0) {
+            return v3.copy(this.eye) // Origin is on plane
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Gets the distance between a point x0 and a line x1x2 in 3D space
+     *
+     * @param {twgl.v3} x0 - Point to measure distance from
+     * @param {twgl.v3} x1 - First point of the line
+     * @param {twgl.v3} x2 - Second point of the line
+     */
+    getDistanceFromPointToLine(x0, x1, x2) {
+        let x0_x1 = v3.subtract(x0, x1),
+            x0_x2 = v3.subtract(x0, x2),
+            x2_x1 = v3.subtract(x2, x1);
+
+        return v3.length(v3.cross(x0_x1, x0_x2)) / v3.length(x2_x1);
+    }
+
+
+    intersectsLinePlanes(p0, direction, bbSize) {
+        let halfSize = bbSize / 2;
+
+        let clampminmax = (i) => { // clamp to -size/2, size/2
+            return i < -halfSize ? -halfSize : (i > halfSize ? halfSize : i);
+        }
+
+        let to01 = (i) => {
+            let i1 = clampminmax(i); // clamp to size first
+            return (i1 + halfSize) / bbSize;
+        }
+
+        let getClosestIntersection = (p, n1, n2, lineDir) => {
+            let getOffsetCoordIndexFromNormal = (planeNormal, lineDirection) => {
+                let w1 = v3.create(1, 1, 1); // avoid namespace collision with v3
+                let w2 = v3.subtract(w1, planeNormal);
+                let w3 = v3.subtract(w2, lineDirection);
+
+                // Index of value=1 is the coord index
+                let index = _.indexOf(w3, 1);
+                return index;
+            }
+
+            let intersect1 = this.intersectsPlaneV2(p, n1),
+                intersect2 = this.intersectsPlaneV2(p, n2);
+
+            let lx0 = p,
+                lx1 = v3.add(p, lineDir);
+
+            let dist1 = this.getDistanceFromPointToLine(intersect1.point, lx0, lx1),
+                dist2 = this.getDistanceFromPointToLine(intersect2.point, lx0, lx1);
+
+            if (dist1 < dist2) {
+                let coordIndex = getOffsetCoordIndexFromNormal(n1, lineDir);
+                return {
+                    distance: intersect1.distance,
+                    intersectOffset: to01(intersect1.point[coordIndex]),
+                    point: intersect1.point
+                };
+            } else {
+                let coordIndex = getOffsetCoordIndexFromNormal(n2, lineDir);
+                return {
+                    distance: intersect2.distance,
+                    intersectOffset: to01(intersect2.point[coordIndex]),
+                    point: intersect2.point
+                };
+
+            }
+        }
+
+        switch (direction) {
+            case 'X': // Project & Intersect with XY and XZ planes
+
+                return getClosestIntersection(
+                    p0,
+                    v3.create(0, 0, 1),
+                    v3.create(0, 1, 0),
+                    v3.create(1, 0, 0)
+                );
+
+                break;
+            case 'Y': // XY and YZ
+                return getClosestIntersection(
+                    p0,
+                    v3.create(0, 0, 1),
+                    v3.create(1, 0, 0),
+                    v3.create(0, 1, 0)
+                );
+
+                break;
+            case 'Z': // XZ and YZ
+                return getClosestIntersection(
+                    p0,
+                    v3.create(0, 1, 0),
+                    v3.create(1, 0, 0),
+                    v3.create(0, 0, 1)
+                );
+
+                break;
+            default:
+                console.error("Direction not supported");
+                break;
+        }
     }
 
     intersectsQuad(p0, p1, p2, p3) {
@@ -50388,12 +50671,12 @@ class Ray {
     }
 
     _closestDistanceBetweenLines(a0, a1, b0, b1, settings) {
-/*
-        let clampA0 = settings.clampA0 || false,
-            clampA1 = settings.clampA1 || false,
-            clampB0 = settings.clampB0 || false,
-            clampB1 = settings.clampB1 || false;
-*/
+        /*
+                let clampA0 = settings.clampA0 || false,
+                    clampA1 = settings.clampA1 || false,
+                    clampB0 = settings.clampB0 || false,
+                    clampB1 = settings.clampB1 || false;
+        */
 
         let v1 = v3.normalize(v3.subtract(a1, a0)),
             v2 = v3.normalize(v3.subtract(b1, b0));
@@ -50418,7 +50701,7 @@ class Ray {
     }
 }
 
-},{"gl-matrix":4,"twgl.js":21}],42:[function(require,module,exports){
+},{"gl-matrix":4,"twgl.js":21,"underscore":22}],45:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = require('twgl.js').m4,
     v3 = require('twgl.js').v3;
@@ -50597,272 +50880,15 @@ class OrbiterCamera {
 
 module.exports = OrbiterCamera;
 
-},{"./transformations":45,"twgl.js":21}],43:[function(require,module,exports){
+},{"./transformations":49,"twgl.js":21}],46:[function(require,module,exports){
 let twgl = require('twgl.js'),
     primitives = twgl.primitives,
     m4 = twgl.m4,
     v3 = twgl.v3;
 
-let CameraV2 = require('./camera-orbiter-v2');
-let MouseHandler = require('../mouse-handler');
+let Settings = require('../settings').Views.Slicer;
 
-let OrbiterCamera = require('./camera-orbiter');
-
-// Create XY Quad
-primitives.createXYQuadVertices = function (size, xOffset, yOffset) {
-
-}
-
-primitives.createCenteredXYQuadVertices = function (size) {
-    return primitives.createXYQuadVertices(size, 0, 0); // [-size/2, size/2]
-}
-
-primitives.createCenteredYZQuadVertices = function (size) {
-    let XYQuadVertices = primitives.createXYQuadVerticesVertices(size, 0, 0);
-
-    // XY -> YZ Rotate 90 degrees around Y-axis
-    let YZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationX(Math.PI / 2));
-
-    return YZQuadVertices;
-}
-
-primitives.createCenteredXZQuadVertices = function (size) {
-    let XYQuadVertices = primitives.createXYQuadVertices(size, 0, 0);
-
-    // XY -> XZ Rotate 90 degrees around Z-axis
-    let XZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationZ(Math.PI / 2));
-
-    return XZQuadVertices;
-}
-
-/**
- * Represents an underlying discrete model of a slicer. It only represents the
- * slices itself, and will generate the geometry needed to render the
- * _SLICER_ but how it affects rendering is up to other implementations.
- * @memberof module:Core/Models
- */
-class SlicerModel {
-    constructor(gl, viewManager, myID) {
-
-        window['HID' + myID] = (id) => {
-            this.slicerBox.highlightID(id);
-            this._refreshUniforms();
-        }
-
-        this.gl = gl;
-        this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
-
-        // .get, .refresh
-
-        console.log("SlicerModel constrcutor!");
-
-        this.camera = new OrbiterCamera(v3.create(1, 3, -7), {
-            fieldOfViewRadians: Math.PI / 10,
-            aspectRatio: 1, // Initial
-            zNear: 1.0,
-            zFar: 15.0
-        });
-
-        this.camera = new CameraV2({
-            radius: 10.2,
-
-            theta: 0,
-            phi: 0,
-            //target: v3.create(0,0,0),
-
-            projectionSettings: {
-                fieldOfViewRadians: Math.PI / 10,
-                aspectRatio: 1, // Initial
-                zNear: 0.5,
-                zFar: 18.0
-            },
-
-            ROT_SPEED_X: 3.5,
-            ROT_SPEED_Y: 3.5
-        });
-
-
-        this.slicerBox = new LabeledSlicerBox(Math.sqrt(2));
-
-        this.uniforms = {
-            u_HighlightID: -1,
-            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
-            u_WorldViewProjection: -1,
-        };
-
-        this.attribArrays = {
-
-        };
-
-        this._refreshUniforms();
-        this._genAttribArrays();
-        this.mouseHandler = new MouseHandler({
-            clickTimeout: 150
-        });
-        this._bindMouseHandler();
-    }
-
-    _refreshUniforms() {
-        // Fetch uniforms from the slicer box
-        for (let key in this.slicerBox.uniforms)
-            this.uniforms[key] = this.slicerBox.uniforms[key];
-
-        // Fetch MVP from camera
-        this.uniforms.u_WorldViewProjection = this.camera.getWorldViewProjectionMatrix();
-    }
-
-    _genAttribArrays() {
-        this.attribArrays = this.slicerBox.getBufferArrays();
-    }
-
-    mouse(event) {
-        this.mouseHandler.handle(event);
-        if (1)
-            return;
-        // left click -> rotate / orbit camera
-        //let res = this.camera.mouse(event); // TEMP, TODO do raycasting to add/move slices etc
-
-        if (res) {
-            console.log("SlicerModel, did shoot ray");
-            console.log(res);
-        }
-
-        this._refreshUniforms();
-
-        // right click -> context menu?..
-        console.log("Slicer mouse event");
-        console.log(event);
-
-        let x0 = event.pos.x, // [0,1]
-            y0 = event.pos.y;
-
-        let x1 = (x0 * 2.0) - 1.0, // [0,1] -> [-1, 1]
-            y1 = -((y0 * 2.0) - 1.0);
-
-    }
-
-    getBuffers() {
-        let sideLength = Math.sqrt(2); // Will always just fit
-        // 1. Gen the cube vertices, 1 quad per side
-
-    }
-
-    _bindMouseHandler() {
-        let gl = this.gl;
-        this.mouseHandler.on('click', 'left', (state) => {
-
-            let decodeRGBToID = (r, g, b) => {
-
-            }
-
-            let encodeIDToRGB = (id) => {
-                // assume ID is 32bit
-                // r g b
-                // 8 8 8
-            }
-
-            this.pickingBuffer.refresh(); // Render it onto FB before reading
-            console.log("MouseCLICK left");
-            let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(1.0 * 4);
-            let pixels = pb.readPixels(
-                state.x * pb.width,
-                (1.0 - state.y) * pb.height,
-                1.0, 1.0,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest, 0
-            );
-
-            let id = parseInt(dest[0]);
-
-            console.log("Highlighting ID: " + id);
-
-            this.slicerBox.highlightID(id);
-            this._refreshUniforms();
-            return;
-
-
-            let ray = this.camera.getRayFromMouseClick({
-                x: state.x,
-                y: state.y
-            });
-            console.log("Shot ray: ");
-            console.log(ray);
-
-            this.slicerBox.highlightIntersected(ray);
-            this._refreshUniforms();
-            // Check if it intersects with any of the geometries...
-
-
-        });
-        this.mouseHandler.on('mousedown', 'left', (state) => {
-            console.log("MouseDOWN left");
-
-        });
-        this.mouseHandler.on('mouseup', 'left', (state) => {
-            console.log("MouseUP left");
-        });
-        this.mouseHandler.on('mousemove', 'left', (state) => {
-            console.log("Mousemove left");
-
-            this.pickingBuffer.refresh(); // Render it onto FB before reading
-            console.log("MouseCLICK left");
-            let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4 * pb.width * pb.height);
-
-            let pixels = pb.readPixels(
-                0, 0,
-                pb.width, pb.height,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest, 0
-            );
-
-            let dest2 = new Uint8Array(4 * 1);
-            let pixels2 = pb.readPixels(
-                state.x * pb.width, (1.0 - state.y) * pb.height,
-                1.0, 1.0,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest2, 0
-            );
-
-            let debugcanvas = document.getElementById('debugcanvas');
-            let gl2 = debugcanvas.getContext('2d');
-            debugcanvas.width = pb.width;
-            debugcanvas.height = pb.height;
-            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
-            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
-            gl2.putImageData(imagedata, 0, 0);
-
-            let id = dest2[0];
-
-            this.slicerBox.highlightID(id);
-            this._refreshUniforms();
-
-            let pbfb = this.pickingBuffer.get();
-
-            let ray = this.camera.getRayFromMouseClick({
-                x: state.x,
-                y: state.y
-            });
-            console.log("Shot ray: ");
-            console.log(ray);
-
-            this.slicerBox.highlightIntersected(ray);
-            this._refreshUniforms();
-
-        });
-        this.mouseHandler.on('drag', 'left', (state) => {
-            console.log("Drag left");
-            this.camera.rotate(state.dx, state.dy);
-            this._refreshUniforms();
-        });
-
-    }
-}
-
-module.exports = SlicerModel;
-
+let SLICERBUFFERS = null;
 let genXYQuadVertexInfo = (p0, translate) => {
     let x = p0[0],
         y = p0[1],
@@ -51005,7 +51031,919 @@ let translateCylinderVerticesToEdge = (alongAxis, direction, offset) => {
     return m4.translation(translateVec);
 }
 
-let UniqueIndexBag = require('../../widgets/split-view/unique-index-bag');
+
+let genSlicerBuffers = (size) => {
+    if (SLICERBUFFERS)
+        return SLICERBUFFERS;
+
+    let quads = {};
+    let rails = {};
+    let faces = {};
+    let faceInfo = {};
+
+    let getRailInfo = (id) => {
+        return rails[id];
+    }
+
+    let getCubeFaceInfo = (id) => {
+        return faceInfo[id];
+    }
+
+
+    let half = size / 2;
+
+    this.quadID = -1;
+    this.qCounts = {
+        'X': 0,
+        'Y': 0,
+        'Z': 0
+    };
+
+    let p0s = [
+            [-half, -half, -half],
+            [half, half, half]
+        ];
+
+    let translateDirs = [
+            -1, // face center 2 back
+            1 // face center 2 front
+        ];
+
+    quads[0] = genYZQuadVertexInfo(p0s[0], -1); // normal X
+    quads[1] = genYZQuadVertexInfo(p0s[0], -1);
+
+    quads[2] = genXZQuadVertexInfo(p0s[0], -1); // normal Y
+    quads[3] = genXZQuadVertexInfo(p0s[0], -1);
+
+    quads[4] = genXYQuadVertexInfo(p0s[0], -1); // normal Z
+    quads[5] = genXYQuadVertexInfo(p0s[0], -1);
+
+    let id = 6;
+    // Gen faces, 6x, need 2 start points, id range: [6, 11]
+    for (let i = 0; i < p0s.length; i++) {
+        let p0 = p0s[i];
+
+        let x = p0[0],
+            y = p0[1],
+            z = p0[2];
+
+        faceInfo[id] = {
+            normal: 'X',
+            direction: translateDirs[i]
+        };
+        faces[id++] = genYZQuadVertexInfo(p0, translateDirs[i]);
+
+        faceInfo[id] = {
+            normal: 'Y',
+            direction: translateDirs[i]
+        };
+        faces[id++] = genXZQuadVertexInfo(p0, translateDirs[i]);
+
+        faceInfo[id] = {
+            normal: 'Z',
+            direction: translateDirs[i]
+        };
+        faces[id++] = genXYQuadVertexInfo(p0, translateDirs[i]);
+    }
+
+    p0s = [
+            [-size, -size, -size],
+            [-size, size, size],
+            [size, size, -size],
+            [size, -size, size]
+        ];
+
+    translateDirs = [
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+            [1, 1]
+        ];
+
+    for (let i = 0; i < p0s.length; i++) {
+        let p0 = p0s[i];
+
+        let x = p0[0],
+            y = p0[1],
+            z = p0[2];
+
+        let p1 = [-x, y, z],
+            p2 = [x, -y, z],
+            p3 = [x, y, -z];
+
+        rails[id++] = {
+            p0: p0,
+            p1: p1,
+            direction: 'X',
+            translate: translateDirs[i]
+        };
+        rails[id++] = {
+            p0: p0,
+            p1: p2,
+            direction: 'Y',
+            translate: translateDirs[i]
+        };
+        rails[id++] = {
+            p0: p0,
+            p1: p3,
+            direction: 'Z',
+            translate: translateDirs[i]
+        };
+    }
+
+    let Vertices = {};
+
+    let RailVertices = {},
+        RailVerticesPB = {},
+        CubeFaceVertices = {},
+        SliceVertices = {};
+
+    let a_position = [],
+        a_direction = [],
+        a_id = [],
+        indices = [];
+
+    let a_positionCubeFace = [],
+        a_directionCubeFace = [],
+        a_idCubeFace = [],
+        indicesCubeFace = [];
+
+    let a_positionSlices = [],
+        a_directionSlices = [],
+        a_idSlices = [],
+        indicesSlices = [];
+
+    let a_positionRails = [],
+        a_directionRails = [],
+        a_idRails = [],
+        indicesRails = [];
+
+    let a_positionRailsPB = [],
+        a_directionRailsPB = [],
+        a_idRailsPB = [],
+        indicesRailsPB = [];
+
+
+    let numRailsDebug = 4;
+    let railNum = 0;
+
+    let getDirectionIndex = (normal) => {
+        switch (normal) {
+            case 'X':
+                return 0;
+            case 'Y':
+                return 1;
+            case 'Z':
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /**
+     * Represents a rails underlying structure, only used in SlicerModel.
+     * The rail is a line from p0 to p1
+     * @typedef {object} RailInfo
+     * @property {twgl.primitives.v3} p0
+     * @property {twgl.primitives.v3} p1
+     * @property {string} direction X, Y or Z, axis the rail is aligned with
+     * @property {Array.number} translate size is always 2. Direction the rail is to be translate in
+     * normal to its direction axis, ex if direction is X then it is to be translated
+     * along the Y by offset translate[0] and the Z axis by offset translate[1].
+     * @memberof module:Core/Models
+     **/
+
+    // 1a. Generate polylines (cylinders) for all rails, display ones
+    for (let id in rails) {
+        let rail = rails[id];
+        let direction = getDirectionIndex(rail.direction);
+
+        let railverts = primitives.createCylinderVertices(
+            Settings.RailRadiusDisplayMode, // Radius of cylinder
+            size, // Height of cylinder
+            Settings.RailRadialSubdivisions, //  radialSubdivisions The number of subdivisions around the cylinder
+            Settings.RailVerticalSubdivisions, // verticalSubdivisions The number of subdivisions down the cylinder.
+            true, // topCap
+            true // bottomCap
+        );
+
+        let numVerts = railverts.position.length / 3;
+
+        // Append direction and a_id to them too. same size as num verts
+        railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        railverts.direction.fill(direction);
+
+        railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        railverts.id.fill(id);
+
+        // Rotate+Translate rails from centered along Y to respective position
+        let rotate = rotateFromYTo(rail.direction);
+        let translate = translateCylinderVerticesToEdge(
+            rail.direction,
+            rail.translate,
+            size / 2
+        );
+
+        let rotateThenTranslate = m4.multiply(translate, rotate);
+        primitives.reorientVertices(railverts, rotateThenTranslate);
+
+        console.log("ID = " + id + " .... ");
+        console.log(rail);
+        console.log("-------");
+
+        let indexOffset = a_position.length / 3;
+
+        a_position.push(...railverts.position);
+        a_direction.push(...railverts.direction);
+        a_id.push(...railverts.id);
+        indices.push(...railverts.indices.map((i) => {
+            return i + indexOffset;
+        }));
+
+        let railIndexOffset = a_positionRails.length / 3;
+
+        a_positionRails.push(...railverts.position);
+        a_directionRails.push(...railverts.direction);
+        a_idRails.push(...railverts.id);
+        indicesRails.push(...railverts.indices.map((i) => {
+            return i + railIndexOffset;
+        }));
+        //if (railNum++ === numRailsDebug)
+        //    break;
+    }
+
+    // 1b. Generate polylines (cylinders) for all rails, extra thick picking buffer ones
+    for (let id in rails) {
+        let rail = rails[id];
+        let direction = getDirectionIndex(rail.direction);
+
+        let railverts = primitives.createCylinderVertices(
+            Settings.RailRadiusPickingBufferMode, // Radius of cylinder
+            size, // Height of cylinder
+            Settings.RailRadialSubdivisions, //  radialSubdivisions The number of subdivisions around the cylinder
+            Settings.RailVerticalSubdivisions, // verticalSubdivisions The number of subdivisions down the cylinder.
+            true, // topCap
+            true // bottomCap
+        );
+
+        let numVerts = railverts.position.length / 3;
+
+        // Append direction and a_id to them too. same size as num verts
+        railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        railverts.direction.fill(direction);
+
+        railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        railverts.id.fill(id);
+
+        // Rotate+Translate rails from centered along Y to respective position
+        let rotate = rotateFromYTo(rail.direction);
+        let translate = translateCylinderVerticesToEdge(
+            rail.direction,
+            rail.translate,
+            (size / 2) * Settings.RailOutwardsFactorPickingBuffer
+        );
+
+        let rotateThenTranslate = m4.multiply(translate, rotate);
+        primitives.reorientVertices(railverts, rotateThenTranslate);
+
+        console.log("ID = " + id + " .... ");
+        console.log(rail);
+        console.log("-------");
+
+        let railIndexOffset = a_positionRailsPB.length / 3;
+
+        a_positionRailsPB.push(...railverts.position);
+        a_directionRailsPB.push(...railverts.direction);
+        a_idRailsPB.push(...railverts.id);
+        indicesRailsPB.push(...railverts.indices.map((i) => {
+            return i + railIndexOffset;
+        }));
+    }
+
+
+    // 2. Generate cube faces (quads)
+    for (let id in faces) {
+        let face = faces[id];
+        let direction = getDirectionIndex(face.normal);
+
+        let cubefvs = {};
+
+        let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
+        vbo.push(face.p0);
+        vbo.push(face.p1);
+        vbo.push(face.p2);
+        vbo.push(face.p3);
+
+        let ibo = primitives.createAugmentedTypedArray(3, 4, Int16Array);
+        ibo.push([0, 1, 2]);
+        ibo.push([0, 2, 3]);
+
+        cubefvs.position = vbo;
+        cubefvs.indices = ibo;
+
+        let numVerts = cubefvs.position.length / 3;
+
+        cubefvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        cubefvs.direction.fill(direction);
+
+        cubefvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        cubefvs.id.fill(id);
+
+        // Move quad from XY centered to edges
+        let rotate = rotateFromXYTo(face.normal, face.translate);
+        let translate = translateQuadVerticesToEdge(face.normal, face.translate, size / 2);
+
+        let rotateThenTranslate = m4.multiply(translate, rotate);
+        //primitives.reorientPositions(vbo, m4.identity());
+
+        if (face.normal === 'X' && face.translate === 1)
+            cubefvs.indices = cubefvs.indices.reverse();
+        else if (face.normal !== 'X' && face.translate === -1)
+            cubefvs.indices = cubefvs.indices.reverse();
+
+
+        let indexOffset = a_position.length / 3;
+
+        a_position.push(...cubefvs.position);
+        a_direction.push(...cubefvs.direction);
+        a_id.push(...cubefvs.id);
+        indices.push(...cubefvs.indices.map((i) => {
+            return i + indexOffset
+        }));
+
+        let cubeFaceIndexOffset = a_positionCubeFace.length / 3;
+
+        a_positionCubeFace.push(...cubefvs.position);
+        a_directionCubeFace.push(...cubefvs.direction);
+        a_idCubeFace.push(...cubefvs.id);
+        indicesCubeFace.push(...cubefvs.indices.map((i) => {
+            return i + cubeFaceIndexOffset
+        }));
+    }
+
+    // 3. Generate the actual slice quads, 2 for each direction
+    for (let id in quads) {
+        let quad = quads[id];
+        let direction = getDirectionIndex(quad.normal);
+
+        let quadfvs = {};
+
+        let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
+        vbo.push(quad.p0);
+        vbo.push(quad.p1);
+        vbo.push(quad.p2);
+        vbo.push(quad.p3);
+
+        let ibo = primitives.createAugmentedTypedArray(3, 4, Int16Array);
+        ibo.push([0, 1, 2]);
+        ibo.push([0, 2, 3]);
+
+        quadfvs.position = vbo;
+        quadfvs.indices = ibo;
+
+        let numVerts = quadfvs.position.length / 3;
+
+        quadfvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        quadfvs.direction.fill(direction);
+
+        quadfvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
+        quadfvs.id.fill(id);
+
+
+        // Move quad from XY centered to edges
+        let rotate = rotateFromXYTo(quad.normal, quad.translate);
+        let translate = translateQuadVerticesToEdge(quad.normal, quad.translate, size / 2);
+
+        let rotateThenTranslate = m4.multiply(translate, rotate);
+        //primitives.reorientPositions(vbo, m4.identity());
+
+        if (quad.normal === 'X' && quad.translate === 1)
+            quadfvs.indices = quadfvs.indices.reverse();
+        else if (quad.normal !== 'X' && quad.translate === -1)
+            quadfvs.indices = quadfvs.indices.reverse();
+
+
+        let indexOffset = a_position.length / 3;
+
+        a_position.push(...quadfvs.position);
+        a_direction.push(...quadfvs.direction);
+        a_id.push(...quadfvs.id);
+        indices.push(...quadfvs.indices.map((i) => {
+            return i + indexOffset
+        }));
+
+        let slicesIndexOffset = a_positionSlices.length / 3;
+
+        a_positionSlices.push(...quadfvs.position);
+        a_directionSlices.push(...quadfvs.direction);
+        a_idSlices.push(...quadfvs.id);
+        indicesSlices.push(...quadfvs.indices.map((i) => {
+            return i + slicesIndexOffset
+        }));
+    }
+
+    let totalNumVertices = a_position.length / 3;
+
+    Vertices = { // twgl-friendly format for createBufferInfoFromArrays
+        position: {
+            numComponents: 3,
+            data: new Float32Array(a_position)
+        },
+        direction: {
+            numComponents: 1,
+            data: new Int16Array(a_direction)
+        },
+        id: {
+            numComponents: 1,
+            data: new Int16Array(a_id)
+        },
+        indices: {
+            numComponents: 3,
+            data: new Int16Array(indices)
+        }
+    };
+
+    RailVertices = { // twgl-friendly format for createBufferInfoFromArrays
+        position: {
+            numComponents: 3,
+            data: new Float32Array(a_positionRails)
+        },
+        direction: {
+            numComponents: 1,
+            data: new Int16Array(a_directionRails)
+        },
+        id: {
+            numComponents: 1,
+            data: new Int16Array(a_idRails)
+        },
+        indices: {
+            numComponents: 3,
+            data: new Int16Array(indicesRails)
+        }
+    };
+
+    RailVerticesPB = { // twgl-friendly format for createBufferInfoFromArrays
+        position: {
+            numComponents: 3,
+            data: new Float32Array(a_positionRailsPB)
+        },
+        direction: {
+            numComponents: 1,
+            data: new Int16Array(a_directionRailsPB)
+        },
+        id: {
+            numComponents: 1,
+            data: new Int16Array(a_idRailsPB)
+        },
+        indices: {
+            numComponents: 3,
+            data: new Int16Array(indicesRailsPB)
+        }
+    };
+
+    CubeFaceVertices = { // twgl-friendly format for createBufferInfoFromArrays
+        position: {
+            numComponents: 3,
+            data: new Float32Array(a_positionCubeFace)
+        },
+        direction: {
+            numComponents: 1,
+            data: new Int16Array(a_directionCubeFace)
+        },
+        id: {
+            numComponents: 1,
+            data: new Int16Array(a_idCubeFace)
+        },
+        indices: {
+            numComponents: 3,
+            data: new Int16Array(indicesCubeFace)
+        }
+    };
+
+    SliceVertices = { // twgl-friendly format for createBufferInfoFromArrays
+        position: {
+            numComponents: 3,
+            data: new Float32Array(a_positionSlices)
+        },
+        direction: {
+            numComponents: 1,
+            data: new Int16Array(a_directionSlices)
+        },
+        id: {
+            numComponents: 1,
+            data: new Int16Array(a_idSlices)
+        },
+        indices: {
+            numComponents: 3,
+            data: new Int16Array(indicesSlices)
+        }
+    };
+
+
+    SLICERBUFFERS = {
+        Vertices: Vertices,
+        CubeFaceVertices: CubeFaceVertices,
+        RailVertices: RailVertices,
+        RailPickingBufferVertices: RailVerticesPB,
+        SliceVertices: SliceVertices,
+        IDInfo: {
+            getRailInfo: getRailInfo,
+            getCubeFaceInfo: getCubeFaceInfo,
+            isRail: (id) => {
+                return 11 < id;
+            },
+            isFace: (id) => {
+                return 6 <= id && id <= 11;
+            },
+            isSlice: (id) => {
+                return id < 6;
+            }
+        }
+    };
+
+    return SLICERBUFFERS;
+}
+
+module.exports = genSlicerBuffers;
+
+},{"../settings":58,"twgl.js":21}],47:[function(require,module,exports){
+let twgl = require('twgl.js'),
+    primitives = twgl.primitives,
+    m4 = twgl.m4,
+    v3 = twgl.v3;
+
+let CameraV2 = require('./camera-orbiter-v2');
+let MouseHandler = require('../mouse-handler');
+
+let OrbiterCamera = require('./camera-orbiter');
+let getSlicerBuffers = require('./slicer-model-buffers');
+
+let BufferInfo = getSlicerBuffers(Math.sqrt(2)); // Generate it now so it is cached and can be retrieved
+
+let IDInfo = BufferInfo.IDInfo;
+
+let GetInteractionMode = require('../interaction-modes-v2').getInteractionModeGetterForCategory('Slicer');
+let Settings = require('../settings').Views.Slicer;
+
+/** @module Core/Models */
+
+let SIZE = Math.sqrt(2);
+
+/**
+ * Represents an underlying discrete model of a slicer. It only represents the
+ * slices itself, and will generate the geometry needed to render the
+ * _SLICER_ but how it affects rendering is up to other implementations.
+ * @memberof module:Core/Models
+ */
+class SlicerModel {
+    constructor(gl, viewManager, myID) {
+
+        window['HID' + myID] = (id) => {
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+        }
+
+        this.gl = gl;
+        this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
+
+        // .get, .refresh
+
+        console.log("SlicerModel constrcutor!");
+
+        this.camera = new OrbiterCamera(v3.create(1, 3, -7), {
+            fieldOfViewRadians: Math.PI / 10,
+            aspectRatio: 1, // Initial
+            zNear: 1.0,
+            zFar: 15.0
+        });
+
+        this.camera = new CameraV2({
+            radius: 10.2,
+
+            theta: 0,
+            phi: 0,
+            //target: v3.create(0,0,0),
+
+            projectionSettings: {
+                fieldOfViewRadians: Math.PI / 10,
+                aspectRatio: 1, // Initial
+                zNear: 0.5,
+                zFar: 18.0
+            },
+
+            ROT_SPEED_X: 3.5,
+            ROT_SPEED_Y: 3.5
+        });
+
+
+        this.slicerBox = new LabeledSlicerBox(SIZE);
+
+        this.uniforms = {
+            u_HighlightID: -1,
+            u_SliceOffsets: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+            //u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_WorldViewProjection: -1,
+            u_IntersectionPointDebug: [0, 0, 0]
+        };
+
+        this.attribArrays = {
+
+        };
+
+        this._refreshUniforms();
+        this._genAttribArrays();
+        this.mouseHandler = new MouseHandler({
+            clickTimeout: 150
+        });
+        this._bindMouseHandler();
+    }
+
+    _refreshUniforms() {
+        // Fetch uniforms from the slicer box
+        for (let key in this.slicerBox.uniforms)
+            this.uniforms[key] = this.slicerBox.uniforms[key];
+
+        // Fetch MVP from camera
+        this.uniforms.u_WorldViewProjection = this.camera.getWorldViewProjectionMatrix();
+    }
+
+    _genAttribArrays() {
+        this.attribArrays = getSlicerBuffers(Math.sqrt(2));
+        //this.attribArrays = this.slicerBox.getBufferArrays();
+    }
+
+    mouse(event) {
+        this.mouseHandler.handle(event);
+        console.log("HANDLE...");
+        console.log(event);
+        if (1)
+            return;
+        // left click -> rotate / orbit camera
+        //let res = this.camera.mouse(event); // TEMP, TODO do raycasting to add/move slices etc
+
+        if (res) {
+            console.log("SlicerModel, did shoot ray");
+            console.log(res);
+        }
+
+        this._refreshUniforms();
+
+        // right click -> context menu?..
+        console.log("Slicer mouse event");
+        console.log(event);
+
+        let x0 = event.pos.x, // [0,1]
+            y0 = event.pos.y;
+
+        let x1 = (x0 * 2.0) - 1.0, // [0,1] -> [-1, 1]
+            y1 = -((y0 * 2.0) - 1.0);
+
+    }
+
+    getBuffers() {
+        let sideLength = Math.sqrt(2); // Will always just fit
+        // 1. Gen the cube vertices, 1 quad per side
+
+    }
+
+    _bindMouseHandler() {
+        let gl = this.gl;
+
+        let debugDisplayPickingBuffer = () => {
+            let pb = this.pickingBuffer.get();
+            let dest = new Uint8Array(4 * pb.width * pb.height);
+
+            let pixels = pb.readPixels(
+                0, 0,
+                pb.width, pb.height,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest, 0
+            );
+
+            let debugcanvas = document.getElementById('debugcanvas');
+            let gl2 = debugcanvas.getContext('2d');
+            debugcanvas.width = pb.width;
+            debugcanvas.height = pb.height;
+            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
+            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
+            gl2.putImageData(imagedata, 0, 0);
+        }
+
+        let readPBPixels = (mx, my) => {
+            this.pickingBuffer.refresh(); // Render it onto FB before reading
+            let pb = this.pickingBuffer.get();
+            let dest = new Uint8Array(4 * 1);
+            let pixels = pb.readPixels(
+                mx * pb.width,
+                (1.0 - my) * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest, 0
+            );
+            let id = (dest[0]) - 1;
+            let railOffset = dest[1] / 255.0;
+
+            return {
+                id: id,
+                railOffset: railOffset
+            };
+        }
+
+
+        let dragInfo = {
+            railInfo: null
+        }
+
+        let getIntersectionOffset = (x, y) => {
+            let ray = this.camera.getRayFromMouseClick({
+                x: x,
+                y: y
+            });
+
+            let p0 = dragInfo.railInfo.p0,
+                p1 = dragInfo.railInfo.p1,
+                direction = dragInfo.railInfo.direction;
+
+            let p = null;
+
+            switch (direction) {
+                case 'X':
+                    p = p0[0] < p1[0] ? p0 : p1;
+                    break;
+                case 'Y':
+                    p = p0[1] < p1[1] ? p0 : p1;
+                    break;
+                case 'Z':
+                    p = p0[2] < p1[2] ? p0 : p1;
+                    break;
+            }
+
+            let intersectInfo = ray.intersectsLinePlanes(p, direction, SIZE);
+            let intersectionOffset = intersectInfo.intersectOffset;
+
+            this.uniforms.u_IntersectionPointDebug = new Float32Array([
+                intersectInfo.point[0],
+                intersectInfo.point[0],
+                intersectInfo.point[0]
+            ]);
+
+
+            return intersectionOffset;
+        }
+
+        this.mouseHandler.on('mouseenter', null, (state) => {
+
+        });
+
+        this.mouseHandler.on('mouseout', null, (state) => {
+            this.dragInfo.railinfo = null;
+            this.slicerBox.highlightID(-1);
+        })
+
+        this.mouseHandler.on('click', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            let id = pb.id;
+
+            console.log("Highlighting ID: " + id);
+
+            if (IDInfo.isFace(id)) { // Click on face, will add slice
+                // Add the slice
+                this.slicerBox.addSliceFromCubeFace(id);
+            }
+
+            this.slicerBox.highlightID(id);
+            this._refreshUniforms();
+            return;
+
+
+            let ray = this.camera.getRayFromMouseClick({
+                x: state.x,
+                y: state.y
+            });
+            console.log("Shot ray: ");
+            console.log(ray);
+
+            this.slicerBox.highlightIntersected(ray);
+            this._refreshUniforms();
+            // Check if it intersects with any of the geometries...
+
+
+        });
+
+
+
+        this.mouseHandler.on('mousedown', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            let pb = readPBPixels(state.x, state.y);
+            let id = pb.id;
+
+            if (IDInfo.isRail(id)) { // Will initiate drag of slice
+                // 1. Find out direction of rail
+                let railInfo = IDInfo.getRailInfo(id);
+                dragInfo.railInfo = railInfo;
+
+                let offset = pb.railOffset;
+                console.log("Offset = " + offset);
+                // Drag is magically initiated!
+                this.slicerBox.initiateDragIfHit(railInfo.direction, offset, id);
+                this._refreshUniforms();
+                this.pickingBuffer.refresh();
+                debugDisplayPickingBuffer();
+
+                // 2. Find active offsets of rail
+
+                // 3. If between, move both along rail
+
+                // If close enough to one, move only that
+                // If outside either range, do nothing
+
+                return;
+            }
+
+            switch (interactionMode) {
+                case 'rotate':
+                    break;
+                case 'add':
+                    if (IDInfo.isFace(id))
+                        this.slicerBox.addSliceFromCubeFace(id);
+                    break;
+                case 'remove':
+                    break;
+            }
+
+
+            console.log("MouseDOWN left");
+
+        });
+        this.mouseHandler.on('mouseup', 'left', (state) => {
+            if (dragInfo.railInfo) {
+                dragInfo.railInfo = null;
+                this.slicerBox.endDrag();
+                return;
+            }
+        });
+        this.mouseHandler.on('mousemove', 'left', (state) => {
+            debugDisplayPickingBuffer();
+            let pb = readPBPixels(state.x, state.y);
+            let id = pb.id;
+
+            if (IDInfo.isRail(id)) {
+                let railInfo = IDInfo.getRailInfo(id);
+                this.slicerBox.highlightPotentialDragIfHit(railInfo.direction, pb.railOffset);
+            } else {
+                this.slicerBox.endDrag();
+            }
+
+
+            this.slicerBox.highlightID(id);
+
+            // Can be useful for dragging stuff
+            let ray = this.camera.getRayFromMouseClick({
+                x: state.x,
+                y: state.y
+            });
+
+            this.slicerBox.highlightIntersected(ray);
+            this._refreshUniforms();
+
+        });
+        this.mouseHandler.on('drag', 'left', (state) => {
+            console.log("Drag left");
+
+            let pb = readPBPixels(state.x, state.y);
+
+            if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
+                let offset = pb.railOffset;
+                this.slicerBox.dragActiveSlicesAlongAxis(offset);
+
+            } else { // dont rotate when drag in progress...
+                this.camera.rotate(state.dx, state.dy);
+            }
+
+
+
+
+            /*switch (interactionMode) {
+                case 'rotate':
+                    this.camera.rotate(state.dx, state.dy);
+                    break;
+                default:
+                    //if (this.slicerBox.isSliceDragActive()) {
+                    let pb = readPBPixels(state.x, state.y);
+                    let offset = pb.railOffset;
+                    console.log("Offset = " + offset);
+
+                    this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                    //}
+                    break;
+            }*/
+            this._refreshUniforms();
+        });
+
+    }
+}
+
+module.exports = SlicerModel;
 
 /**
  * Description for LabeledSlicerBox
@@ -51020,111 +51958,43 @@ class LabeledSlicerBox {
      * reason for this is to make highlighting via shaders manageable.
      *
      * @param {number} size
+     *
      * @constructor
      */
     constructor(size) {
+
         this.size = size;
-        this.quadIndexBag = new UniqueIndexBag(6); // ids [0,5] reserved for quads
-
-        this.rails = {};
-        this.faces = {};
-        this.slices = {};
-
-        this.tempsss = true; //TEMP!!
 
         this.uniforms = {
+            u_Size: this.size,
             u_HighlightID: -1,
-            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_SliceOffsets: [0.2, 0.8, 0.2, 0.8, 0.2, 0.8],
             u_RayDir: [0, 0, -1],
-            u_PickingRayOrigin: [0, 0, 10]
+            u_PickingRayOrigin: [0, 0, 10],
+            u_DraggedSliceIndices: [-1, -1],
+            u_ActiveDragRailID: -1
         };
 
-        this.attribs = null;
-
-        let half = size / 2;
-        let id = 6;
-
-        this.quadID = -1;
         this.qCounts = {
             'X': 0,
             'Y': 0,
             'Z': 0
         };
 
-        // Gen faces, 6x, need 2 start points, id range: [6, 11]
-        let p0s = [
-            [-half, -half, -half],
-            [half, half, half]
-        ];
 
-        let translateDirs = [
-            -1, // face center 2 back
-            1 // face center 2 front
-        ];
+        this.draggedSliceIndex = -1;
+        this.draggedSliceIndices = null;
+        this.activeDrag = false;
 
-        for (let i = 0; i < p0s.length; i++) {
-            let p0 = p0s[i];
-
-            let x = p0[0],
-                y = p0[1],
-                z = p0[2];
-
-            this.faces[id++] = genYZQuadVertexInfo(p0, translateDirs[i]);
-            this.faces[id++] = genXZQuadVertexInfo(p0, translateDirs[i]);
-            this.faces[id++] = genXYQuadVertexInfo(p0, translateDirs[i]);
-        }
-
-        // Gen rails, all 12 of them, label with IDs etc
-        p0s = [
-            [-size, -size, -size],
-            [-size, size, size],
-            [size, size, -size],
-            [size, -size, size]
-        ];
-
-        translateDirs = [
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-            [1, 1]
-        ];
-
-        for (let i = 0; i < p0s.length; i++) {
-            let p0 = p0s[i];
-
-            let x = p0[0],
-                y = p0[1],
-                z = p0[2];
-
-            let p1 = [-x, y, z],
-                p2 = [x, -y, z],
-                p3 = [x, y, -z];
-
-            this.rails[id++] = {
-                p0: p0,
-                p1: p1,
-                direction: 'X',
-                translate: translateDirs[i]
-            };
-            this.rails[id++] = {
-                p0: p0,
-                p1: p2,
-                direction: 'Y',
-                translate: translateDirs[i]
-            };
-            this.rails[id++] = {
-                p0: p0,
-                p1: p3,
-                direction: 'Z',
-                translate: translateDirs[i]
-            };
-        }
-
-        this.getBufferArrays();
+        this.dragOffset = 0;
     }
 
     _getOffsetIndex(normal) {
+        if (this.qCounts[normal] >= 2) {
+            console.error("Sir! You cannot add more than 2 slices per axis, sir!");
+            return -1;
+        }
+
         switch (normal) {
             case 'X':
                 return 0 + this.qCounts[normal];
@@ -51135,6 +52005,53 @@ class LabeledSlicerBox {
             default:
                 return -1;
         }
+    }
+
+    _getOffsetStartIndex(normal) {
+        switch (normal) {
+            case 'X':
+                return 0;
+            case 'Y':
+                return 2;
+            case 'Z':
+                return 4;
+            default:
+                return -1;
+        }
+    }
+
+    addSliceFromCubeFace(fromCubeFace) {
+        // 1. Convert cube face index to direction and starting position
+        let info = this._cubeFaceIDToNormalAndStartOffset(fromCubeFace);
+
+        // 2. Get offset index for direction (if available)
+        let index = this._getOffsetIndex(info.normal);
+
+        if (index === -1)
+            return;
+
+        // 3. Set the offset @ given index
+        this.moveSliceToOffset(index, info.offset);
+    }
+
+    _cubeFaceIDToNormalAndStartOffset(cubefaceID) {
+        // first 3 are back faces
+
+        let startIndent = 0.02;
+
+        let info = IDInfo.getCubeFaceInfo(cubefaceID);
+
+        let startOffset = info.direction === -1 ?
+            (0.0 + startIndent) :
+            (1.0 - startIndent);
+
+        let normal = info.normal;
+
+        return {
+            startOffset: startOffset,
+            normal: normal
+        };
+
     }
 
     _getDirectionIndex(normal) {
@@ -51150,38 +52067,157 @@ class LabeledSlicerBox {
         }
     }
 
-    _getOffsetIndexOfQuadWithIndex(quadIndex) {
-        return this.uniforms.u_QuadOffsetIndices[quadIndex];
+    _directionIndexToDirection(index) {
+        switch (index) {
+            case 0:
+                return 'X';
+            case 1:
+                return 'Y';
+            case 2:
+                return 'Z';
+            default:
+                return -1;
+        }
     }
 
-    _setOffsetOfQuadWithIndex(quadIndex, offset) {
-        let offsetIndex = this.uniforms.u_QuadOffsetIndices[quadIndex];
-        this.uniforms.u_QuadOffsets[offsetIndex] = offset;
+    getSlicesAtAxisAndOffset(alongAxis, offset) {
+        // fuck making it dynamic for now, hardcoding!
+        let id1 = this._getOffsetStartIndex(alongAxis),
+            id2 = id1 + 1;
+
+        let distances = [];
+
+        let offset1 = this.uniforms.u_SliceOffsets[id1],
+            offset2 = this.uniforms.u_SliceOffsets[id2];
+
+        let dist1 = Math.abs(offset1 - offset),
+            dist2 = Math.abs(offset2 - offset);
+
+        let snap1 = dist1 <= Settings.SelectSliceSnapThreshold,
+            snap2 = dist2 <= Settings.SelectSliceSnapThreshold;
+
+        if (snap1 || snap2) { // Pick the closest out of the two anyway
+            // If within snap range of both, pick closest,
+            return dist1 < dist2 ? {
+                hit: true,
+                ids: [id1, -1]
+            } : {
+                hit: true,
+                ids: [id2, -1]
+            };
+        } else if (offset1 < offset2 ?
+            (offset1 < offset && offset < offset2) :
+            (offset2 < offset && offset < offset1)
+        ) { // If between but not within snap range, drag both
+            return { // Drag both
+                hit: true,
+                ids: [id1, id2]
+            }
+        } else {
+            return {
+                hit: false
+            }
+        }
     }
 
-    addQuad(normal, p0) {
-        if (this.qCounts[normal] === 2) // max 2 per direction
+    highlightPotentialDragIfHit(alongAxis, offset) {
+        let slices = this.getSlicesAtAxisAndOffset(alongAxis, offset);
+        if (slices.hit) {
+            this.activeDrag = false;
+            this.draggedSliceIndices = slices.ids;
+            this.uniforms.u_DraggedSliceIndices = slices.ids;
+        }
+    }
+
+    initiateDragIfHit(alongAxis, offset, id) {
+        let slices = this.getSlicesAtAxisAndOffset(alongAxis, offset);
+        if (slices.hit) {
+            this.uniforms.u_ActiveDragRailID = id;
+            this.activeDrag = true;
+            this.draggedSliceIndices = slices.ids;
+            this.uniforms.u_DraggedSliceIndices = slices.ids;
+            this.dragOffset = offset;
+        }
+    }
+
+
+
+    endDrag() {
+        this.uniforms.u_ActiveDragRailID = -1;
+        this.draggedSliceIndices = null;
+        this.uniforms.u_DraggedSliceIndices = [-1, -1];
+        this.dragOffset = -1;
+        this.activeDrag = false;
+    }
+
+    isDragActive() {
+        return this.activeDrag;
+    }
+
+    dragActiveSlicesAlongAxis(newOffset) {
+        if (!this.draggedSliceIndices) {
+            console.error("No slices selected");
             return;
+        }
 
-        let quadIndex = this.quadIndexBag.getIndex();
-        let offsetIndex = this._getOffsetIndex(normal);
+        let deltaOffset = newOffset - this.dragOffset;
 
-        // Point quad index to offset index
-        this.uniforms.u_QuadOffsetIndices[quadIndex] = offsetIndex;
+        for (let sliceID of this.draggedSliceIndices) {
+            this.uniforms.u_SliceOffsets[sliceID] += deltaOffset;
+        }
 
-        this.slices[index] = genQuadWithNormal(normal, p0);
-        this.qCounts[normal]++;
+        this.dragOffset = newOffset;
     }
 
-    moveQuadToOffset(quadID, offset) {
-        this._setOffsetOfQuadWithIndex(quadID, offset);
+    /*getSliceAtAxisAndOffset(alongAxis, offset) {
+        let start = this._getOffsetStartIndex(alongAxis);
+        for (let id = start; id < start + 2; id++) {
+            if (
+                Math.abs(this.uniforms.u_SliceOffsets[id]) <=
+                Settings.SelectSliceSnapThreshold) {
+
+                this._initiateDragSlice(id);
+                return id;
+            }
+        }
+
+        return -1;
     }
 
-    removeQuad(quadID) {
-        delete this.slices[quadID];
-        this.quadIndexBag.returnIndex(quadID);
-        this.qCounts[normal]--;
-        this.uniforms.u_QuadOffsetIndices[quadID] = -1; // Mark quad as inactive
+    isSliceDragActive() {
+        return this.draggedSliceIndex !== -1;
+    }
+
+    _initiateDragSlice(id) {
+        this.draggedSliceIndex = id;
+    }
+
+    dragEnd() {
+        this.draggedSliceIndex = -1;
+    }
+
+    dragSliceToOffset(offset) {
+        if (this.draggedSliceIndex) {
+            console.error("No slice index selected...");
+        }
+
+        this.moveSliceToOffset(this.draggedSliceIndex, offset);
+    }
+
+    _setOffsetOfSliceWithIndex(id, offset) {
+        this.uniforms.u_SliceOffsets[id] = offset;
+    }
+
+    moveSliceToOffset(id, offset) {
+        this._setOffsetOfSliceWithIndex(id, offset);
+    }
+
+    moveSliceToOffset(quadID, offset) {
+        this._setOffsetOfSliceWithIndex(quadID, offset);
+    }*/
+
+    hideSlice(id) {
+        this.uniforms.u_QuadOffsetIndices[id] = -1; // Mark quad as inactive
     }
 
     getUniforms() {
@@ -51195,251 +52231,10 @@ class LabeledSlicerBox {
     highlightIntersected(ray) {
         this.uniforms.u_PickingRayOrigin = ray.eye;
         this.uniforms.u_RayDir = ray.dir;
-
-        //// 1. Intersect-test with rails
-        //for (let id in this.rails) {
-        //    let rail = this.rails[id];
-        //    console.log("Checking intersection w/ rail" + id);
-        //    if (ray.intersectsLine(rail.p0, rail.p1, 0.07)) {
-        //        this.uniforms.u_HighlightID = id;
-        //        console.log("RAY HIT RAIL WITH ID: " + id);
-        //        return;
-        //    }
-        //}
-        //
-        //this.uniforms.u_HighlightID = this.tempsss ? 7 : 9;
-        //this.tempsss = !this.tempsss;
-    }
-
-    getBufferArrays() {
-        // All attrib arrays etc
-
-        if (this.attribs)
-            return this.attribs;
-
-        let Vertices = {};
-
-        let RailVertices = {},
-            CubeFaceVertices = {};
-
-        let a_position = [],
-            a_direction = [],
-            a_id = [],
-            indices = [];
-
-        let a_positionCubeFace = [],
-            a_directionCubeFace = [],
-            a_idCubeFace = [],
-            indicesCubeFace = [];
-
-        let a_positionRails = [],
-            a_directionRails = [],
-            a_idRails = [],
-            indicesRails = [];
-
-        let numRailsDebug = 4;
-        let railNum = 0;
-
-        let xRails = [
-            12,
-            15,
-            18,
-            21
-                     ];
-
-        // 1. Generate polylines (cylinders) for all rails
-        for (let id in this.rails) {
-            let rail = this.rails[id];
-            let direction = this._getDirectionIndex(rail.direction);
-
-            let railverts = primitives.createCylinderVertices(
-                0.07, // Radius of cylinder
-                this.size, // Height of cylinder
-                5, //  radialSubdivisions The number of subdivisions around the cylinder
-                5, // verticalSubdivisions The number of subdivisions down the cylinder.
-                true, // topCap
-                true // bottomCap
-            );
-
-            let numVerts = railverts.position.length / 3;
-
-            // Append direction and a_id to them too. same size as num verts
-            railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            railverts.direction.fill(direction);
-
-            railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            railverts.id.fill(id);
-
-            // Rotate+Translate rails from centered along Y to respective position
-            let rotate = rotateFromYTo(rail.direction);
-            let translate = translateCylinderVerticesToEdge(
-                rail.direction,
-                rail.translate,
-                this.size / 2
-            );
-
-            let rotateThenTranslate = m4.multiply(translate, rotate);
-            primitives.reorientVertices(railverts, rotateThenTranslate);
-
-            console.log("ID = " + id + " .... ");
-            console.log(rail);
-            console.log("-------");
-
-            let indexOffset = a_position.length / 3;
-
-            a_position.push(...railverts.position);
-            a_direction.push(...railverts.direction);
-            a_id.push(...railverts.id);
-            indices.push(...railverts.indices.map((i) => {
-                return i + indexOffset;
-            }));
-
-            let railIndexOffset = a_positionRails.length / 3;
-
-            a_positionRails.push(...railverts.position);
-            a_directionRails.push(...railverts.direction);
-            a_idRails.push(...railverts.id);
-            indicesRails.push(...railverts.indices.map((i) => {
-                return i + railIndexOffset;
-            }));
-            //if (railNum++ === numRailsDebug)
-            //    break;
-        }
-
-        // 2. Generate cube faces (quads)
-        for (let id in this.faces) {
-            let face = this.faces[id];
-            let direction = this._getDirectionIndex(face.normal);
-
-            let cubefvs = {};
-
-            let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
-            vbo.push(face.p0);
-            vbo.push(face.p1);
-            vbo.push(face.p2);
-            vbo.push(face.p3);
-
-            let ibo = primitives.createAugmentedTypedArray(3, 4, Int16Array);
-            ibo.push([0, 1, 2]);
-            ibo.push([0, 2, 3]);
-
-            cubefvs.position = vbo;
-            cubefvs.indices = ibo;
-
-            let numVerts = cubefvs.position.length / 3;
-
-            cubefvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            cubefvs.direction.fill(direction);
-
-            cubefvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            cubefvs.id.fill(id);
-
-            // Move quad from XY centered to edges
-            let rotate = rotateFromXYTo(face.normal, face.translate);
-            let translate = translateQuadVerticesToEdge(face.normal, face.translate, this.size / 2);
-
-            let rotateThenTranslate = m4.multiply(translate, rotate);
-            //primitives.reorientPositions(vbo, m4.identity());
-
-            if (face.normal === 'X' && face.translate === 1)
-                cubefvs.indices = cubefvs.indices.reverse();
-            else if (face.normal !== 'X' && face.translate === -1)
-                cubefvs.indices = cubefvs.indices.reverse();
-
-
-            let indexOffset = a_position.length / 3;
-
-            a_position.push(...cubefvs.position);
-            a_direction.push(...cubefvs.direction);
-            a_id.push(...cubefvs.id);
-            indices.push(...cubefvs.indices.map((i) => {
-                return i + indexOffset
-            }));
-
-            let cubeFaceIndexOffset = a_positionCubeFace.length / 3;
-
-            a_positionCubeFace.push(...cubefvs.position);
-            a_directionCubeFace.push(...cubefvs.direction);
-            a_idCubeFace.push(...cubefvs.id);
-            indicesCubeFace.push(...cubefvs.indices.map((i) => {
-                return i + cubeFaceIndexOffset
-            }));
-        }
-
-        let totalNumVertices = a_position.length / 3;
-
-        Vertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_position)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_direction)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_id)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indices)
-            }
-        };
-
-        RailVertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_positionRails)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_directionRails)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_idRails)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indicesRails)
-            }
-        };
-
-        CubeFaceVertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_positionCubeFace)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_directionCubeFace)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_idCubeFace)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indicesCubeFace)
-            }
-        };
-
-
-        let attribs = {
-            Vertices: Vertices,
-            CubeFaceVertices: CubeFaceVertices,
-            RailVertices: RailVertices
-        };
-
-        this.attribs = attribs;
-
-
-        return attribs;
     }
 }
 
-},{"../../widgets/split-view/unique-index-bag":66,"../mouse-handler":46,"./camera-orbiter":42,"./camera-orbiter-v2":41,"twgl.js":21}],44:[function(require,module,exports){
+},{"../interaction-modes-v2":41,"../mouse-handler":50,"../settings":58,"./camera-orbiter":45,"./camera-orbiter-v2":44,"./slicer-model-buffers":46,"twgl.js":21}],48:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -51458,7 +52253,7 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],45:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4,
     v3 = twgl.v3;
@@ -51522,11 +52317,11 @@ class Transformations {
 
 module.exports = Transformations;
 
-},{"twgl.js":21}],46:[function(require,module,exports){
+},{"twgl.js":21}],50:[function(require,module,exports){
 class MouseHandler {
     constructor(config) {
         this.isDrag = false;
-        this.clickTimeout = config.clickTimeout || 300; // default
+        this.clickTimeout = config.clickTimeout ||  300; // default
 
         this.timers = {
             click: -1000000
@@ -51549,6 +52344,10 @@ class MouseHandler {
         };
     }
 
+    reset() {
+        this.isDrag = false;
+    }
+
     handle(event) {
         // Update the state
 
@@ -51562,8 +52361,10 @@ class MouseHandler {
         this.state.dy = this.state.y - this.state.y0;
 
         if (event.type === 'mousedown') {
+            console.log("MOUSE DOWN!!!");
             this.timers.click = Date.now();
             this.isDrag = true;
+            this._notifyIfExists('mousedown', event.button);
 
         } else if (event.type === 'mouseup') {
             this.isDrag = false;
@@ -51575,13 +52376,15 @@ class MouseHandler {
             }
 
         } else if (event.type === 'mousemove') {
+            console.log("MOUSE MOVE!!!!!");
+
             // Either drag or hover
             if (this.isDrag)
                 this._notifyIfExists('drag', event.button);
             else
                 this._notifyIfExists('mousemove', event.button);
-
-
+        } else if (event.type === 'mouseout') {
+            this.isDrag = false;
         }
     }
 
@@ -51627,13 +52430,16 @@ class MouseHandler {
         if (!this.callbacks[event])
             this.callbacks[event] = {};
 
-        this.callbacks[event][buttonCode] = callback;
+        if (!button)
+            this.callbacks[event]['any'] = callback;
+        else
+            this.callbacks[event][buttonCode] = callback;
     }
 }
 
 module.exports = MouseHandler;
 
-},{}],47:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
 let _ = require('underscore');
@@ -51827,7 +52633,7 @@ module.exports = ConfigurableRenderer;
  * @memberof module:Core/Renderer
  **/
 
-},{"twgl.js":21,"underscore":22}],48:[function(require,module,exports){
+},{"twgl.js":21,"underscore":22}],52:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
@@ -51861,7 +52667,286 @@ class BufferManager {
 
 module.exports = BufferManager;
 
-},{"../../geometry/box":59,"twgl.js":21}],49:[function(require,module,exports){
+},{"../../geometry/box":64,"twgl.js":21}],53:[function(require,module,exports){
+/**
+ * Manages all rendering scheme configurations
+ *
+ * @constructor
+ * @memberof module:Core/ResourceManagers
+ */
+class ConfigurationManager {
+    /**
+    * Constructs a new config manager
+    *
+    * @param {module:Core/View} viewManager the parent view manager of the config manager
+    * @constructor
+    */
+    constructor(viewManager) {
+        this.VM = viewManager;
+
+        this.configurations = {
+            Volume: {
+                'Basic': (id) => {
+                    return this._generateBasicVolumeConfigForSubview(id);
+                }
+            },
+            Slicer: {
+                'Basic': (id) => {
+                    return this._generateBasicSlicerConfigForSubview(id);
+                },
+            },
+            SlicerPicking: {
+                'Basic': (id) => {
+                    return this._generateSlicerPickingBufferConfigForSubview(id);
+                }
+            },
+            Sphere: {
+
+            }
+        }
+    }
+
+    _getConfigurationForSubview(category, name, subviewID) {
+        if (this.configurations.hasOwnProperty(category) &&
+            this.configurations[category].hasOwnProperty(name)) {
+            return this.configurations[category][name](subviewID);
+        } else
+            console.error("Unknown category or name " + category + ", " + name);
+    }
+
+    /**
+     *
+     * @typedef {Object} RenderingSchemeOption
+     * @property {string} Volume - name of volume configuration. Available options: {'Basic'} (optional)
+     * @property {string} Slicer - name of volume configuration. Available options: {'Basic'} (optional)
+     * @property {string} SlicerPicking - name of volume configuration. Available options: {'Basic'} (optional)
+     * @property {string} Sphere - name of sphere configuration. Available options: {'Basic'} (optional)
+     *
+     * @memberof module:Core/ResourceManagers
+     *
+     **/
+
+    /**
+     * Configures a subview
+     *
+     * @param {number} id
+     * @param {module:Core/ResourceManagers.RenderingSchemeOption} configurations
+     */
+    configureSubview(id, configurations) {
+        let VM = this.VM;
+
+        let subview = VM.subviews[id];
+        for (let category in configurations) {
+            let configName = configurations[category];
+            let config = this._getConfigurationForSubview(category, configName, id);
+            subview.configureRenderer(category, config);
+        }
+    }
+
+
+    _generateBasicSlicerConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+
+        let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
+        let uniforms = VM.uniformManagerSlicer.getUniformBundle(subviewID);
+        uniforms.u_QuadTexture = VM.FBAndTextureManager.getTexture('UnitQuadTexture');
+
+        let BasicSlicerConfig = {
+            uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerBasic'),
+                    frameBufferInfo: null,
+                    //frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
+                    //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
+                    //                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+                    //                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.CULL_FACE],
+                        enable: [gl.BLEND],
+                        blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
+                    }
+                },
+                /*{ // Render the picking buffer into a subview..
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
+                    subViewport: {
+                        x0: 0.05,
+                        y0: 0.7,
+                        width: 0.3,
+                        height: 0.3
+                    },
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+//                        depthFunc: [gl.LESS],
+                        cullFace: [gl.BACK],
+                        disable: [gl.BLEND],
+                        //clear: [gl.COLOR_BUFFER_BIT]
+
+                    }
+                },*/
+               /* {
+                    programInfo: VM.shaderManager.getProgramInfo('Texture2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    glSettings: {
+                        clear: [gl.COLOR_BUFFER_BIT],
+                        enable: [gl.CULL_FACE],
+                        cullFace: [gl.BACK],
+                        disable: [gl.BLEND]
+                    }
+                },*/
+
+            ]
+        };
+
+
+
+        return BasicSlicerConfig;
+    }
+
+    _generateSlicerPickingBufferConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
+
+        let PickingConfig = {
+            uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND, gl.CULL_FACE],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    //                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND],
+                    }
+                },
+                /*{
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+//                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
+                    glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.CULL_FACE,gl.BLEND],
+                        //enable: [gl.BLEND],
+                        //blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                    }
+                }*/
+            ]
+        };
+
+        return PickingConfig;
+    }
+
+    _generateBasicVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let BasicVolumeConfig = {
+            uniforms: VM.uniformManagerVolume.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer, // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer, // The bounding box!
+                    glSettings: {
+                        cullFace: 'FRONT'
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolume'),
+                    frameBufferInfo: null, // Render to screen
+                    bufferInfo: buffer, // The bounding box!
+                    /*NEEDED UNIFORMS:
+                    u_WorldViewProjection,    <- Depends on camera for model
+                    u_BoundingBoxNormalized   <- In dataset header
+                    u_TexCoordToRayOrigin     <- In texture belonging to FB
+                    u_TexCoordToRayEndPoint   <- In texture belonging to FB
+                    u_ModelXYZToIsoValue      <- Get from texture (shared for all)
+                    u_IsoValueToColorOpacity  <- Texture for TF obj the model is pointing to
+                    u_AlphaCorrectionExponent <- Precalculated float
+                    u_SamplingRate            <- 1 voxel per step, i.e 1/max(w,h,d)
+                    */
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                },
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
+
+    _generateDebugConfigurationForSubview(subviewID) {
+        let VM = this.VM;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let DebugConfig = {
+            uniforms: VM.uniformManagerVolume.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'FRONT'
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolume'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        cullFace: 'BACK'
+                    }
+                },
+            ]
+        };
+
+        return DebugConfig;
+    }
+
+}
+
+module.exports = ConfigurationManager;
+
+},{}],54:[function(require,module,exports){
 let twgl = require('twgl.js');
 let Environment = require('../environment');
 
@@ -52060,20 +53145,23 @@ class FrameBufferAndTextureManager {
 
 module.exports = FrameBufferAndTextureManager;
 
-},{"../environment":38,"twgl.js":21}],50:[function(require,module,exports){
+},{"../environment":40,"twgl.js":21}],55:[function(require,module,exports){
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
 let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
 let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
 let AllModels = require('../linkable-models').Models;
 
+/**
+ * @module Core/ResourceManagers
+ **/
 
 /**
  * Keeps track of all models for all views, including one pointer per view,
  * pointing to a model, this allows for linking / unlinking views.
  * This is what binds the models to the subviews, while still allowing for
  * simple linking/unlinking operations.
- * @memberof module:Core/View
+ * @memberof module:Core/ResourceManagers
  */
 class ModelSyncManager {
 
@@ -52227,7 +53315,7 @@ class ModelSyncManager {
 
 module.exports = ModelSyncManager;
 
-},{"../../widgets/split-view/view-splitter-master-controller":67,"../linkable-models":40}],51:[function(require,module,exports){
+},{"../../widgets/split-view/view-splitter-master-controller":72,"../linkable-models":43}],56:[function(require,module,exports){
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
@@ -52296,11 +53384,11 @@ class ShaderManager {
         this.vertexShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n"]);
         this.fragmentShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nin vec3 v_gridPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nvoid main() {\n\n    vec3 backPosRGB = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2back = backPosRGB - v_gridPosition;\n\n    outColor = vec4(front2back, 1.0);\n}\n"]);
 
-        this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int QUAD = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_QuadOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// quad id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / quad,\n//NOTE: max 6 quads, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isQuad(int id) {\n    return 0 <= id && id <= 5;\n}\n\nbool isFace(int id) {\n    return 6 <= id && id <= 11;\n}\n\nmat4 displaceQuad(int id) {\n    int offsetIndex = u_QuadOffsetIndices[id];\n\n    if(offsetIndex == -1) {\n        // Inactive, discard!\n        v_discardMe = 1;\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0);\n    }\n\n    float offset = u_QuadOffsets[offsetIndex];\n\n    if(id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_position = vec3(a_position);\n\n    v_discardMe = 0; // default: do not discard the quad\n\n    // 2. Set position\n    if(isQuad(a_id)) { // Quad, then displace by offset.\n        mat4 displaceByOffset = displaceQuad(a_id);\n        gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n    } else if(isFace(a_id)) {\n        //v_discardMe = 1; // hide faces\n        gl_Position = u_WorldViewProjection * a_position;\n    }\n      else {\n        gl_Position = u_WorldViewProjection * a_position;\n    }\n}\n\n"]);
-        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_QuadOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    if(dist < 0.08)\n        outColor = vec4(0.5,1.0,1.0,1.0);\n    //outColor = v_color;\n}\n"]);
+        this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n/*\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int Slice = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n*/\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = Slice\n*/\nuniform float u_Size;\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\n//uniform int u_SliceOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// Slice id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / Slice,\n//NOTE: max 6 Slices, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= a_id && a_id <= 11;\n}\n\n// Slice base position is always at the most negative coord allowed on respective axis\n/*\nmat4 displaceSlice() {\n    //int offsetIndex = u_SliceOffsetIndices[id];\n\n    \n    // Assume start pos is [0,0,0]\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n*/\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_discardMe = 0; // default: do not discard the Slice\n\n    // 2. Set position\n    if(isSlice()) { // Slice, then displace by offset.\n        \n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n/*\n            mat4 displaceByOffset = displaceSlice();\n*/\n            vec3 translateByOffset = translateSlice();\n            \n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n            \n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n\n            //gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n            //v_position = vec3(displaceByOffset * a_position);\n        }\n        \n    } else if(isFace()) {\n        v_discardMe = 1; // hide faces\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    } \n}\n\n"]);
+        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\nconst vec3 u_SliceColors[6] = vec3[6](\n    vec3(1.0, 0.0, 0.0),\n    vec3(1.0, 1.0, 0.0),\n    vec3(0.5, 0.5, 1.0),\n    vec3(0.7, 0.4, 0.0),\n    vec3(0.9, 0.1, 4.0),\n    vec3(0.1, 0.5, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\nuniform float u_Size;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\nuniform vec3 u_IntersectionPointDebug;\nuniform ivec2 u_DraggedSliceIndices;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nbool isSlice() {\n    return 0 <= v_id && v_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= v_id && v_id <= 11;\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n    \n    if(isFace()) {\n        myColor = u_SliceColors[v_id - 6];\n    }\n    \n    bool isHighlighted = v_id == u_HighlightID;\n    \n    if(isSlice()) {\n        myColor = u_SliceColors[v_id];\n        bool isDrag1 = (u_DraggedSliceIndices.x == v_id);\n        bool isDrag2 = (u_DraggedSliceIndices.y == v_id);\n        isHighlighted = isHighlighted || isDrag1;\n        isHighlighted = isHighlighted || isDrag2;\n    }\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n        \n    outColor = vec4(myColor, myOpacity);\n    \n    if(dist < 0.04)\n        outColor = vec4(0.1,1.0,0.6,1.0);\n}\n"]);
 
-        this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\n\nin vec4 a_position;\nin int a_id;\n\nout vec3 v_position;\n\nflat out int v_id;\n\nvoid main() {\n    v_id = a_id;\n    v_position = vec3(a_position);\n\n    gl_Position = u_WorldViewProjection * a_position;\n}\n\n"]);
-        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\n\nflat in int v_id;\nin vec3 v_position;\n\nout vec4 outColor;\n\nvoid main() {\n\n    float r = float(v_id) / MAX_IDS;\n\n    vec3 vpos01 = ((v_position / vec3(1.41)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + 1.41*u_RayDir);\n    vec3 v21 = (1.41*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    // Encode ID into the red component\n    outColor = vec4(r,0.0,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
+        this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform float u_Size;\nuniform int u_ActiveDragRailID;\n\nin vec4 a_position;\nin int a_id;\nin int a_direction;\n\nout vec3 v_position01;\nout vec3 v_position;\n\nflat out int v_id;\nflat out int v_discardMe;\nflat out int v_direction;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n} \n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_id = a_id;\n    v_direction = a_direction;\n    v_position01 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, vec3(u_Size));\n    \n    if(u_ActiveDragRailID > 11 && u_ActiveDragRailID != a_id) {\n        v_discardMe = 1;   \n    }\n    \n    if(isSlice()) { // Slice, then displace by offset.\n        \n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n            vec3 translateByOffset = translateSlice();\n            \n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n            \n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n        }\n    } \n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    } \n}\n\n"]);
+        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\n//uniform vec3 u_PickingRayOrigin;\n//uniform vec3 u_RayDir;\n//uniform float u_Size;\n\nin vec3 v_position01;\nin vec3 v_position;\n\nflat in int v_id;\nflat in int v_discardMe;\nflat in int v_direction;\n\nout vec4 outColor;\n\nbool isRail() {\n    return v_id > 11;\n}\n\nfloat getRailOffset() {\n    return v_position01[v_direction];\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    float r = float(v_id + 1) / 255.0; // offset it by 1 to avoid having 0 be highlighted by default.\n    float g = 0.0;\n    \n    if(isRail()) {\n        g = getRailOffset();\n    }\n\n/* // Debug only, will show mouse loc @ output\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n*/\n\n    // Encode ID into the red component\n    outColor = vec4(r,g,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
 
         this.vertexShaders['Texture2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
         this.fragmentShaders['Texture2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_QuadTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_QuadTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
@@ -52364,7 +53452,7 @@ module.exports = ShaderManager;
  * @memberof module:Core/Renderer
  **/
 
-},{"glslify":14,"twgl.js":21}],52:[function(require,module,exports){
+},{"glslify":14,"twgl.js":21}],57:[function(require,module,exports){
 /**
  * Manages uniforms, maintains getter functions for all
  * uniforms, both private and shared (subview-wise)
@@ -52472,7 +53560,7 @@ class UniformManager {
 
 module.exports = UniformManager;
 
-},{}],53:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 let d3 = require('d3');
 
 /** @module Settings */
@@ -52616,6 +53704,14 @@ let SETTINGS = {
                     standardSizeMultiplier: 0.7
                 }
             }
+        },
+        Slicer: {
+            SelectSliceSnapThreshold: 0.25,
+            RailRadiusDisplayMode: 0.05,
+            RailRadiusPickingBufferMode: 0.11,
+            RailRadialSubdivisions: 7,
+            RailVerticalSubdivisions: 5,
+            RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
         }
     }
 }
@@ -52623,7 +53719,7 @@ let SETTINGS = {
 
 module.exports = SETTINGS;
 
-},{"d3":3}],54:[function(require,module,exports){
+},{"d3":3}],59:[function(require,module,exports){
 let ConfigurableRenderer = require('../rendering/configurable-renderer');
 
 /**
@@ -52659,22 +53755,22 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            volume: false,
-            slicer: true,
-            sphere: false
+            Volume: false,
+            Slicer: true,
+            Sphere: false
         }
 
         this.renderers = {
-            volume: new ConfigurableRenderer(this.gl),
-            slicer: new ConfigurableRenderer(this.gl),
+            Volume: new ConfigurableRenderer(this.gl),
+            Slicer: new ConfigurableRenderer(this.gl),
             SlicerPicking: new ConfigurableRenderer(this.gl),
-            sphere: null
+            Sphere: null
         };
 
         this.viewports = {
-            volume: null, // pointer to volume viewport obj
-            slicer: null, // pointer to slicer viewport obj
-            sphere: null // pointer to sphere viewport obj
+            Volume: null, // pointer to volume viewport obj
+            Slicer: null, // pointer to slicer viewport obj
+            Sphere: null // pointer to sphere viewport obj
         };
     }
 
@@ -52695,14 +53791,14 @@ class Subview {
     }
 
     render() {
-        if (this.needsUpdate.volume) {
-            this.renderers.volume.render();
+        if (this.needsUpdate.Volume) {
+            this.renderers.Volume.render();
             //this.needsUpdate.volume = false;
         }
 
-        if (this.needsUpdate.slicer) {
-            this.renderers.slicer.render();
-            //this.needsUpdate.slicer = false;
+        if (this.needsUpdate.Slicer) {
+            this.renderers.Slicer.render();
+            //this.needsUpdate.Slicer = false;
         }
         if (this.needsUpdate.SlicerPicking) {
             this.renderers.SlicerPicking.render();
@@ -52731,19 +53827,11 @@ class Subview {
      * Called whenever an event happens, will delegate the mouse event
      * to the respective model.
      *
-     * @param {string} subcellName - name of the subview, 'sphere', 'slicer' or 'volume'
+     * @param {string} subcellName - name of the subview, 'Sphere', 'Slicer' or 'Volume'
      * @param {module:Core/View.MouseEvent} event - the event
      */
     notifyEventDidHappen(subcellName, event) {
         //this.models[subcellName].notifyEventDidHappen(event);
-    }
-
-    setShaders(shaders) {
-        this.shaders = shaders;
-    }
-
-    setShader(key, shader) {
-        this.shaders[key] = shader;
     }
 
     setUniforms(uniforms) {
@@ -52759,7 +53847,7 @@ class Subview {
      * (the {@link module:Core/View.ViewManager} is
      * responsible for keeping the layout refreshed)
      *
-     * @param {Object.<module:Core/View.Viewport>} viewports JSON of the viewports. Keys correspond to viewport names ('sphere', 'slicer', 'volume').
+     * @param {Object.<module:Core/View.Viewport>} viewports JSON of the viewports. Keys correspond to viewport names ('Sphere', 'Slicer', 'Volume').
      */
     setViewports(viewports) {
         this.viewports = viewports;
@@ -52773,7 +53861,7 @@ class Subview {
 
 module.exports = Subview;
 
-},{"../rendering/configurable-renderer":47}],55:[function(require,module,exports){
+},{"../rendering/configurable-renderer":51}],60:[function(require,module,exports){
 let d3 = require('d3');
 
 let Subview = require('./subview');
@@ -52782,11 +53870,15 @@ let SubcellLayout = require('../../widgets/split-view/subcell-layout');
 
 let Models = require('../linkable-models').Models;
 
+let ConfigurationManager = require('../resource-managers/configuration-manager');
 let ShaderManager = require('../resource-managers/shader-manager');
 let FBAndTextureManager = require('../resource-managers/frame-buffer-and-texture-manager');
 let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
+
+let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
+
 
 
 let Settings = require('../settings').Views.ViewManager,
@@ -52799,9 +53891,9 @@ let glsl = require('glslify');
 
 
 let OverlayCellEventToModel = {
-    'sphere': 'SPHERE',
-    'volume': 'CAMERA',
-    'slicer': 'SLICER'
+    'Sphere': 'Sphere',
+    'Volume': 'CAMERA',
+    'Slicer': 'Slicer'
 };
 
 /** @module Core/View */
@@ -52836,7 +53928,7 @@ class ViewManager {
 
         twgl.resizeCanvasToDisplaySize(this.masterContext.canvas);
 
-
+        this.configurationManager = new ConfigurationManager(this);
         this.modelSyncManager = new ModelSyncManager(this);
         this.shaderManager = new ShaderManager(this.masterContext);
         this.FBAndTextureManager = new FBAndTextureManager(this.masterContext, environmentRef);
@@ -52914,17 +54006,62 @@ class ViewManager {
         // Works!
 
         this._genTextures();
-        //this._genBoundingBoxBuffer();
         this._genFrameBuffersAndTextureTargets();
-        this._bindUniformManager();
-        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
-        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+        this._genBuffers();
+        this._bindUniformManagers();
 
         this.addNewView(0);
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
         this.refresh();
+    }
+
+    _genTextures() {
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        if (!dataset)
+            return;
+
+        let h = dataset.header;
+
+        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+            cols: h.cols,
+            rows: h.rows,
+            slices: h.slices,
+            isovalues: dataset.isovalues
+        });
+
+        this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
+    }
+
+    _genFrameBuffersAndTextureTargets() {
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'FrontFace'
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'BackFace'
+        });
+
+        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'UnitQuadTexture'
+        });
+    }
+
+    _genBuffers() {
+        let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
+        this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
+
+        let slicerBufferAttribArrays = GetSlicerBufferAttribArrays();
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.SliceVertices, 'SlicerSliceBuffer');
+
+        this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailPickingBufferVertices, 'SlicerRailPBBuffer');
     }
 
     _initDebug() {
@@ -52954,6 +54091,7 @@ class ViewManager {
     }
 
     _renderPickingBuffer(name, id) {
+        this.uniformManagerSlicer.updateAll();
         this.subviews[id].renderSpecific(name);
     }
 
@@ -53035,39 +54173,22 @@ class ViewManager {
         });
         this.uniformManagerVolume.addUnique('u_ViewInverse', (subviewID) => {
             //return uniforms.u_viewInverse;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getLookAt();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getLookAt();
         });
         this.uniformManagerVolume.addUnique('u_World', (subviewID) => {
             //return uniforms.u_world;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldMatrix();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldMatrix();
         });
         this.uniformManagerVolume.addUnique('u_WorldInverseTranspose', (subviewID) => {
             //return uniforms.u_worldInverseTranspose;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldInverseTranspose();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldInverseTranspose();
         });
         this.uniformManagerVolume.addUnique('u_WorldViewProjection', (subviewID) => {
             //return uniforms.u_worldViewProjection;
-            return this.modelSyncManager.getActiveModel('CAMERA', subviewID).getWorldViewProjectionMatrix();
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getWorldViewProjectionMatrix();
         });
         this.uniformManagerVolume.addUnique('u_AspectRatio', (subviewID) => {
             return this.subviews[subviewID].getAspectRatio();
-        });
-    }
-
-
-    _genFrameBuffersAndTextureTargets() {
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'FrontFace'
-        });
-
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'BackFace'
-        });
-
-        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
-
-        this.FBAndTextureManager.create2DTextureFB({
-            name: 'UnitQuadTexture'
         });
     }
 
@@ -53075,30 +54196,12 @@ class ViewManager {
         this._init();
     }
 
-    _genTextures() {
-        let dataset = this.env.getActiveDataset('GLOBAL');
-        if (!dataset)
-            return;
-
-        let h = dataset.header;
-
-        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
-            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
-            cols: h.cols,
-            rows: h.rows,
-            slices: h.slices,
-            isovalues: dataset.isovalues
-        });
-
-        this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
-    }
-
     transferFunctionDidChange(tfKey) {
         this.FBAndTextureManager.createTransferFunction2DTexture(tfKey);
         this.uniformManagerVolume.updateAll();
     }
 
-    _bindUniformManager() {
+    _bindUniformManagers() {
         //this._bindUniformManagerVolume();
         this._bindUniformManagerSlicer();
 
@@ -53111,34 +54214,16 @@ class ViewManager {
     }
 
     _bindUniformManagerSlicer() {
-        this.uniformManagerSlicer.addShared('u_SamplingRate', () => {
-            let d = this.env.getActiveDataset('GLOBAL');
-            if (!d)
-                return 0.1; // For debugging only
-
-            let h = d.header;
-            let m = Math.max(h.cols, h.rows, h.slices);
-
-            return 1.0 / m;
-        });
-        this.uniformManagerSlicer.addShared('u_DirectionColors', () => {
-            return new Float32Array([
-                1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0
-            ]);
-        });
-
         // unique
         this.uniformManagerSlicer.addUnique('u_WorldViewProjection', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
             return slicerModel.uniforms.u_WorldViewProjection;
         });
-        this.uniformManagerSlicer.addUnique('u_QuadOffsets', (subviewID) => {
+        this.uniformManagerSlicer.addUnique('u_SliceOffsets', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
-            return slicerModel.uniforms.u_QuadOffsets;
+            return slicerModel.uniforms.u_SliceOffsets;
         });
         this.uniformManagerSlicer.addUnique('u_QuadOffsetIndices', (subviewID) => {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
@@ -53161,8 +54246,27 @@ class ViewManager {
 
             return slicerModel.uniforms.u_RayDir;
         });
-    }
+        this.uniformManagerSlicer.addUnique('u_Size', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
+            return slicerModel.uniforms.u_Size;
+        });
+        this.uniformManagerSlicer.addUnique('u_IntersectionPointDebug', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_IntersectionPointDebug;
+        });
+        this.uniformManagerSlicer.addUnique('u_DraggedSliceIndices', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_DraggedSliceIndices;
+        });
+        this.uniformManagerSlicer.addUnique('u_ActiveDragRailID', (subviewID) => {
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            return slicerModel.uniforms.u_ActiveDragRailID;
+        });
+    }
 
     _bindUniformManagerVolume() {
         // 1. Set up getters
@@ -53231,7 +54335,7 @@ class ViewManager {
     _generateBasicSlicerConfigForSubview(subviewID) {
         let gl = this.masterContext;
 
-        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
         let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
         uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
 
@@ -53240,13 +54344,19 @@ class ViewManager {
             steps: [
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: null,
+                    //frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
+                    //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
                     glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.DEPTH_BUFFER_BIT],
                         disable: [gl.CULL_FACE],
                         enable: [gl.BLEND],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                        clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT]
+                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
                     }
                 },
                 /*{ // Render the picking buffer into a subview..
@@ -53268,7 +54378,7 @@ class ViewManager {
 
                     }
                 },*/
-                {
+               /* {
                     programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
                     frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
@@ -53278,7 +54388,7 @@ class ViewManager {
                         cullFace: [gl.BACK],
                         disable: [gl.BLEND]
                     }
-                },
+                },*/
 
             ]
         };
@@ -53290,7 +54400,7 @@ class ViewManager {
 
     _generateSlicerPickingBufferConfigForSubview(subviewID) {
         let gl = this.masterContext;
-        let model = this.modelSyncManager.getActiveModel('SLICER', subviewID);
+        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
         let PickingConfig = {
             uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
@@ -53300,20 +54410,41 @@ class ViewManager {
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
                     bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
                     glSettings: {
-                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST],
                         cullFace: [gl.BACK],
                         depthFunc: [gl.LESS],
-                        disable: [gl.BLEND],
+                        disable: [gl.BLEND, gl.CULL_FACE],
                         clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
                     }
                 },
                 {
                     programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
+                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
                     glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        cullFace: [gl.BACK],
+                        depthFunc: [gl.LESS],
+                        disable: [gl.BLEND],
                     }
-                }
+                },
+                /*{
+                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
+                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+//                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
+                    glSettings: { // Same as before...
+                        enable: [gl.DEPTH_TEST],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.CULL_FACE,gl.BLEND],
+                        //enable: [gl.BLEND],
+                        //blendFunc: [gl.SRC_ALPHA, gl.ONE],
+                    }
+                }*/
             ]
         };
 
@@ -53373,31 +54504,30 @@ class ViewManager {
 
     }
 
-    addNewView(id) {
+    addNewView(id, initialConfigurations) {
         this.subviews[id] = new Subview(this.masterContext);
         this.modelSyncManager.addSubview(id, this);
         this.uniformManagerVolume.addSubview(id);
         this.uniformManagerSlicer.addSubview(id);
         //        let config = this._generateBasicVolumeConfigForSubview(id);
 
-        if (!this.bufferManager.hasBuffer('SlicerBuffer')) {
-            let slicerBufferAttribArrays = this.modelSyncManager.getActiveModel('SLICER', id).attribArrays;
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.Vertices, 'SlicerBuffer');
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.CubeFaceVertices, 'SlicerCubeFaceBuffer');
-            this.bufferManager.createBufferInfoFromArrays(slicerBufferAttribArrays.RailVertices, 'SlicerRailBuffer');
-        }
+        this.configurationManager.configureSubview(id, initialConfigurations || {
+            Volume: 'Basic',
+            Slicer: 'Basic',
+            SlicerPicking: 'Basic'
+        });
 
-        let volumeConfig = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('volume', volumeConfig);
+        /*     let volumeConfig = this._generateDebugConfigurationForSubview(id);
+        this.subviews[id].configureRenderer('Volume', volumeConfig);
 
         let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
 
         let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
             slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
 
-        this.subviews[id].configureRenderer('slicer', slicerConfig);
+        this.subviews[id].configureRenderer('Slicer', slicerConfig);
         this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);
-
+*/
         this.syncWithLayout();
     }
 
@@ -53465,7 +54595,7 @@ class ViewManager {
     }
 
     _debugRotateCube(subviewID) {
-        let cam = this.modelSyncManager.getActiveModel('CAMERA', subviewID);
+        let cam = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
 
         if (subviewID % 6 === 0)
             cam.getModelTransformation().rotateZ(-0.007);
@@ -53531,7 +54661,7 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../geometry/box":59,"../../widgets/split-view/miniature-split-view-overlay":62,"../../widgets/split-view/subcell-layout":65,"../linkable-models":40,"../resource-managers/buffer-manager":48,"../resource-managers/frame-buffer-and-texture-manager":49,"../resource-managers/model-sync-manager":50,"../resource-managers/shader-manager":51,"../resource-managers/uniform-manager":52,"../settings":53,"./subview":54,"d3":3,"glslify":14,"twgl.js":21}],56:[function(require,module,exports){
+},{"../../geometry/box":64,"../../widgets/split-view/miniature-split-view-overlay":67,"../../widgets/split-view/subcell-layout":70,"../linkable-models":43,"../models/slicer-model-buffers":46,"../resource-managers/buffer-manager":52,"../resource-managers/configuration-manager":53,"../resource-managers/frame-buffer-and-texture-manager":54,"../resource-managers/model-sync-manager":55,"../resource-managers/shader-manager":56,"../resource-managers/uniform-manager":57,"../settings":58,"./subview":59,"d3":3,"glslify":14,"twgl.js":21}],61:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -53656,7 +54786,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":57,"./volume-dataset":58}],57:[function(require,module,exports){
+},{"./selection":62,"./volume-dataset":63}],62:[function(require,module,exports){
 
 
 /**
@@ -53717,7 +54847,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],58:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -53804,7 +54934,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],59:[function(require,module,exports){
+},{"d3":3}],64:[function(require,module,exports){
   /**
    * Array of the indices of corners of each face of a cube.
    * @type {Array.<number[]>}
@@ -53941,7 +55071,7 @@ function createCuboidVertices(width, height, depth) {
 
 module.exports = createCuboidVertices;
 
-},{}],60:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 
 
 
@@ -53960,7 +55090,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":23,"./client2server/websocket-client":37,"./core/environment":38}],61:[function(require,module,exports){
+},{"./angular-assets/main-controller":23,"./client2server/websocket-client":39,"./core/environment":40}],66:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -54097,7 +55227,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":66,"underscore":22}],62:[function(require,module,exports){
+},{"./unique-index-bag":71,"underscore":22}],67:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -54308,7 +55438,26 @@ class MiniatureSplitViewOverlay {
                         pos: xy,
                         button: d3.event.button
                     });
+                })
+                .on('mouseenter', function (subcell) {
+                    let pos = d3.mouse(this);
+                    let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
+                    self._handleEvent(cellID, subcell.name, {
+                        type: 'mouseenter',
+                        pos: xy,
+                        button: d3.event.button
+                    });
+                })
+                .on('mouseout', function (subcell) {
+                    let pos = d3.mouse(this);
+                    let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
+                    self._handleEvent(cellID, subcell.name, {
+                        type: 'mouseout',
+                        pos: xy,
+                        button: d3.event.button
+                    });
                 });
+
 
         });
 
@@ -54317,14 +55466,14 @@ class MiniatureSplitViewOverlay {
     }
 
     _handleEvent(cellID, subcellName, event) {
-        //console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
+        console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
         this.listener(cellID, subcellName, event);
     }
 }
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],63:[function(require,module,exports){
+},{"d3":3}],68:[function(require,module,exports){
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
 const $ = require('jquery');
@@ -54874,7 +56023,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":61,"./splitbox":64,"d3":3,"jquery":18,"underscore":22}],64:[function(require,module,exports){
+},{"./link-group":66,"./splitbox":69,"d3":3,"jquery":18,"underscore":22}],69:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -55245,7 +56394,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":66,"underscore":22}],65:[function(require,module,exports){
+},{"./unique-index-bag":71,"underscore":22}],70:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -55364,7 +56513,7 @@ class SubcellLayout {
     /**
      * All the necessary info to draw a subcell.
      * @typedef {Object} SubcellInfo
-     * @property {string} name - name of the subcell, i.e 'sphere', 'slicer' etc
+     * @property {string} name - name of the subcell, i.e 'Sphere', 'Slicer' etc
      * @property {number} x0 - leftmost coord
      * @property {number} y0 - top coord (0 is upper)
      * @property {number} width - width of the cell
@@ -55389,7 +56538,7 @@ class SubcellLayout {
 
         let subcells = [
             new Subcell({ // The entire volume view
-                name: 'volume',
+                name: 'Volume',
                 x0: 0,
                 y0: 0,
                 width: cellWidth,
@@ -55405,7 +56554,7 @@ class SubcellLayout {
             let offsetX = cellWidth - subcellHeight;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: offsetX,
                 y0: 0,
                 width: subcellHeight,
@@ -55414,7 +56563,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: offsetX,
                 y0: subcellHeight,
                 width: subcellHeight,
@@ -55429,7 +56578,7 @@ class SubcellLayout {
             let offsetY = cellHeight - subcellWidth;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: 0,
                 y0: offsetY,
                 width: subcellWidth,
@@ -55438,7 +56587,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: subcellWidth,
                 y0: offsetY,
                 width: subcellWidth,
@@ -55455,7 +56604,7 @@ class SubcellLayout {
             let offsetY = cellHeight - 2 * subcellWH;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: offsetX,
                 y0: offsetY,
                 width: subcellWH,
@@ -55464,7 +56613,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: offsetX,
                 y0: offsetY + subcellWH,
                 width: subcellWH,
@@ -55483,7 +56632,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],66:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -55525,7 +56674,7 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":22}],67:[function(require,module,exports){
+},{"underscore":22}],72:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let LinkableModels = require('../../core/linkable-models').Models;
@@ -55749,7 +56898,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/linkable-models":40,"../../core/settings":53,"./miniature-split-view":63,"underscore":22}],68:[function(require,module,exports){
+},{"../../core/linkable-models":43,"../../core/settings":58,"./miniature-split-view":68,"underscore":22}],73:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -55886,7 +57035,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":20}],69:[function(require,module,exports){
+},{"tinycolor2":20}],74:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -57397,7 +58546,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":38,"../../core/settings":53,"./color-gradient":68,"d3":3,"jquery":18}],70:[function(require,module,exports){
+},{"../../core/environment":40,"../../core/settings":58,"./color-gradient":73,"d3":3,"jquery":18}],75:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -57574,7 +58723,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":71}],71:[function(require,module,exports){
+},{"./transfer-function":76}],76:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -57605,4 +58754,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":68,"d3":3}]},{},[60]);
+},{"./color-gradient":73,"d3":3}]},{},[65]);

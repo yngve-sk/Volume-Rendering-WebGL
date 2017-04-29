@@ -141,6 +141,14 @@ let SETTINGS = {
                     standardSizeMultiplier: 0.7
                 }
             }
+        },
+        Slicer: {
+            SelectSliceSnapThreshold: 0.25,
+            RailRadiusDisplayMode: 0.05,
+            RailRadiusPickingBufferMode: 0.11,
+            RailRadialSubdivisions: 7,
+            RailVerticalSubdivisions: 5,
+            RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
         }
     }
 }

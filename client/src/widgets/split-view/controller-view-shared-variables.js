@@ -1,16 +1,16 @@
 module.exports = {
     'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
     'CAMERA': 'CAMERA',
-    'SLICER': 'SLICER',
-    'SPHERE': 'SPHERE'
+    'Slicer': 'Slicer',
+    'Sphere': 'Sphere'
 };
 
 
 //let linkers = {
 //    'TRANSFER_FUNCTION': 'TRANSFER_FUNCTION',
 //    'CAMERA': 'CAMERA',
-//    'SLICER': 'SLICER',
-//    'SPHERE': 'SPHERE'
+//    'Slicer': 'Slicer',
+//    'Sphere': 'Sphere'
 //};
 //
 //

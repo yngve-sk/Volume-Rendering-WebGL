@@ -68,7 +68,8 @@ module.exports = function (grunt) {
                         'semantic/dist/semantic.min.js',
                         'node_modules/jquery-resizable-dom/dist/jquery-resizable.js',
                         'node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js',
-                        'node_modules/angularjs-slider/dist/rzslider.js'
+                        'node_modules/angularjs-slider/dist/rzslider.js',
+                        'templibs/jquery.toolbar.min.js'
                     ]
                 }
             },
@@ -95,7 +96,8 @@ module.exports = function (grunt) {
                         'css/all.css',
                         'semantic/dist/semantic.min.css',
                         'node_modules/spectrum-colorpicker/spectrum.css',
-                        'node_modules/angularjs-slider/dist/rzslider.2.8.0.css'
+                        'node_modules/angularjs-slider/dist/rzslider.2.8.0.css',
+                        'templibs/jquery.toolbar.min.css'
                         ]
                 }
             }

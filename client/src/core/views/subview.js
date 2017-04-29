@@ -33,22 +33,22 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            volume: false,
-            slicer: true,
-            sphere: false
+            Volume: false,
+            Slicer: true,
+            Sphere: false
         }
 
         this.renderers = {
-            volume: new ConfigurableRenderer(this.gl),
-            slicer: new ConfigurableRenderer(this.gl),
+            Volume: new ConfigurableRenderer(this.gl),
+            Slicer: new ConfigurableRenderer(this.gl),
             SlicerPicking: new ConfigurableRenderer(this.gl),
-            sphere: null
+            Sphere: null
         };
 
         this.viewports = {
-            volume: null, // pointer to volume viewport obj
-            slicer: null, // pointer to slicer viewport obj
-            sphere: null // pointer to sphere viewport obj
+            Volume: null, // pointer to volume viewport obj
+            Slicer: null, // pointer to slicer viewport obj
+            Sphere: null // pointer to sphere viewport obj
         };
     }
 
@@ -69,14 +69,14 @@ class Subview {
     }
 
     render() {
-        if (this.needsUpdate.volume) {
-            this.renderers.volume.render();
+        if (this.needsUpdate.Volume) {
+            this.renderers.Volume.render();
             //this.needsUpdate.volume = false;
         }
 
-        if (this.needsUpdate.slicer) {
-            this.renderers.slicer.render();
-            //this.needsUpdate.slicer = false;
+        if (this.needsUpdate.Slicer) {
+            this.renderers.Slicer.render();
+            //this.needsUpdate.Slicer = false;
         }
         if (this.needsUpdate.SlicerPicking) {
             this.renderers.SlicerPicking.render();
@@ -105,19 +105,11 @@ class Subview {
      * Called whenever an event happens, will delegate the mouse event
      * to the respective model.
      *
-     * @param {string} subcellName - name of the subview, 'sphere', 'slicer' or 'volume'
+     * @param {string} subcellName - name of the subview, 'Sphere', 'Slicer' or 'Volume'
      * @param {module:Core/View.MouseEvent} event - the event
      */
     notifyEventDidHappen(subcellName, event) {
         //this.models[subcellName].notifyEventDidHappen(event);
-    }
-
-    setShaders(shaders) {
-        this.shaders = shaders;
-    }
-
-    setShader(key, shader) {
-        this.shaders[key] = shader;
     }
 
     setUniforms(uniforms) {
@@ -133,7 +125,7 @@ class Subview {
      * (the {@link module:Core/View.ViewManager} is
      * responsible for keeping the layout refreshed)
      *
-     * @param {Object.<module:Core/View.Viewport>} viewports JSON of the viewports. Keys correspond to viewport names ('sphere', 'slicer', 'volume').
+     * @param {Object.<module:Core/View.Viewport>} viewports JSON of the viewports. Keys correspond to viewport names ('Sphere', 'Slicer', 'Volume').
      */
     setViewports(viewports) {
         this.viewports = viewports;

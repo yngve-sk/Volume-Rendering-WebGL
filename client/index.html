@@ -3,18 +3,26 @@
 <head>
     <title>WebGL2 Volume Renderer</title>
 
-<!--
     <link type="text/css" rel="stylesheet" href="css/all.css">
     <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
+<!--
     <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.css" />
+-->
+
+    <script src="build/externals.min.js"></script>
+<!--
+    <script src="templibs/jquery.toolbar.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="./templibs/jquery.toolbar.min.css" />
 -->
 
     <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
 
 
 
+    <!--
         <link type="text/css" rel="stylesheet" href="build/style.css">
+-->
 </head>
 
 <body>
@@ -29,7 +37,54 @@
 
         <div class="panel-container">
 
+
             <div class="panel-left">
+                <vr-toolbar></vr-toolbar>
+
+<!--
+                <div id="slicer-toolbar-options" class="hidden">
+                    <a data-tooltip="This one has new tooltip"
+                         data-position="bottom left"
+
+                       href="#" action="add"><i class="add square outline icon inverted"></i></a>
+                    <a href="#"><i class="minus square outline icon inverted"></i></a>
+                    <a href="#"><i class="move icon inverted"></i></a>
+                </div>
+
+                <div id="toolbar-container">
+                    <div
+                         data-tooltip="This one has new tooltip"
+                         data-position="bottom left"
+                         id="3d-toolbar"
+                         class="ui icon button vr-toolbar">
+                        <i class="settings huge icon"></i>
+                    </div>
+                    <div data-tooltip="This one has new tooltip"
+                         data-position="bottom left"
+                         id="slicer-toolbar" class="ui icon button vr-toolbar">
+                        <i class="setting huge icon inverted"></i>
+                    </div>
+                    <div data-tooltip="This one has new tooltip"
+                         data-position="bottom left"
+                         id="sphere-toolbar" class="ui icon button vr-toolbar">
+                        <i class="setting huge icon inverted"></i>
+                    </div>
+                </div>
+-->
+
+                <script>
+                    $('#slicer-toolbar').toolbar({
+                        content: '#slicer-toolbar-options',
+                        position: 'bottom',
+                        hideOnClick: true,
+                        event: 'click',
+                        animation: 'standard'
+                    });
+                    $('#slicer-toolbar').on('toolbarItemClick', (item, source, item3) => {
+                        console.log(source.getAttribute('action'));
+                    })
+
+                </script>
                 <div id="webgl-canvas-container">
                     <canvas id="webgl-master-canvas" class="webgl-canvas">
                     </canvas>
@@ -96,7 +151,7 @@
 
 
 
-<!--
+    <!--
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
     <script src="semantic/dist/semantic.min.js"></script>
     <script src="./node_modules/jquery/dist/jquery.min.js"></script>
@@ -108,12 +163,13 @@
 
 
 
-    <script src="build/externals.min.js"></script>
-<!--    <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>-->
+    <!--    <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>-->
+
 
 
     <script src="build/main-compiled.js"></script>
- <svg style="width:0;height:0"><defs><filter id="linkgroup-master-cell-filter22">
+
+    <svg style="width:0;height:0"><defs><filter id="linkgroup-master-cell-filter22">
 
 			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
 			<feOffset dy="3" dx="3"></feOffset>

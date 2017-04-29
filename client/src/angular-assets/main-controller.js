@@ -35,6 +35,7 @@ app.directive('cameraSettingsView', require('./ng-directives/camera-settings-vie
 
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
+app.directive('vrToolbar', require('./ng-directives/toolbar-view'));
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
 
 //require('./angular-semantic-ui.min');

@@ -7,6 +7,7 @@
 @import url("override-default-misc.css");
 @import url("dataset-manager-view.css");
 @import url("camera-settings-view.css");
+@import url("toolbar-view.css");
 
 /* Shared for all widgets, h1 h2 etc */
 
@@ -32,9 +33,6 @@
     box-sizing: content-box;
 }
 
-
-/* */
-
 #master-container {
     width: 100vw;
     height: 100vh;
@@ -48,11 +46,11 @@
 #webgl-canvas-container {
     position: relative;
     width: 100%;
-    height: 100vh;
+    height: 96.5vh;
     display: inline-block;
 }
 
-#webgl-canvas-container>* {
+#webgl-canvas-container>canvas {
     position: absolute;
     width: 100%;
     height: 100%;

@@ -1,0 +1,72 @@
+<div id="toolbar-container">
+    <div id="slicer-toolbar-options"
+         class="hidden">
+        <a
+           data-tooltip="Add Slices (Max 2 per axis)"
+           data-position="bottom left"
+           action="add">
+            <i class="add square outline icon inverted"></i>
+        </a>
+
+        <a
+           data-tooltip="Remove Slices"
+           data-position="bottom left"
+           action="remove">
+            <i class="minus square outline icon inverted"></i>
+        </a>
+
+        <a
+            data-tooltip="Rotate Slicer"
+            data-position="bottom left"
+            action="rotate"
+           >
+            <i class="refresh icon inverted"></i>
+        </a>
+
+
+    </div>
+
+    <div id="3d-toolbar-options"
+         class="hidden">
+        <a
+           data-tooltip="Measure (Automatically sets camera to ortho)"
+           data-position="bottom left"
+           action="measure">
+            <i class="resize horizontal icon inverted"></i>
+        </a>
+
+        <a
+            data-tooltip="Select Point"
+            data-position="bottom left"
+            action="select-point"
+           >
+            <i class="hand paper icon inverted"></i>
+        </a>
+
+        <a
+           data-tooltip="Select Ray"
+           data-position="bottom left"
+           action="select-ray">
+            <i class="crosshairs icon inverted"></i>
+        </a>
+    </div>
+
+    <div data-tooltip="3D View Interaction Mode"
+         data-position="bottom left"
+         id="3d-toolbar"
+         class="ui icon button vr-toolbar">
+        <i class="cubes huge icon"></i>
+    </div>
+    <div data-tooltip="Slicer Interaction Mode"
+         data-position="bottom left"
+         id="slicer-toolbar"
+         class="ui icon button vr-toolbar">
+        <i class="cube huge icon inverted"></i>
+    </div>
+    <div data-tooltip="Sphere Interaction Mode (TODO)"
+         data-position="bottom left"
+         id="sphere-toolbar"
+         class="ui icon button vr-toolbar">
+        <i class="circle huge icon inverted"></i>
+    </div>
+</div>

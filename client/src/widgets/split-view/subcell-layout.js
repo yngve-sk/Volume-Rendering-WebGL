@@ -116,7 +116,7 @@ class SubcellLayout {
     /**
      * All the necessary info to draw a subcell.
      * @typedef {Object} SubcellInfo
-     * @property {string} name - name of the subcell, i.e 'sphere', 'slicer' etc
+     * @property {string} name - name of the subcell, i.e 'Sphere', 'Slicer' etc
      * @property {number} x0 - leftmost coord
      * @property {number} y0 - top coord (0 is upper)
      * @property {number} width - width of the cell
@@ -141,7 +141,7 @@ class SubcellLayout {
 
         let subcells = [
             new Subcell({ // The entire volume view
-                name: 'volume',
+                name: 'Volume',
                 x0: 0,
                 y0: 0,
                 width: cellWidth,
@@ -157,7 +157,7 @@ class SubcellLayout {
             let offsetX = cellWidth - subcellHeight;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: offsetX,
                 y0: 0,
                 width: subcellHeight,
@@ -166,7 +166,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: offsetX,
                 y0: subcellHeight,
                 width: subcellHeight,
@@ -181,7 +181,7 @@ class SubcellLayout {
             let offsetY = cellHeight - subcellWidth;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: 0,
                 y0: offsetY,
                 width: subcellWidth,
@@ -190,7 +190,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: subcellWidth,
                 y0: offsetY,
                 width: subcellWidth,
@@ -207,7 +207,7 @@ class SubcellLayout {
             let offsetY = cellHeight - 2 * subcellWH;
 
             subcells.push(new Subcell({
-                name: 'sphere',
+                name: 'Sphere',
                 x0: offsetX,
                 y0: offsetY,
                 width: subcellWH,
@@ -216,7 +216,7 @@ class SubcellLayout {
             }));
 
             subcells.push(new Subcell({
-                name: 'slicer',
+                name: 'Slicer',
                 x0: offsetX,
                 y0: offsetY + subcellWH,
                 width: subcellWH,

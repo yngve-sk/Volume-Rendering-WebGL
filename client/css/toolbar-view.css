@@ -1,0 +1,25 @@
+#toolbar-container {
+    position: absolute;
+    left: 40%;
+    z-index: 5;
+}
+
+.vr-toolbar {
+    display: inline-block;
+}
+
+.vr-toolbar>i {
+    color: black !important;
+}
+
+.vr-toolbar-selected {
+    border-radius: 8px;
+    box-shadow: 0px 0px 9px 3px white;
+    background: #02baf2 !important;
+}
+
+#slicer-toolbar {}
+
+#3d-toolbar {}
+
+#sphere-toolbar {}

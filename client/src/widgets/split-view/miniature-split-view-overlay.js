@@ -208,7 +208,26 @@ class MiniatureSplitViewOverlay {
                         pos: xy,
                         button: d3.event.button
                     });
+                })
+                .on('mouseenter', function (subcell) {
+                    let pos = d3.mouse(this);
+                    let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
+                    self._handleEvent(cellID, subcell.name, {
+                        type: 'mouseenter',
+                        pos: xy,
+                        button: d3.event.button
+                    });
+                })
+                .on('mouseout', function (subcell) {
+                    let pos = d3.mouse(this);
+                    let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
+                    self._handleEvent(cellID, subcell.name, {
+                        type: 'mouseout',
+                        pos: xy,
+                        button: d3.event.button
+                    });
                 });
+
 
         });
 
@@ -217,7 +236,7 @@ class MiniatureSplitViewOverlay {
     }
 
     _handleEvent(cellID, subcellName, event) {
-        //console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
+        console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
         this.listener(cellID, subcellName, event);
     }
 }

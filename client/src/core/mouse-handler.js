@@ -1,7 +1,7 @@
 class MouseHandler {
     constructor(config) {
         this.isDrag = false;
-        this.clickTimeout = config.clickTimeout || 300; // default
+        this.clickTimeout = config.clickTimeout ||  300; // default
 
         this.timers = {
             click: -1000000
@@ -24,6 +24,10 @@ class MouseHandler {
         };
     }
 
+    reset() {
+        this.isDrag = false;
+    }
+
     handle(event) {
         // Update the state
 
@@ -37,8 +41,10 @@ class MouseHandler {
         this.state.dy = this.state.y - this.state.y0;
 
         if (event.type === 'mousedown') {
+            console.log("MOUSE DOWN!!!");
             this.timers.click = Date.now();
             this.isDrag = true;
+            this._notifyIfExists('mousedown', event.button);
 
         } else if (event.type === 'mouseup') {
             this.isDrag = false;
@@ -50,13 +56,15 @@ class MouseHandler {
             }
 
         } else if (event.type === 'mousemove') {
+            console.log("MOUSE MOVE!!!!!");
+
             // Either drag or hover
             if (this.isDrag)
                 this._notifyIfExists('drag', event.button);
             else
                 this._notifyIfExists('mousemove', event.button);
-
-
+        } else if (event.type === 'mouseout') {
+            this.isDrag = false;
         }
     }
 
@@ -102,7 +110,10 @@ class MouseHandler {
         if (!this.callbacks[event])
             this.callbacks[event] = {};
 
-        this.callbacks[event][buttonCode] = callback;
+        if (!button)
+            this.callbacks[event]['any'] = callback;
+        else
+            this.callbacks[event][buttonCode] = callback;
     }
 }
 

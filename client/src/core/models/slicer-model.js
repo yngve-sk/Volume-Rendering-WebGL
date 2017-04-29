@@ -7,33 +7,18 @@ let CameraV2 = require('./camera-orbiter-v2');
 let MouseHandler = require('../mouse-handler');
 
 let OrbiterCamera = require('./camera-orbiter');
+let getSlicerBuffers = require('./slicer-model-buffers');
 
-// Create XY Quad
-primitives.createXYQuadVertices = function (size, xOffset, yOffset) {
+let BufferInfo = getSlicerBuffers(Math.sqrt(2)); // Generate it now so it is cached and can be retrieved
 
-}
+let IDInfo = BufferInfo.IDInfo;
 
-primitives.createCenteredXYQuadVertices = function (size) {
-    return primitives.createXYQuadVertices(size, 0, 0); // [-size/2, size/2]
-}
+let GetInteractionMode = require('../interaction-modes-v2').getInteractionModeGetterForCategory('Slicer');
+let Settings = require('../settings').Views.Slicer;
 
-primitives.createCenteredYZQuadVertices = function (size) {
-    let XYQuadVertices = primitives.createXYQuadVerticesVertices(size, 0, 0);
+/** @module Core/Models */
 
-    // XY -> YZ Rotate 90 degrees around Y-axis
-    let YZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationX(Math.PI / 2));
-
-    return YZQuadVertices;
-}
-
-primitives.createCenteredXZQuadVertices = function (size) {
-    let XYQuadVertices = primitives.createXYQuadVertices(size, 0, 0);
-
-    // XY -> XZ Rotate 90 degrees around Z-axis
-    let XZQuadVertices = primitives.reorientVertices(XYQuadVertices, m4.rotationZ(Math.PI / 2));
-
-    return XZQuadVertices;
-}
+let SIZE = Math.sqrt(2);
 
 /**
  * Represents an underlying discrete model of a slicer. It only represents the
@@ -82,13 +67,14 @@ class SlicerModel {
         });
 
 
-        this.slicerBox = new LabeledSlicerBox(Math.sqrt(2));
+        this.slicerBox = new LabeledSlicerBox(SIZE);
 
         this.uniforms = {
             u_HighlightID: -1,
-            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_SliceOffsets: [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+            //u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
             u_WorldViewProjection: -1,
+            u_IntersectionPointDebug: [0, 0, 0]
         };
 
         this.attribArrays = {
@@ -113,11 +99,14 @@ class SlicerModel {
     }
 
     _genAttribArrays() {
-        this.attribArrays = this.slicerBox.getBufferArrays();
+        this.attribArrays = getSlicerBuffers(Math.sqrt(2));
+        //this.attribArrays = this.slicerBox.getBufferArrays();
     }
 
     mouse(event) {
         this.mouseHandler.handle(event);
+        console.log("HANDLE...");
+        console.log(event);
         if (1)
             return;
         // left click -> rotate / orbit camera
@@ -150,33 +139,108 @@ class SlicerModel {
 
     _bindMouseHandler() {
         let gl = this.gl;
-        this.mouseHandler.on('click', 'left', (state) => {
 
-            let decodeRGBToID = (r, g, b) => {
-
-            }
-
-            let encodeIDToRGB = (id) => {
-                // assume ID is 32bit
-                // r g b
-                // 8 8 8
-            }
-
-            this.pickingBuffer.refresh(); // Render it onto FB before reading
-            console.log("MouseCLICK left");
+        let debugDisplayPickingBuffer = () => {
             let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(1.0 * 4);
+            let dest = new Uint8Array(4 * pb.width * pb.height);
+
             let pixels = pb.readPixels(
-                state.x * pb.width,
-                (1.0 - state.y) * pb.height,
-                1.0, 1.0,
+                0, 0,
+                pb.width, pb.height,
                 gl.RGBA, gl.UNSIGNED_BYTE,
                 dest, 0
             );
 
-            let id = parseInt(dest[0]);
+            let debugcanvas = document.getElementById('debugcanvas');
+            let gl2 = debugcanvas.getContext('2d');
+            debugcanvas.width = pb.width;
+            debugcanvas.height = pb.height;
+            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
+            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
+            gl2.putImageData(imagedata, 0, 0);
+        }
+
+        let readPBPixels = (mx, my) => {
+            this.pickingBuffer.refresh(); // Render it onto FB before reading
+            let pb = this.pickingBuffer.get();
+            let dest = new Uint8Array(4 * 1);
+            let pixels = pb.readPixels(
+                mx * pb.width,
+                (1.0 - my) * pb.height,
+                1.0, 1.0,
+                gl.RGBA, gl.UNSIGNED_BYTE,
+                dest, 0
+            );
+            let id = (dest[0]) - 1;
+            let railOffset = dest[1] / 255.0;
+
+            return {
+                id: id,
+                railOffset: railOffset
+            };
+        }
+
+
+        let dragInfo = {
+            railInfo: null
+        }
+
+        let getIntersectionOffset = (x, y) => {
+            let ray = this.camera.getRayFromMouseClick({
+                x: x,
+                y: y
+            });
+
+            let p0 = dragInfo.railInfo.p0,
+                p1 = dragInfo.railInfo.p1,
+                direction = dragInfo.railInfo.direction;
+
+            let p = null;
+
+            switch (direction) {
+                case 'X':
+                    p = p0[0] < p1[0] ? p0 : p1;
+                    break;
+                case 'Y':
+                    p = p0[1] < p1[1] ? p0 : p1;
+                    break;
+                case 'Z':
+                    p = p0[2] < p1[2] ? p0 : p1;
+                    break;
+            }
+
+            let intersectInfo = ray.intersectsLinePlanes(p, direction, SIZE);
+            let intersectionOffset = intersectInfo.intersectOffset;
+
+            this.uniforms.u_IntersectionPointDebug = new Float32Array([
+                intersectInfo.point[0],
+                intersectInfo.point[0],
+                intersectInfo.point[0]
+            ]);
+
+
+            return intersectionOffset;
+        }
+
+        this.mouseHandler.on('mouseenter', null, (state) => {
+
+        });
+
+        this.mouseHandler.on('mouseout', null, (state) => {
+            this.dragInfo.railinfo = null;
+            this.slicerBox.highlightID(-1);
+        })
+
+        this.mouseHandler.on('click', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            let id = pb.id;
 
             console.log("Highlighting ID: " + id);
+
+            if (IDInfo.isFace(id)) { // Click on face, will add slice
+                // Add the slice
+                this.slicerBox.addSliceFromCubeFace(id);
+            }
 
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
@@ -196,57 +260,79 @@ class SlicerModel {
 
 
         });
+
+
+
         this.mouseHandler.on('mousedown', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            let pb = readPBPixels(state.x, state.y);
+            let id = pb.id;
+
+            if (IDInfo.isRail(id)) { // Will initiate drag of slice
+                // 1. Find out direction of rail
+                let railInfo = IDInfo.getRailInfo(id);
+                dragInfo.railInfo = railInfo;
+
+                let offset = pb.railOffset;
+                console.log("Offset = " + offset);
+                // Drag is magically initiated!
+                this.slicerBox.initiateDragIfHit(railInfo.direction, offset, id);
+                this._refreshUniforms();
+                this.pickingBuffer.refresh();
+                debugDisplayPickingBuffer();
+
+                // 2. Find active offsets of rail
+
+                // 3. If between, move both along rail
+
+                // If close enough to one, move only that
+                // If outside either range, do nothing
+
+                return;
+            }
+
+            switch (interactionMode) {
+                case 'rotate':
+                    break;
+                case 'add':
+                    if (IDInfo.isFace(id))
+                        this.slicerBox.addSliceFromCubeFace(id);
+                    break;
+                case 'remove':
+                    break;
+            }
+
+
             console.log("MouseDOWN left");
 
         });
         this.mouseHandler.on('mouseup', 'left', (state) => {
-            console.log("MouseUP left");
+            if (dragInfo.railInfo) {
+                dragInfo.railInfo = null;
+                this.slicerBox.endDrag();
+                return;
+            }
         });
         this.mouseHandler.on('mousemove', 'left', (state) => {
-            console.log("Mousemove left");
+            debugDisplayPickingBuffer();
+            let pb = readPBPixels(state.x, state.y);
+            let id = pb.id;
 
-            this.pickingBuffer.refresh(); // Render it onto FB before reading
-            console.log("MouseCLICK left");
-            let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4 * pb.width * pb.height);
+            if (IDInfo.isRail(id)) {
+                let railInfo = IDInfo.getRailInfo(id);
+                this.slicerBox.highlightPotentialDragIfHit(railInfo.direction, pb.railOffset);
+            } else {
+                this.slicerBox.endDrag();
+            }
 
-            let pixels = pb.readPixels(
-                0, 0,
-                pb.width, pb.height,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest, 0
-            );
-
-            let dest2 = new Uint8Array(4 * 1);
-            let pixels2 = pb.readPixels(
-                state.x * pb.width, (1.0 - state.y) * pb.height,
-                1.0, 1.0,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest2, 0
-            );
-
-            let debugcanvas = document.getElementById('debugcanvas');
-            let gl2 = debugcanvas.getContext('2d');
-            debugcanvas.width = pb.width;
-            debugcanvas.height = pb.height;
-            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
-            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
-            gl2.putImageData(imagedata, 0, 0);
-
-            let id = dest2[0];
 
             this.slicerBox.highlightID(id);
-            this._refreshUniforms();
 
-            let pbfb = this.pickingBuffer.get();
-
+            // Can be useful for dragging stuff
             let ray = this.camera.getRayFromMouseClick({
                 x: state.x,
                 y: state.y
             });
-            console.log("Shot ray: ");
-            console.log(ray);
 
             this.slicerBox.highlightIntersected(ray);
             this._refreshUniforms();
@@ -254,7 +340,34 @@ class SlicerModel {
         });
         this.mouseHandler.on('drag', 'left', (state) => {
             console.log("Drag left");
-            this.camera.rotate(state.dx, state.dy);
+
+            let pb = readPBPixels(state.x, state.y);
+
+            if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
+                let offset = pb.railOffset;
+                this.slicerBox.dragActiveSlicesAlongAxis(offset);
+
+            } else { // dont rotate when drag in progress...
+                this.camera.rotate(state.dx, state.dy);
+            }
+
+
+
+
+            /*switch (interactionMode) {
+                case 'rotate':
+                    this.camera.rotate(state.dx, state.dy);
+                    break;
+                default:
+                    //if (this.slicerBox.isSliceDragActive()) {
+                    let pb = readPBPixels(state.x, state.y);
+                    let offset = pb.railOffset;
+                    console.log("Offset = " + offset);
+
+                    this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                    //}
+                    break;
+            }*/
             this._refreshUniforms();
         });
 
@@ -262,150 +375,6 @@ class SlicerModel {
 }
 
 module.exports = SlicerModel;
-
-let genXYQuadVertexInfo = (p0, translate) => {
-    let x = p0[0],
-        y = p0[1],
-        z = p0[2];
-
-    return {
-        normal: 'Z',
-        p0: p0,
-        p1: [-x, y, z],
-        p2: [-x, -y, z],
-        p3: [x, -y, z],
-        offset: 0,
-        translate: translate  ||  0
-    }
-}
-
-let genXZQuadVertexInfo = (p0, translate) => {
-    let x = p0[0],
-        y = p0[1],
-        z = p0[2];
-
-    return {
-        normal: 'Y',
-        p0: p0,
-        p1: [x, y, -z],
-        p2: [-x, y, -z],
-        p3: [-x, y, z],
-        offset: 0,
-        translate: translate  ||  0
-    }
-}
-
-let genYZQuadVertexInfo = (p0, translate) => {
-    let x = p0[0],
-        y = p0[1],
-        z = p0[2];
-
-    return {
-        normal: 'X',
-        p0: p0,
-        p1: [x, y, -z],
-        p2: [x, -y, -z],
-        p3: [x, -y, z],
-        offset: 0,
-        translate: translate  ||  0
-    }
-}
-
-let genQuadWithNormal = (normalAxis, p0) => {
-    switch (normalAxis) {
-        case 'X':
-            return genYZQuadVertexInfo(p0);
-        case 'Y':
-            return genXZQuadVertexInfo(p0);
-        case 'Z':
-            return genXYQuadVertexInfo(p0);
-        default:
-            return -1;
-    }
-}
-
-let rotateFromYTo = (newDirection) => {
-    switch (newDirection) {
-        case 'X':
-            return m4.rotationZ(Math.PI / 2);
-        case 'Y':
-            return m4.identity();
-        case 'Z':
-            return m4.rotationX(Math.PI / 2);
-    }
-}
-
-let rotateFromXYTo = (newNormal, transDir) => {
-
-    // Starts as XY quad, normal goes in +Z direction...
-    // transDir = -1 means that...
-    // Y: Face in negative YZ, i.e rotate
-    //
-
-    let angle = -transDir * Math.PI / 2;
-    switch (newNormal) {
-        case 'X': // YZ
-            return m4.rotationY(angle);
-        case 'Y': // XZ
-            return m4.rotationX(angle);
-        case 'Z': // XY
-            return m4.rotationX(transDir === -1 ? 0 : Math.PI);
-    }
-}
-
-/**
- *
- *
- * @method translateQuadVerticesToEdge
- * @param {Object} normal normal of the quad, ex an XY quad has the normal Z
- * @param {Object} direction which direction to translate it, can be seen as
- * backwards (-n) or forwards(+n)
- * @param {Object} offset how far to translate it
- * @return {twgl.m4} translation the translation matrix
- */
-let translateQuadVerticesToEdge = (normal, direction, offset) => {
-    let tx = normal === 'X' ? direction * offset : 0,
-        ty = normal === 'Y' ? direction * offset : 0,
-        tz = normal === 'Z' ? -direction * offset : 0;
-
-    let translateVec = v3.create(tx, ty, tz);
-    return m4.translation(translateVec);
-}
-
-/**
- *
- *
- * @method translateCylinderVerticesToEdge
- * @param {Object} alongAxis axis the cylinder is centered and aligned along
- * @param {Object} direction direction to translate it 2D-wise.
- * ex if aligned along axis X, this will represent how much to translate it by
- * offset along the Y (index 0) and Z (index 1) axis
- * @param {Object} offset how far to translate the cylinder vertices. If creating
- * a bounding box translate by size/2
- * @return {twgl.m4} translation the translation matrix
- */
-let translateCylinderVerticesToEdge = (alongAxis, direction, offset) => {
-    let translateVec = null;
-
-    switch (alongAxis) {
-        case 'X': // YZ
-            translateVec = v3.create(0, direction[0] * offset, direction[1] * offset);
-            break;
-        case 'Y': // XZ
-            translateVec = v3.create(direction[0] * offset, 0, direction[1] * offset);
-            break;
-        case 'Z': // XY
-            translateVec = v3.create(direction[0] * offset, direction[1] * offset, 0);
-            break;
-        default:
-            console.error("WTF is this alongAxis argument? : " + alongAxis + " ????... expecting 'X', 'Y' or 'Z'");
-            break;
-    }
-
-    return m4.translation(translateVec);
-}
-
-let UniqueIndexBag = require('../../widgets/split-view/unique-index-bag');
 
 /**
  * Description for LabeledSlicerBox
@@ -420,111 +389,43 @@ class LabeledSlicerBox {
      * reason for this is to make highlighting via shaders manageable.
      *
      * @param {number} size
+     *
      * @constructor
      */
     constructor(size) {
+
         this.size = size;
-        this.quadIndexBag = new UniqueIndexBag(6); // ids [0,5] reserved for quads
-
-        this.rails = {};
-        this.faces = {};
-        this.slices = {};
-
-        this.tempsss = true; //TEMP!!
 
         this.uniforms = {
+            u_Size: this.size,
             u_HighlightID: -1,
-            u_QuadOffsets: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            u_QuadOffsetIndices: [0, 1, 2, 3, 4, 5],
+            u_SliceOffsets: [0.2, 0.8, 0.2, 0.8, 0.2, 0.8],
             u_RayDir: [0, 0, -1],
-            u_PickingRayOrigin: [0, 0, 10]
+            u_PickingRayOrigin: [0, 0, 10],
+            u_DraggedSliceIndices: [-1, -1],
+            u_ActiveDragRailID: -1
         };
 
-        this.attribs = null;
-
-        let half = size / 2;
-        let id = 6;
-
-        this.quadID = -1;
         this.qCounts = {
             'X': 0,
             'Y': 0,
             'Z': 0
         };
 
-        // Gen faces, 6x, need 2 start points, id range: [6, 11]
-        let p0s = [
-            [-half, -half, -half],
-            [half, half, half]
-        ];
 
-        let translateDirs = [
-            -1, // face center 2 back
-            1 // face center 2 front
-        ];
+        this.draggedSliceIndex = -1;
+        this.draggedSliceIndices = null;
+        this.activeDrag = false;
 
-        for (let i = 0; i < p0s.length; i++) {
-            let p0 = p0s[i];
-
-            let x = p0[0],
-                y = p0[1],
-                z = p0[2];
-
-            this.faces[id++] = genYZQuadVertexInfo(p0, translateDirs[i]);
-            this.faces[id++] = genXZQuadVertexInfo(p0, translateDirs[i]);
-            this.faces[id++] = genXYQuadVertexInfo(p0, translateDirs[i]);
-        }
-
-        // Gen rails, all 12 of them, label with IDs etc
-        p0s = [
-            [-size, -size, -size],
-            [-size, size, size],
-            [size, size, -size],
-            [size, -size, size]
-        ];
-
-        translateDirs = [
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-            [1, 1]
-        ];
-
-        for (let i = 0; i < p0s.length; i++) {
-            let p0 = p0s[i];
-
-            let x = p0[0],
-                y = p0[1],
-                z = p0[2];
-
-            let p1 = [-x, y, z],
-                p2 = [x, -y, z],
-                p3 = [x, y, -z];
-
-            this.rails[id++] = {
-                p0: p0,
-                p1: p1,
-                direction: 'X',
-                translate: translateDirs[i]
-            };
-            this.rails[id++] = {
-                p0: p0,
-                p1: p2,
-                direction: 'Y',
-                translate: translateDirs[i]
-            };
-            this.rails[id++] = {
-                p0: p0,
-                p1: p3,
-                direction: 'Z',
-                translate: translateDirs[i]
-            };
-        }
-
-        this.getBufferArrays();
+        this.dragOffset = 0;
     }
 
     _getOffsetIndex(normal) {
+        if (this.qCounts[normal] >= 2) {
+            console.error("Sir! You cannot add more than 2 slices per axis, sir!");
+            return -1;
+        }
+
         switch (normal) {
             case 'X':
                 return 0 + this.qCounts[normal];
@@ -535,6 +436,53 @@ class LabeledSlicerBox {
             default:
                 return -1;
         }
+    }
+
+    _getOffsetStartIndex(normal) {
+        switch (normal) {
+            case 'X':
+                return 0;
+            case 'Y':
+                return 2;
+            case 'Z':
+                return 4;
+            default:
+                return -1;
+        }
+    }
+
+    addSliceFromCubeFace(fromCubeFace) {
+        // 1. Convert cube face index to direction and starting position
+        let info = this._cubeFaceIDToNormalAndStartOffset(fromCubeFace);
+
+        // 2. Get offset index for direction (if available)
+        let index = this._getOffsetIndex(info.normal);
+
+        if (index === -1)
+            return;
+
+        // 3. Set the offset @ given index
+        this.moveSliceToOffset(index, info.offset);
+    }
+
+    _cubeFaceIDToNormalAndStartOffset(cubefaceID) {
+        // first 3 are back faces
+
+        let startIndent = 0.02;
+
+        let info = IDInfo.getCubeFaceInfo(cubefaceID);
+
+        let startOffset = info.direction === -1 ?
+            (0.0 + startIndent) :
+            (1.0 - startIndent);
+
+        let normal = info.normal;
+
+        return {
+            startOffset: startOffset,
+            normal: normal
+        };
+
     }
 
     _getDirectionIndex(normal) {
@@ -550,38 +498,157 @@ class LabeledSlicerBox {
         }
     }
 
-    _getOffsetIndexOfQuadWithIndex(quadIndex) {
-        return this.uniforms.u_QuadOffsetIndices[quadIndex];
+    _directionIndexToDirection(index) {
+        switch (index) {
+            case 0:
+                return 'X';
+            case 1:
+                return 'Y';
+            case 2:
+                return 'Z';
+            default:
+                return -1;
+        }
     }
 
-    _setOffsetOfQuadWithIndex(quadIndex, offset) {
-        let offsetIndex = this.uniforms.u_QuadOffsetIndices[quadIndex];
-        this.uniforms.u_QuadOffsets[offsetIndex] = offset;
+    getSlicesAtAxisAndOffset(alongAxis, offset) {
+        // fuck making it dynamic for now, hardcoding!
+        let id1 = this._getOffsetStartIndex(alongAxis),
+            id2 = id1 + 1;
+
+        let distances = [];
+
+        let offset1 = this.uniforms.u_SliceOffsets[id1],
+            offset2 = this.uniforms.u_SliceOffsets[id2];
+
+        let dist1 = Math.abs(offset1 - offset),
+            dist2 = Math.abs(offset2 - offset);
+
+        let snap1 = dist1 <= Settings.SelectSliceSnapThreshold,
+            snap2 = dist2 <= Settings.SelectSliceSnapThreshold;
+
+        if (snap1 || snap2) { // Pick the closest out of the two anyway
+            // If within snap range of both, pick closest,
+            return dist1 < dist2 ? {
+                hit: true,
+                ids: [id1, -1]
+            } : {
+                hit: true,
+                ids: [id2, -1]
+            };
+        } else if (offset1 < offset2 ?
+            (offset1 < offset && offset < offset2) :
+            (offset2 < offset && offset < offset1)
+        ) { // If between but not within snap range, drag both
+            return { // Drag both
+                hit: true,
+                ids: [id1, id2]
+            }
+        } else {
+            return {
+                hit: false
+            }
+        }
     }
 
-    addQuad(normal, p0) {
-        if (this.qCounts[normal] === 2) // max 2 per direction
+    highlightPotentialDragIfHit(alongAxis, offset) {
+        let slices = this.getSlicesAtAxisAndOffset(alongAxis, offset);
+        if (slices.hit) {
+            this.activeDrag = false;
+            this.draggedSliceIndices = slices.ids;
+            this.uniforms.u_DraggedSliceIndices = slices.ids;
+        }
+    }
+
+    initiateDragIfHit(alongAxis, offset, id) {
+        let slices = this.getSlicesAtAxisAndOffset(alongAxis, offset);
+        if (slices.hit) {
+            this.uniforms.u_ActiveDragRailID = id;
+            this.activeDrag = true;
+            this.draggedSliceIndices = slices.ids;
+            this.uniforms.u_DraggedSliceIndices = slices.ids;
+            this.dragOffset = offset;
+        }
+    }
+
+
+
+    endDrag() {
+        this.uniforms.u_ActiveDragRailID = -1;
+        this.draggedSliceIndices = null;
+        this.uniforms.u_DraggedSliceIndices = [-1, -1];
+        this.dragOffset = -1;
+        this.activeDrag = false;
+    }
+
+    isDragActive() {
+        return this.activeDrag;
+    }
+
+    dragActiveSlicesAlongAxis(newOffset) {
+        if (!this.draggedSliceIndices) {
+            console.error("No slices selected");
             return;
+        }
 
-        let quadIndex = this.quadIndexBag.getIndex();
-        let offsetIndex = this._getOffsetIndex(normal);
+        let deltaOffset = newOffset - this.dragOffset;
 
-        // Point quad index to offset index
-        this.uniforms.u_QuadOffsetIndices[quadIndex] = offsetIndex;
+        for (let sliceID of this.draggedSliceIndices) {
+            this.uniforms.u_SliceOffsets[sliceID] += deltaOffset;
+        }
 
-        this.slices[index] = genQuadWithNormal(normal, p0);
-        this.qCounts[normal]++;
+        this.dragOffset = newOffset;
     }
 
-    moveQuadToOffset(quadID, offset) {
-        this._setOffsetOfQuadWithIndex(quadID, offset);
+    /*getSliceAtAxisAndOffset(alongAxis, offset) {
+        let start = this._getOffsetStartIndex(alongAxis);
+        for (let id = start; id < start + 2; id++) {
+            if (
+                Math.abs(this.uniforms.u_SliceOffsets[id]) <=
+                Settings.SelectSliceSnapThreshold) {
+
+                this._initiateDragSlice(id);
+                return id;
+            }
+        }
+
+        return -1;
     }
 
-    removeQuad(quadID) {
-        delete this.slices[quadID];
-        this.quadIndexBag.returnIndex(quadID);
-        this.qCounts[normal]--;
-        this.uniforms.u_QuadOffsetIndices[quadID] = -1; // Mark quad as inactive
+    isSliceDragActive() {
+        return this.draggedSliceIndex !== -1;
+    }
+
+    _initiateDragSlice(id) {
+        this.draggedSliceIndex = id;
+    }
+
+    dragEnd() {
+        this.draggedSliceIndex = -1;
+    }
+
+    dragSliceToOffset(offset) {
+        if (this.draggedSliceIndex) {
+            console.error("No slice index selected...");
+        }
+
+        this.moveSliceToOffset(this.draggedSliceIndex, offset);
+    }
+
+    _setOffsetOfSliceWithIndex(id, offset) {
+        this.uniforms.u_SliceOffsets[id] = offset;
+    }
+
+    moveSliceToOffset(id, offset) {
+        this._setOffsetOfSliceWithIndex(id, offset);
+    }
+
+    moveSliceToOffset(quadID, offset) {
+        this._setOffsetOfSliceWithIndex(quadID, offset);
+    }*/
+
+    hideSlice(id) {
+        this.uniforms.u_QuadOffsetIndices[id] = -1; // Mark quad as inactive
     }
 
     getUniforms() {
@@ -595,246 +662,5 @@ class LabeledSlicerBox {
     highlightIntersected(ray) {
         this.uniforms.u_PickingRayOrigin = ray.eye;
         this.uniforms.u_RayDir = ray.dir;
-
-        //// 1. Intersect-test with rails
-        //for (let id in this.rails) {
-        //    let rail = this.rails[id];
-        //    console.log("Checking intersection w/ rail" + id);
-        //    if (ray.intersectsLine(rail.p0, rail.p1, 0.07)) {
-        //        this.uniforms.u_HighlightID = id;
-        //        console.log("RAY HIT RAIL WITH ID: " + id);
-        //        return;
-        //    }
-        //}
-        //
-        //this.uniforms.u_HighlightID = this.tempsss ? 7 : 9;
-        //this.tempsss = !this.tempsss;
-    }
-
-    getBufferArrays() {
-        // All attrib arrays etc
-
-        if (this.attribs)
-            return this.attribs;
-
-        let Vertices = {};
-
-        let RailVertices = {},
-            CubeFaceVertices = {};
-
-        let a_position = [],
-            a_direction = [],
-            a_id = [],
-            indices = [];
-
-        let a_positionCubeFace = [],
-            a_directionCubeFace = [],
-            a_idCubeFace = [],
-            indicesCubeFace = [];
-
-        let a_positionRails = [],
-            a_directionRails = [],
-            a_idRails = [],
-            indicesRails = [];
-
-        let numRailsDebug = 4;
-        let railNum = 0;
-
-        let xRails = [
-            12,
-            15,
-            18,
-            21
-                     ];
-
-        // 1. Generate polylines (cylinders) for all rails
-        for (let id in this.rails) {
-            let rail = this.rails[id];
-            let direction = this._getDirectionIndex(rail.direction);
-
-            let railverts = primitives.createCylinderVertices(
-                0.07, // Radius of cylinder
-                this.size, // Height of cylinder
-                5, //  radialSubdivisions The number of subdivisions around the cylinder
-                5, // verticalSubdivisions The number of subdivisions down the cylinder.
-                true, // topCap
-                true // bottomCap
-            );
-
-            let numVerts = railverts.position.length / 3;
-
-            // Append direction and a_id to them too. same size as num verts
-            railverts.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            railverts.direction.fill(direction);
-
-            railverts.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            railverts.id.fill(id);
-
-            // Rotate+Translate rails from centered along Y to respective position
-            let rotate = rotateFromYTo(rail.direction);
-            let translate = translateCylinderVerticesToEdge(
-                rail.direction,
-                rail.translate,
-                this.size / 2
-            );
-
-            let rotateThenTranslate = m4.multiply(translate, rotate);
-            primitives.reorientVertices(railverts, rotateThenTranslate);
-
-            console.log("ID = " + id + " .... ");
-            console.log(rail);
-            console.log("-------");
-
-            let indexOffset = a_position.length / 3;
-
-            a_position.push(...railverts.position);
-            a_direction.push(...railverts.direction);
-            a_id.push(...railverts.id);
-            indices.push(...railverts.indices.map((i) => {
-                return i + indexOffset;
-            }));
-
-            let railIndexOffset = a_positionRails.length / 3;
-
-            a_positionRails.push(...railverts.position);
-            a_directionRails.push(...railverts.direction);
-            a_idRails.push(...railverts.id);
-            indicesRails.push(...railverts.indices.map((i) => {
-                return i + railIndexOffset;
-            }));
-            //if (railNum++ === numRailsDebug)
-            //    break;
-        }
-
-        // 2. Generate cube faces (quads)
-        for (let id in this.faces) {
-            let face = this.faces[id];
-            let direction = this._getDirectionIndex(face.normal);
-
-            let cubefvs = {};
-
-            let vbo = primitives.createAugmentedTypedArray(3, 4, Float32Array);
-            vbo.push(face.p0);
-            vbo.push(face.p1);
-            vbo.push(face.p2);
-            vbo.push(face.p3);
-
-            let ibo = primitives.createAugmentedTypedArray(3, 4, Int16Array);
-            ibo.push([0, 1, 2]);
-            ibo.push([0, 2, 3]);
-
-            cubefvs.position = vbo;
-            cubefvs.indices = ibo;
-
-            let numVerts = cubefvs.position.length / 3;
-
-            cubefvs.direction = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            cubefvs.direction.fill(direction);
-
-            cubefvs.id = primitives.createAugmentedTypedArray(1, numVerts, Int16Array);
-            cubefvs.id.fill(id);
-
-            // Move quad from XY centered to edges
-            let rotate = rotateFromXYTo(face.normal, face.translate);
-            let translate = translateQuadVerticesToEdge(face.normal, face.translate, this.size / 2);
-
-            let rotateThenTranslate = m4.multiply(translate, rotate);
-            //primitives.reorientPositions(vbo, m4.identity());
-
-            if (face.normal === 'X' && face.translate === 1)
-                cubefvs.indices = cubefvs.indices.reverse();
-            else if (face.normal !== 'X' && face.translate === -1)
-                cubefvs.indices = cubefvs.indices.reverse();
-
-
-            let indexOffset = a_position.length / 3;
-
-            a_position.push(...cubefvs.position);
-            a_direction.push(...cubefvs.direction);
-            a_id.push(...cubefvs.id);
-            indices.push(...cubefvs.indices.map((i) => {
-                return i + indexOffset
-            }));
-
-            let cubeFaceIndexOffset = a_positionCubeFace.length / 3;
-
-            a_positionCubeFace.push(...cubefvs.position);
-            a_directionCubeFace.push(...cubefvs.direction);
-            a_idCubeFace.push(...cubefvs.id);
-            indicesCubeFace.push(...cubefvs.indices.map((i) => {
-                return i + cubeFaceIndexOffset
-            }));
-        }
-
-        let totalNumVertices = a_position.length / 3;
-
-        Vertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_position)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_direction)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_id)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indices)
-            }
-        };
-
-        RailVertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_positionRails)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_directionRails)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_idRails)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indicesRails)
-            }
-        };
-
-        CubeFaceVertices = { // twgl-friendly format for createBufferInfoFromArrays
-            position: {
-                numComponents: 3,
-                data: new Float32Array(a_positionCubeFace)
-            },
-            direction: {
-                numComponents: 1,
-                data: new Int16Array(a_directionCubeFace)
-            },
-            id: {
-                numComponents: 1,
-                data: new Int16Array(a_idCubeFace)
-            },
-            indices: {
-                numComponents: 3,
-                data: new Int16Array(indicesCubeFace)
-            }
-        };
-
-
-        let attribs = {
-            Vertices: Vertices,
-            CubeFaceVertices: CubeFaceVertices,
-            RailVertices: RailVertices
-        };
-
-        this.attribs = attribs;
-
-
-        return attribs;
     }
 }
