@@ -52,13 +52,16 @@
             <dt><a href="module-Core_Models.Camera.html">Camera</a></dt>
             <dd></dd>
 
-            <dt><a href="module-Core_Models.ModelManager.html">ModelManager</a></dt>
+            <dt><a href="module-Core_Models.OrbiterCamera.html">OrbiterCamera</a></dt>
             <dd></dd>
 
             <dt><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></dt>
             <dd></dd>
 
             <dt><a href="module-Core_Models.SphereModel.html">SphereModel</a></dt>
+            <dd></dd>
+
+            <dt><a href="module-Core_Models-LabeledSlicerBox.html">LabeledSlicerBox</a></dt>
             <dd></dd>
         </dl>
 
@@ -76,14 +79,14 @@
 
 
 
-<h4 class="name" id=".ModelSet">ModelSet</h4>
+<h4 class="name" id=".RailInfo">RailInfo</h4>
 
 
 
 
 <div class="description">
-    A set of model pointers, each subview must maintain
-such a set.
+    Represents a rails underlying structure, only used in SlicerModel.
+The rail is a line from p0 to p1
 </div>
 
 
@@ -92,7 +95,7 @@ such a set.
     <ul>
         <li>
 
-<span class="param-type">Object</span>
+<span class="param-type">object</span>
 
 
         </li>
@@ -128,13 +131,13 @@ such a set.
 
         <tr>
 
-                <td class="name"><code>slicer</code></td>
+                <td class="name"><code>p0</code></td>
 
 
             <td class="type">
 
 
-<span class="param-type"><a href="module-Core_Models.SlicerModel.html">module:Core/Models.SlicerModel</a></span>
+<span class="param-type">twgl.primitives.v3</span>
 
 
 
@@ -151,13 +154,13 @@ such a set.
 
         <tr>
 
-                <td class="name"><code>sphere</code></td>
+                <td class="name"><code>p1</code></td>
 
 
             <td class="type">
 
 
-<span class="param-type"><a href="module-Core_Models.SphereModel.html">module:Core/Models.SphereModel</a></span>
+<span class="param-type">twgl.primitives.v3</span>
 
 
 
@@ -174,13 +177,13 @@ such a set.
 
         <tr>
 
-                <td class="name"><code>camera</code></td>
+                <td class="name"><code>direction</code></td>
 
 
             <td class="type">
 
 
-<span class="param-type"><a href="module-Core_Models.Camera.html">module:Core/Models.Camera</a></span>
+<span class="param-type">string</span>
 
 
 
@@ -190,7 +193,32 @@ such a set.
 
 
 
-            <td class="description last"></td>
+            <td class="description last">X, Y or Z, axis the rail is aligned with</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>translate</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Array.number</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">size is always 2. Direction the rail is to be translate in
+normal to its direction axis, ex if direction is X then it is to be translated
+along the Y by offset translate[0] and the Z axis by offset translate[1].</td>
         </tr>
 
 
@@ -254,7 +282,7 @@ such a set.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Models.html">Core/Models</a></li><li><a href="module-Core_Renderer.html">Core/Renderer</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Settings.html">Settings</a></li><li><a href="module-ViewSplitterMasterController.html">ViewSplitterMasterController</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.ModelManager.html">ModelManager</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_Renderer.Renderer.html">Renderer</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Models.html">Core/Models</a></li><li><a href="module-Core_Renderer.html">Core/Renderer</a></li><li><a href="module-Core_ResourceManagers.html">Core/ResourceManagers</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Settings.html">Settings</a></li><li><a href="module-ViewSplitterMasterController.html">ViewSplitterMasterController</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.OrbiterCamera.html">OrbiterCamera</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_Models-LabeledSlicerBox.html">LabeledSlicerBox</a></li><li><a href="module-Core_Renderer.ConfigurableRenderer.html">ConfigurableRenderer</a></li><li><a href="module-Core_Renderer.FrameBufferAndTextureManager.html">FrameBufferAndTextureManager</a></li><li><a href="module-Core_Renderer.ShaderManager.html">ShaderManager</a></li><li><a href="module-Core_Renderer.UniformManager.html">UniformManager</a></li><li><a href="module-Core_ResourceManagers.ConfigurationManager.html">ConfigurationManager</a></li><li><a href="module-Core_ResourceManagers.ModelSyncManager.html">ModelSyncManager</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul><h3>Global</h3><ul><li><a href="global.html#BUILTIN_PROGRAMS">BUILTIN_PROGRAMS</a></li><li><a href="global.html#translateCylinderVerticesToEdge">translateCylinderVerticesToEdge</a></li><li><a href="global.html#translateQuadVerticesToEdge">translateQuadVerticesToEdge</a></li></ul>
 </nav>
 
 <br class="clear">

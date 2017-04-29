@@ -92,152 +92,27 @@
 
 
 
+        <h3 class="subsection-title">Members</h3>
 
 
 
+<h4 class="name" id="BUILTIN_PROGRAMS"><span class="type-signature"></span>BUILTIN_PROGRAMS<span class="type-signature"></span></h4>
 
-        <h3 class="subsection-title">Type Definitions</h3>
 
 
 
-<h4 class="name" id="ShaderProgramDetail">ShaderProgramDetail</h4>
+<div class="description">
+    ---
+--- HOW TO ADD A SHADER PROGRAM:
+--- 1. Add the folder to the BUILTIN PROGRAMS as Foldername: 'Foldername'
+--- 2. Register the vertex and fragment shader with glslify + file path
+--- Shader program should now be available by calling getProgramInfo(name)
+---
+--- FOLDER STRUCTURE: Foldername/shader._.glsl , _ = v or f, or whatever other type
+</div>
 
 
 
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-    <h5 class="subsection-title">Properties:</h5>
-
-
-
-<table class="props">
-    <thead>
-    <tr>
-
-        <th>Name</th>
-
-
-        <th>Type</th>
-
-
-
-
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-
-
-        <tr>
-
-                <td class="name"><code>gl</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">WebGL2Context</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">the webGL context</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>name</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">string</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">name of the shader program</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>vShaderName</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">string</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">vertex shader name</td>
-        </tr>
-
-
-
-        <tr>
-
-                <td class="name"><code>fShaderName</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">string</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">fragment shader name</td>
-        </tr>
-
-
-    </tbody>
-</table>
 
 
 
@@ -286,6 +161,398 @@
 
 
 
+        <h3 class="subsection-title">Methods</h3>
+
+
+
+
+
+
+    <h4 class="name" id="translateCylinderVerticesToEdge"><span class="type-signature"></span>translateCylinderVerticesToEdge<span class="signature">(alongAxis, direction, offset)</span><span class="type-signature"> &rarr; {twgl.m4}</span></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>alongAxis</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">axis the cylinder is centered and aligned along</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>direction</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">direction to translate it 2D-wise.
+ex if aligned along axis X, this will represent how much to translate it by
+offset along the Y (index 0) and Z (index 1) axis</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>offset</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">how far to translate the cylinder vertices. If creating
+a bounding box translate by size/2</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    translation the translation matrix
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">twgl.m4</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="translateQuadVerticesToEdge"><span class="type-signature"></span>translateQuadVerticesToEdge<span class="signature">(normal, direction, offset)</span><span class="type-signature"> &rarr; {twgl.m4}</span></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>normal</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">normal of the quad, ex an XY quad has the normal Z</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>direction</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">which direction to translate it, can be seen as
+backwards (-n) or forwards(+n)</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>offset</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">how far to translate it</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+
+<div class="param-desc">
+    translation the translation matrix
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+
+<span class="param-type">twgl.m4</span>
+
+
+    </dd>
+</dl>
+
+
+
+
+
+
+
+
+
+
+
 </article>
 
 </section>
@@ -296,7 +563,7 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Renderer.html">Core/Renderer</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Settings.html">Settings</a></li><li><a href="module-ViewSplitterMasterController.html">ViewSplitterMasterController</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_Renderer.ConfigurableRenderer.html">ConfigurableRenderer</a></li><li><a href="module-Core_View.ModelSyncManager.html">ModelSyncManager</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul><h3><a href="global.html">Global</a></h3>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Core_Environment.html">Core/Environment</a></li><li><a href="module-Core_Models.html">Core/Models</a></li><li><a href="module-Core_Renderer.html">Core/Renderer</a></li><li><a href="module-Core_ResourceManagers.html">Core/ResourceManagers</a></li><li><a href="module-Core_View.html">Core/View</a></li><li><a href="module-Data.html">Data</a></li><li><a href="module-Settings.html">Settings</a></li><li><a href="module-ViewSplitterMasterController.html">ViewSplitterMasterController</a></li><li><a href="module-Widgets_DataStructures.html">Widgets/DataStructures</a></li><li><a href="module-Widgets_TransferFunction.html">Widgets/TransferFunction</a></li><li><a href="module-Widgets_View.html">Widgets/View</a></li></ul><h3>Classes</h3><ul><li><a href="module-Core_Environment-Environment.html">Environment</a></li><li><a href="module-Core_Models.Camera.html">Camera</a></li><li><a href="module-Core_Models.OrbiterCamera.html">OrbiterCamera</a></li><li><a href="module-Core_Models.SlicerModel.html">SlicerModel</a></li><li><a href="module-Core_Models.SphereModel.html">SphereModel</a></li><li><a href="module-Core_Models_Lights.LightModel.html">LightModel</a></li><li><a href="module-Core_Models-LabeledSlicerBox.html">LabeledSlicerBox</a></li><li><a href="module-Core_Renderer.ConfigurableRenderer.html">ConfigurableRenderer</a></li><li><a href="module-Core_Renderer.FrameBufferAndTextureManager.html">FrameBufferAndTextureManager</a></li><li><a href="module-Core_Renderer.ShaderManager.html">ShaderManager</a></li><li><a href="module-Core_Renderer.UniformManager.html">UniformManager</a></li><li><a href="module-Core_ResourceManagers.ConfigurationManager.html">ConfigurationManager</a></li><li><a href="module-Core_ResourceManagers.ModelSyncManager.html">ModelSyncManager</a></li><li><a href="module-Core_View.Subview.html">Subview</a></li><li><a href="module-Core_View-ViewManager.html">ViewManager</a></li><li><a href="module-Data.SelectionManager.html">SelectionManager</a></li><li><a href="module-Data.VolumeDataset.html">VolumeDataset</a></li><li><a href="module-Data-DatasetManager.html">DatasetManager</a></li><li><a href="module-Widgets_DataStructures.SplitBox.html">SplitBox</a></li><li><a href="module-Widgets_DataStructures-LinkGrouper.html">LinkGrouper</a></li><li><a href="module-Widgets_TransferFunction.ColorGradient.html">ColorGradient</a></li><li><a href="module-Widgets_TransferFunction.TransferFunction.html">TransferFunction</a></li><li><a href="module-Widgets_TransferFunction.TransferFunctionEditor.html">TransferFunctionEditor</a></li><li><a href="module-Widgets_TransferFunction-TransferFunctionManager.html">TransferFunctionManager</a></li><li><a href="module-Widgets_View.MiniatureSplitView.html">MiniatureSplitView</a></li><li><a href="module-Widgets_View.MiniatureSplitViewOverlay.html">MiniatureSplitViewOverlay</a></li><li><a href="module-Widgets_View.Subcell.html">Subcell</a></li><li><a href="module-Widgets_View.SubcellLayout.html">SubcellLayout</a></li></ul><h3>Global</h3><ul><li><a href="global.html#BUILTIN_PROGRAMS">BUILTIN_PROGRAMS</a></li><li><a href="global.html#translateCylinderVerticesToEdge">translateCylinderVerticesToEdge</a></li><li><a href="global.html#translateQuadVerticesToEdge">translateQuadVerticesToEdge</a></li></ul>
 </nav>
 
 <br class="clear">
