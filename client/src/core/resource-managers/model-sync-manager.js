@@ -1,3 +1,4 @@
+let _ = require('underscore');
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
 let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
@@ -31,6 +32,12 @@ class ModelSyncManager {
 
         this.linkedModels = {};
 
+        this.pointsToGlobal = { // initially FALSE for all models
+
+        };
+
+        this.virtuals = [];
+
         // Note how it "magically" pulls models directly from
         // the linkable-models file.
         for (let key in AllModels) {
@@ -51,6 +58,10 @@ class ModelSyncManager {
 
         this.defaultModels[modelName] = {}; // Init empty obj
         this.linkedModels[modelName] = {}; // Init empty obj
+
+        this.pointsToGlobal[modelName] = false;
+
+        this.defaultModels[modelName]['GLOBAL'] = new Class(this.gl, this.viewManager, 'GLOBAL');
 
         for (let subviewID of subviewIDs) {
 
@@ -75,15 +86,38 @@ class ModelSyncManager {
 
         for (let modelName in this.defaultModels) {
             models[modelName] = null;
-            let activeModelSubviewID = this.linkedModels[modelName][subviewID];
-            models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
+            //let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+            //models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
+            models[modelName] = this.getActiveModel(modelName, subviewID);
         }
 
         return models;
     }
 
+    getSubviewIDsLinkedWith(subviewID, modelName) {
+        let activeModelID = this._getActiveModelSubviewID(modelName, subviewID);
+        return this.getSubviewIDsLinkedWithMaster(activeModelID, modelName);
+    }
+
+    getSubviewIDsLinkedWithMaster(masterSubviewID, modelName) {
+        let subviewIDs = [];
+
+        let allIDs = getAllCellIDs();
+        for (let cellID of allIDs) {
+            if (this._getActiveModelSubviewID(modelName, cellID) === masterSubviewID)
+                subviewIDs.push(cellID);
+        }
+
+        return subviewIDs;
+    }
+
+    _getActiveModelSubviewID(modelName, subviewID) {
+        return this.pointsToGlobal[modelName] ?
+            'GLOBAL' : this.linkedModels[modelName][subviewID];
+    }
+
     getActiveModel(modelName, subviewID) {
-        let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+        let activeModelSubviewID = this._getActiveModelSubviewID(modelName, subviewID);
         return this.defaultModels[modelName][activeModelSubviewID];
     }
 
@@ -95,18 +129,21 @@ class ModelSyncManager {
      * @param {number} subviewID
      */
     removeSubview(subviewID) {
-        delete this.defaultModels[subviewID];
-        delete this.linkedModels[subviewID];
 
-        // Reset any subviews that was pointing to this subview
-        //        let subviewIDs = getAllCellIDs();
-        //        for (let theSubviewID of subviewIDs) {
-        //            for (let modelName in this.linkedModels) {
-        //                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
-        //                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
-        //                }
-        //            }
-        //        }
+        for (let modelName in this.defaultModels) {
+            delete this.defaultModels[modelName][subviewID];
+            delete this.linkedModels[modelName][subviewID];
+        }
+
+        //Reset any subviews that was pointing to this subview
+        let subviewIDs = getAllCellIDs();
+        for (let theSubviewID of subviewIDs) {
+            for (let modelName in this.linkedModels) {
+                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+                }
+            }
+        }
 
 
         this.syncWithLinkGroup();
@@ -124,8 +161,54 @@ class ModelSyncManager {
             this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl, this.viewManager, subviewID);
 
             // link to itself initially
-            this.linkedModels[modelName][subviewID] = subviewID;
+            if (modelName === 'TRANSFER_FUNCTION')
+                this.linkedModels[modelName][subviewID] = 'GLOBAL';
+            else
+                this.linkedModels[modelName][subviewID] = subviewID;
         }
+    }
+
+    /**
+     * Adds a virtual subview, only difference is it has
+     * no models of its own - useful for offscreen
+     * renderers
+     *
+     * @param {string|number} virtualSubviewID
+     * @param {string|number} pointsTo
+     */
+    addVirtualSubview(virtualSubviewID, pointsTo) {
+        for (let modelName in this.defaultModels) {
+            // DO NOT Construct a new object for the subview
+            // because virtual
+            // used for offscreen views only
+
+            // link to itself initially
+            this.linkedModels[modelName][virtualSubviewID] = pointsTo  ||  0;
+        }
+
+        // Flag as virtual
+        this.virtuals.push(virtualSubviewID);
+    }
+
+    /**
+     * Points a virtual subview ID to a new subview ID
+     * @param {string|number} virtualSubviewID
+     * @param {string|number} subviewID
+     */
+    linkVirtualSubviewTo(virtualSubviewID, subviewID) {
+        if (this.isVirtual(virtualSubviewID))
+            throw new Error("Expected virtual subview ID");
+
+        if (this.isVirtual(subviewID))
+            throw new Error("Expected non-virtual subview ID");
+
+        for (let modelName in this.defaultModels)
+            this.linkedModels[modelName][virtualSubviewID] = subviewID;
+
+    }
+
+    isVirtual(subviewID) {
+        return _.contains(this.virtuals, subviewID);
     }
 
     /**
@@ -138,9 +221,20 @@ class ModelSyncManager {
         let subviewIDs = getAllCellIDs();
 
         for (let modelKey in this.defaultModels)
-            for (let subviewID of subviewIDs)
-                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
+            for (let subviewID of subviewIDs) // Skip virtual subviews
+                if (!(this.isVirtual(subviewID)))
+                    this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
 
+    }
+
+    call(model, method, args) {
+        let allSubviewIDs = getAllCellIDs();
+
+        for(let subviewID of allSubviewIDs) {
+            let theModel = this.defaultModels[model][subviewID];
+
+            theModel[method].bind(theModel,args);
+        }
     }
 
     updateSyncForModelKey(modelKey) {
@@ -162,6 +256,10 @@ class ModelSyncManager {
         }
 
         return models;
+    }
+
+    setModelPointsToGlobal(modelName, doesPointToGlobal) {
+        this.pointsToGlobal[modelName] = doesPointToGlobal;
     }
 }
 

@@ -46,12 +46,35 @@ class ConfigurableRenderer {
         this.uniforms = config.uniforms
     }
 
+    /**
+     * Modifies the current configuration of a renderer
+     *
+     *
+     * @param {Object} newOptions
+     */
+    modifyConfig(newOptions) {
+        for (let stepIndex in newOptions) {
+            for (let configKey in newOptions[stepIndex]) {
+                this.steps[stepIndex][configKey] = newOptions[stepIndex][configKey];
+            }
+        }
+    }
+
     _applyViewport() {
         this.gl.viewport(
             this.viewport.x0,
             this.viewport.y0,
             this.viewport.width,
             this.viewport.height);
+    }
+
+    _applyScissorViewport() {
+        this.gl.scissor(
+            this.viewport.x0,
+            this.viewport.y0,
+            this.viewport.width,
+            this.viewport.height
+        );
     }
 
     _applySubViewport(svp01, fbinfo) {
@@ -87,73 +110,75 @@ class ConfigurableRenderer {
 
     }
 
-    /**
-     * Renders as instructed by the current configuration
-     */
-    render() {
+    _renderStep(step) {
         let gl = this.gl;
+        let programInfo = step.programInfo;
 
-        for (let step of this.steps) {
-            let programInfo = step.programInfo;
+        //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+        gl.useProgram(programInfo.program);
 
-            //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
-            gl.useProgram(programInfo.program);
+        twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
+        twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
-            if (!step.frameBufferInfo) {
-                this._applyViewport();
-            }
+        let applyGLSettings = () => {
+            for (let func in step.glSettings) {
+                let args = step.glSettings[func];
 
-            twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
-            twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
-
-            let applyGLSettings = () => {
-                for (let func in step.glSettings) {
-                    let args = step.glSettings[func];
-
-                    if (_.contains(['enable', 'disable', 'clear'], func)) {
-                        for (let arg of args)
-                            gl[func].call(gl, arg);
-                    } else {
-                        gl[func].apply(gl, args);
-                    }
+                if (_.contains(['enable', 'disable', 'clear'], func)) {
+                    for (let arg of args)
+                        gl[func].call(gl, arg);
+                } else {
+                    gl[func].apply(gl, args);
                 }
             }
+        }
 
-            if (step.frameBufferInfo) {
-                twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
-                if (step.subViewport) // Also applies to frame bufs
-                    this._applySubViewport(step.subViewport, step.frameBufferInfo);
+        if (step.frameBufferInfo) {
+            twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+            if (step.subViewport) // Also applies to frame bufs
+                this._applySubViewport(step.subViewport, step.frameBufferInfo);
 
-                applyGLSettings();
-                //if (step.glSettings)
-                //    for (let func in step.glSettings) {
-                //        let args = step.glSettings[func];
-                //        gl[func].apply(gl, args);
-                //    }
+            applyGLSettings();
 
-                //twgl.drawBufferInfo(gl, step.bufferInfo);
-                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //twgl.drawBufferInfo(gl, step.bufferInfo);
+            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
 
-            } else {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+        } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+
+            if (step.subViewport)
+                this._applySubViewport(step.subViewport);
+            else
                 this._applyViewport();
 
-                if (step.subViewport)
-                    this._applySubViewport(step.subViewport);
+            //                gl.enable(gl.SCISSOR_TEST);
+            applyGLSettings();
 
-                applyGLSettings();
-                // if (step.glSettings)
-                //     for (let func in step.glSettings) {
-                //         let args = step.glSettings[func];
-                //         gl[func].apply(gl, args);
-                //     }
 
-                //twgl.drawBufferInfo(gl, step.bufferInfo);
-                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-            }
+            //twgl.drawBufferInfo(gl, step.bufferInfo);
+            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //                gl.disable(gl.SCISSOR_TEST);
         }
     }
+
+    /**
+     * Renders as instructed by the current configuration
+     * @param {bool} needsFullUpdate whether or not it needs a full update
+     * if not it'll just do the last step which should always be just
+     * rendering a texture onto a fullscreen quad
+     */
+    render(needsFullUpdate) {
+        let gl = this.gl;
+
+        if (needsFullUpdate)
+            for (let step of this.steps)
+                this._renderStep(step);
+        else
+            this._renderStep(this.steps[this.steps.length - 1]);
+
+    }
 }
+
 
 module.exports = ConfigurableRenderer;
 /**

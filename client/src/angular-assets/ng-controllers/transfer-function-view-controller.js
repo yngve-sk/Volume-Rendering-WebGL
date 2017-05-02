@@ -10,6 +10,22 @@ let Environment = require('../../core/environment');
 let controller = function ($scope, $timeout) {
     let tfEditor = null; // Initialized when DOM is ready.
 
+    $scope.thresholdSlider = {
+        minValue: 0,
+        maxValue: 4095,
+        options: {
+            floor: 0,
+            ceil: 4095,
+            step: 1,
+            onChange: () => {
+                Environment.notifyIsoThresholdChanged(
+                    $scope.name,
+                    $scope.thresholdSlider.minValue,
+                    $scope.thresholdSlider.maxValue);
+            }
+        }
+    }
+
     $scope.displayOptions = {
         showHistogram: true,
         showHistogramSelection: true,

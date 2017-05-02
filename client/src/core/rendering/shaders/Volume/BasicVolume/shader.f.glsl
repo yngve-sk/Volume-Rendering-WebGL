@@ -13,6 +13,7 @@ uniform sampler2D u_IsoValueToColorOpacity;
 uniform vec3 u_BoundingBoxNormalized;
 uniform float u_AlphaCorrectionExponent; // Calculate it @ CPU
 uniform float u_SamplingRate;
+uniform ivec2 u_IsoMinMax;
 
 in vec3 v_gridPosition; // Same as ray start position
 in vec4 v_projPosition;
@@ -22,10 +23,18 @@ out vec4 outColor;
 
 const int MAX_STEPS = 1000;
 
+bool isWithinMinMax(int isovalue) {
+    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;
+}
+
 float getNormalizedIsovalue(vec3 modelPosition) {
     //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);
     int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);
-    return float(iso) / 32736.0;
+
+    //if(isWithinMinMax(iso))
+        return float(iso) / 32735.0;
+    //else
+    //    return -1.0;
 }
 
 
@@ -58,6 +67,8 @@ void main() {
     for(int i = 0; i < MAX_STEPS; i++) {
         //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);
         isovalue = getNormalizedIsovalue(currentPos);
+        if(isovalue == -1.0)
+            continue; // Skip isovalue because threshold!
         //gradientMagnitude = isoAndGradientMag.g;
 
         // find color&Opacity via TF
@@ -102,6 +113,9 @@ void main() {
 ///
 
     outColor = vec4(accumulatedColor, accumulatedAlpha);
+    //outColor = vec4(v_gridPosition, 1.0);
+    //outColor = vec4(backfaceGridPos, 1.0);
+//    outColor = vec4(ray, 1.0);
     //outColor = iso2RGBA;
     //outColor = vec4(vec3(alph),1.0);
     //outColor = vec4(vec3(isovalue/2.0),1.0);

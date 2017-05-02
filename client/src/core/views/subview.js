@@ -33,7 +33,12 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            Volume: false,
+            Volume: true,
+            Slicer: true,
+            Sphere: false
+        }
+        this.needsFullUpdate = {
+            Volume: true,
             Slicer: true,
             Sphere: false
         }
@@ -53,40 +58,43 @@ class Subview {
     }
 
     getAspectRatio() {
-        let total = this.viewports.volume;
+        let total = this.viewports.Volume;
         if (total)
             return total.width / total.height;
         else
             return 1; // default fallback
     }
 
-    renderSpecific(name) {
-        this.renderers[name].render();
+    renderSpecific(name, configTweak) {
+        this.renderers[name].render(configTweak);
     }
 
-    notifyNeedsUpdate(name) {
+    notifyNeedsUpdate(name, fullUpdate) {
         this.needsUpdate[name] = true;
+
+        if (fullUpdate !== undefined)
+            this.needsFullUpdate[name] = fullUpdate;
     }
 
     render() {
         if (this.needsUpdate.Volume) {
-            this.renderers.Volume.render();
-            //this.needsUpdate.volume = false;
+            this.renderers.Volume.render(this.needsFullUpdate.Volume);
+            this.renderers.Slicer.render(true);
+            this.needsUpdate.Volume = false;
+            this.needsFullUpdate.Volume = false;
+            this.needsUpdate.Slicer = false;
         }
 
         if (this.needsUpdate.Slicer) {
-            this.renderers.Slicer.render();
-            //this.needsUpdate.Slicer = false;
+            //this.renderers.Slicer.render();
+            this.needsUpdate.Slicer = false;
         }
         if (this.needsUpdate.SlicerPicking) {
-            this.renderers.SlicerPicking.render();
-            //this.needsUpdate.volume = false;
+            //this.renderers.SlicerPicking.render();
+            this.needsUpdate.SlicerPicking = false;
         }
-        //
-        //        this.renderers.sphere.render({
-        //            model: this.models.sphere,
-        //            viewport: this.viewports.sphere
-        //        });
+
+
     }
 
     /**

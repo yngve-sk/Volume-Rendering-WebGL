@@ -32,6 +32,12 @@ class DatasetManager {
         return null;
     }
 
+    clearDataset() {
+        for(let key in this.datasets) {
+            delete this.datasets[key];
+        }
+    }
+
     /**
      * Gets the histogram selection for the cell ID (if any)
      *

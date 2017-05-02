@@ -6,15 +6,16 @@ let Environment = require('../../core/environment');
 let controller = function ($scope) {
 
     let viewID2LinkerKey = {
-        1: [LinkableModels.TRANSFER_FUNCTION.name],
-        2: [LinkableModels.CAMERA.name],
-        3: [LinkableModels.SLICER.name],
-        4: [LinkableModels.SPHERE.name],
+        1: LinkableModels.TRANSFER_FUNCTION.name,
+        2: LinkableModels.CAMERA.name,
+        3: LinkableModels.SLICER.name,
+        4: LinkableModels.THRESHOLDS.name,
     }
 
     let callbacks = {
         linkChanged: Environment.notifyLinkChanged,
-        layoutChanged: Environment.notifyLayoutChanged
+        layoutChanged: Environment.notifyLayoutChanged,
+        viewTypeChanged: Environment.notifyViewTypeChanged
     };
 
     // Require in here because it's not needed outside, pass in callbacks
@@ -25,19 +26,37 @@ let controller = function ($scope) {
 
     $scope.addViewText = adding;
 
-    let isAddMode = true;
+    $scope.MainViewMode = "ADD";
 
     $scope.addView = () => {
-        isAddMode = true;
+        $scope.MainViewMode = "ADD";
         objController.changeAddRemoveState('ADD');
         $scope.addViewText = adding;
     };
 
     $scope.removeView = () => {
-        isAddMode = false;
+        $scope.MainViewMode = "REMOVE";
         objController.changeAddRemoveState('REMOVE');
         $scope.addViewText = removeViewTextAndIcon;
     };
+
+    $scope.changeView = () => {
+        objController.changeAddRemoveState('EDIT');
+        $scope.MainViewMode = "EDIT";
+    }
+
+    $scope.isGlobal = {
+        1: false,
+        2: false,
+        3: false,
+        4: false
+    };
+
+    $scope.toggleGlobal = (id) => {
+        $scope.isGlobal[id] = !$scope.isGlobal[id];
+        Environment.notifyModelPointsToGlobalChanged(viewID2LinkerKey[id], $scope.isGlobal[id]);
+
+    }
 
     $scope.DOMReady = () => {
         objController = InitMiniatureSplitviewManager(callbacks);
@@ -49,21 +68,32 @@ let controller = function ($scope) {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
         [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
-        [LinkableModels.SPHERE.name]: 'LINK-ADD'
+        [LinkableModels.THRESHOLDS.name]: 'LINK-ADD'
     };
+    $scope.linkStates = linkStates;
+
 
     $scope.isActiveLinker = (id, on) => {
         return linkStates[viewID2LinkerKey[id]] === 'LINK-ADD';
     }
 
-    $scope.idActiveAddRemove = () => {
+    $scope.isAddMode = () => {
         return isAddMode;
     }
+
+
+    $scope.isChangeViewMode = () => {
+        return isChangeViewMode;
+    }
+
+
 
     $scope.getLinkerState = (id) => {
         let key = viewID2LinkerKey[id];
         return linkStates[key] === 'LINK-ADD' ? 'Adding...' : 'Deleting...';
     }
+
+
 
     // state: 'add' or 'delete'
     $scope.setLinkerState = (id, state) => {

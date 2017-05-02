@@ -4,6 +4,19 @@
     width: 97.5%;
     padding-right: 0.5%;
     height: 180px;
+    min-width: 1280px;
+}
+
+.view-icon-surface {
+    background: black;
+}
+
+.view-icon-slice {
+    background: blue;
+}
+
+.view-icon-3d-volume {
+    background: beige;
 }
 
 .view-splitter-cell {}
@@ -22,6 +35,73 @@
     display: inline-block;
     width: 70%;
     height: 80%;
+}
+
+.highlight-cell {
+    fill: springgreen;
+    stroke-dasharray: 12px;
+    stroke-width: 3px !important;
+    filter: url(#linkgroup-master-cell-filter22);
+    background: lightgrey;
+}
+
+#lvw-select-view {
+    position: fixed;
+    width: 15vw;
+    height: 15vw;
+    z-index: 4;
+    left: 83.4vw;
+    top: 22vh;
+    background: lightgrey;
+    border-radius: 3px;
+    padding-right: 20px;
+    border: 3px darkgrey solid;
+    box-sizing: content-box;
+}
+
+#lvw-select-view.minimized {
+    position: fixed;
+    width: 3vw;
+    height: 3vw;
+    z-index: 4;
+    left: 95.4vw;
+    top: 22vh;
+    background: lightgrey;
+    border-radius: 3px;
+    padding-right: 20px;
+    border: 3px darkgrey solid;
+    box-sizing: content-box;
+}
+
+#lvw-select-view-btn {
+    position: fixed;
+    left: 95.7vw;
+    top: 22vh;
+    width: 3vw;
+    border-radius: 5px;
+    margin: 0;
+    height: 3vw;
+    padding: 0;
+    border-top: 0px;
+    /* opacity: 1; */
+    z-index: 5;
+}
+
+#lvw-select-view-btn.minimized {
+    position: fixed;
+    left: 96.8vw;
+    top: 19vh;
+    width: 2vw;
+    border-radius: 5px;
+    margin: 0;
+    height: 2vw;
+    padding: 0;
+    border-top: 0px;
+}
+
+#lvw-select-view-btn>i {
+    margin: 0;
+    padding: 0;
 }
 
 
@@ -58,9 +138,11 @@
     align-content: center;
 }
 
+
 /* Style of cells that are master cells of link group
  *  (i.e all other cells inherit the property from them)
  */
+
 .linkgroup-master-cell {
     filter: url('#linkgroup-master-cell-filter22');
 }

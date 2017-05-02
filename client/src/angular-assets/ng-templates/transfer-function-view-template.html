@@ -78,11 +78,21 @@
         <div class="tf-gmag-curv-sliders-container widget-bottom-element">
             <!-- G-mag / Curvature weighting on opacity -->
             <div>
-                <rzslider rz-slider-model="gradientMagSlider.weighting" style="width: 48%"></rzslider>
-                <rzslider rz-slider-model="curvatureSlider.weighting" style="width: 48%"></rzslider>
+                <rzslider class="custom-slider" rz-slider-model="gradientMagSlider.weighting" style="width: 48%"></rzslider>
+                <rzslider class="custom-slider" rz-slider-model="curvatureSlider.weighting" style="width: 48%"></rzslider>
             </div>
             <span style="float: left">Gradient Magnitude<br>Weighting</span>
             <span style="float: right">Curvature Weighting</span>
+            <br><br>
+            <div>
+                <rzslider class="custom-slider"
+                          rz-slider-model="thresholdSlider.minValue"
+                          rz-slider-high="thresholdSlider.maxValue"
+                          rz-slider-options="thresholdSlider.options">
+                </rzslider>
+                <br>
+                <center style="">Isovalue min/max threshold</center>
+            </div>
         </div>
 
     </div>

@@ -1,5 +1,5 @@
 let d3 = require('d3');
-
+let SplitViewIconSet = require('../widgets/split-view/icon-set');
 /** @module Settings */
 
 /**
@@ -117,8 +117,21 @@ let SETTINGS = {
             colors: {
                 'LINKS': ['red', 'green', 'white', 'aqua', 'brown', 'gold'],
                 'REMOVE': 'red',
-                'ADD': 'green'
-            }
+                'ADD': 'green',
+                'SELECT': 'green',
+                'EDIT': 'darkblue'
+            },
+            showIconsOnLinkingViews: false,
+            showIconsOnAddRemoveView: true,
+            showIconsOnSelectView: true,
+            icons: new SplitViewIconSet({
+                Icons: {
+                    'Surface View': '../client/images/icons/skull-icon.png',
+                    'Slice View': '../client/images/icons/icon-slicer.png',
+                    '3D Volume': '../client/images/icons/3d-icon-skull.png'
+                },
+                defaultIcon: '3D Volume'
+            })
         }
     },
     WSClient: {
@@ -149,6 +162,21 @@ let SETTINGS = {
             RailRadialSubdivisions: 7,
             RailVerticalSubdivisions: 5,
             RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
+        },
+        ContextMenus: {
+            Volume: { // Item name : icon img path
+                'Rotate': '../client/images/icons/rotate.png',
+                'Move': '../client/images/icons/move.png',
+                'Zoom': '../client/images/icons/zoom.png',
+                'Measure': '../client/images/icons/ruler.png'
+            },
+            Slicer: {
+                'Rotate': '../client/images/icons/rotate.png',
+                'Zoom': '../client/images/icons/zoom.png',
+                'Add Slice': '../client/images/icons/add.png',
+                'Remove Slice': '../client/images/icons/remove.png',
+                'Move Slice': '../client/images/icons/move-slice.png',
+            }
         }
     }
 }

@@ -7,7 +7,7 @@ let controller = function ($scope) {
         let selected = {
             'Slicer': null,
             'Sphere': null,
-            '3d': null
+            'Volume': null
         }
 
         let setSelected = (view, newSelected) => {
@@ -47,10 +47,10 @@ let controller = function ($scope) {
             console.log(item);
             let action = source.getAttribute('action');
             console.log(source);
-            setSelected('3d', source);
+            setSelected('Volume', source);
 
 
-            InteractionModeManager.setInteractionMode('3d', action);
+            InteractionModeManager.setInteractionMode('Volume', action);
         });
 
 

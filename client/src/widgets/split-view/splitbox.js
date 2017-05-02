@@ -126,6 +126,8 @@ class SplitBox {
             action: 'CELL_ADDED',
             id: id
         });
+
+        return id;
     }
 
     getCellID(row, col) {
@@ -217,6 +219,8 @@ class SplitBox {
             action: 'CELL_ADDED',
             id: id
         });
+
+        return id;
     }
 
     /* Returns the cell index (important to get right in the environment */

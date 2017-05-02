@@ -294,12 +294,15 @@ class TransferFunctionEditor {
         this.eventListenerRect = this.svgMain.append('rect')
             .attr('class', 'tf-editor-event-listener-rect')
             .on('mousedown', () => {
+            d3.event.stopPropagation();
                 this._mousedown();
             })
             .on('mouseup', () => {
+            d3.event.stopPropagation();
                 this._mouseup();
             })
             .on('mousemove', () => {
+            d3.event.stopPropagation();
                 this._mousemove();
             });
 

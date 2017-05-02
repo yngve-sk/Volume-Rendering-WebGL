@@ -1,8 +1,11 @@
+let menuInfo = require('./context-menu-config');
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
-const $ = require('jquery');
 const d3 = require('d3');
 const LinkGrouper = require('./link-group');
+const SplitViewIconSet = require('./icon-set');
+
+let IDCACHE = -1;
 
 d3.selection.prototype.moveToFront = function () {
     return this.each(function () {
@@ -58,6 +61,10 @@ class MiniatureSplitView {
      * @constructor
      */
     constructor(args) {
+        if (!args ||  !args.divID) {
+            throw new Error("Args or divID is null... args: " + args);
+        }
+
         this.properties = {
             divID: args.divID,
             aspectRatio: args.aspectRatio,
@@ -65,8 +72,10 @@ class MiniatureSplitView {
             state: args.state,
             canLink: args.canLink,
             canAddRemove: args.canAddRemove,
+            canSelect: args.canSelect,
 
             showIDs: args.showIDs,
+            showIcons: args.showIcons,
 
             bottomTopThresholdPercentage: args.bottomTopThresholdPercentage,
 
@@ -78,6 +87,7 @@ class MiniatureSplitView {
 
         this.parent = $('#' + this.properties.divID);
         this.layout = new SplitBox(args.maxRows, args.maxColumns, args.aspectRatio);
+        this.icons = args.icons; //new SplitViewIconSet(args.maxRows, args.maxColumns);
 
         this.linkCache = {
             start: {
@@ -104,6 +114,16 @@ class MiniatureSplitView {
         };
 
         this.linkChangedCallback = {};
+        this.viewTypeChangedCallback = {};
+
+        if (args.canSelect) // Select only
+            this.changeState('SELECT');
+
+        this.selected = -1; // Highlight if selected
+    }
+
+    setViewTypeChangedCallback(handle) {
+        this.viewTypeChangedCallback = handle;
     }
 
     setSplitbox(splitbox) {
@@ -160,9 +180,11 @@ class MiniatureSplitView {
 
         svg.selectAll('.splitview-rect')
             .data(this.layout.flattenedLayoutPercentages)
-            .enter().append('rect')
+            .enter().append(this.properties.showIcons ? 'image' : 'rect')
             .attr('class', function (d) {
-                return "id-" + d.cellID + ' miniature-splitview-rect'
+                let iconClass = self.properties.showIcons ?
+                    self.icons.getIconClassName(d.cellID) : '';
+                return "id-" + d.cellID + ' miniature-splitview-rect ' + iconClass;
             })
             .attr('x', function (d) {
                 return (d.x0 * width);
@@ -176,10 +198,19 @@ class MiniatureSplitView {
             .attr('height', function (d) {
                 return d.heightN * height;
             })
+            .attr('xlink:href', (d) => {
+                return self.icons.getIconPath(d.cellID);
+            })
             .classed('linkgroup-master-cell', (d) => {
                 let isMaster = this.properties.canLink && _.contains(masterCellIDs, d.cellID);
                 //console.log("CellID " + d.cellID + " is master? " + isMaster);
                 return isMaster;
+            })
+            .classed('highlight-cell', (d) => {
+                return this.selected === d.cellID;
+            })
+            .on('mouseenter', function(d) {
+                IDCACHE = d.cellID;
             })
             .on('mousemove', function (d) {
                 if (current-- > 0)
@@ -201,9 +232,14 @@ class MiniatureSplitView {
                 let x0H = d.x0 * width + (isLeft ? 0 : halfRectWidth),
                     y0 = d.y0 * height;
 
-
                 switch (self.properties.state) {
                     case 'REMOVE':
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
+                        break;
+                    case 'EDIT':
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
+                        break;
+                    case 'SELECT':
                         self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
                         break;
                     case 'ADD':
@@ -304,6 +340,28 @@ class MiniatureSplitView {
             this.drawLinkLineFromCache();
             this.applyLinkageColors();
         }
+
+        if (this.properties.showIcons) {
+            // Append context menu if show icons
+            let sel = $('image.miniature-splitview-rect');
+            sel.contextMenu(menuInfo.menu, {
+                triggerOn: 'click'
+            });
+
+            menuInfo.listen((name) => {
+                this.notifyViewTypeChanged(name, IDCACHE);
+            });
+        }
+    }
+
+    notifyViewTypeChanged(newType, cellID) {
+        if (newType !== this.icons.getIconName(cellID)) {
+            this.icons.setIcon(cellID, newType);
+
+            this.viewTypeChangedCallback(cellID, newType);
+
+            this.dispatcher("refresh", []);
+        }
     }
 
     showRectAt(x0, y0, rectWidth, rectHeight, cellID) {
@@ -403,18 +461,46 @@ class MiniatureSplitView {
         this.linkGrouper.ungroupMember(id);
     }
 
+    selectCellID(id) { // Highlight it briefly
+        this.selected = id;
+        this.refresh();
+
+        setTimeout(() => {
+            this.selected = -1;
+            this.refresh();
+        }, 2000);
+    }
+
+    setSelected(id) { // Highlight until a new cell is selected
+        this.selected = id;
+        this.refresh();
+    }
+
     mouseClick(row, col, direction, centerX, centerY, mouseX, mouseY) {
         let id = -1;
         switch (this.properties.state) {
+            case 'SELECT':
+                id = this.layout.getCellID(row, col);
+                this.dispatcher('selectCellID', [id]);
+                break;
+            case 'EDIT':
+                id = this.layout.getCellID(row, col);
+
+                // Pop up the context menu
+                break;
             case 'ADD':
-                if (direction === 'left' || direction === 'right')
-                    this.layout.addCellToRow(row, col, direction === 'left');
-                else
-                    this.layout.addRowAt(row, direction === 'top');
+                if (direction === 'left' || direction === 'right') {
+                    id = this.layout.addCellToRow(row, col, direction === 'left');
+                    this.icons.addCell(id);
+                } else {
+                    id = this.layout.addRowAt(row, direction === 'top');
+                    this.icons.addCell(id);
+                }
                 this.dispatcher('refresh', []);
                 return;
             case 'REMOVE':
                 id = this.layout.removeCellAt(row, col);
+                this.icons.removeCell(id);
                 //console.log("Removed cell @ ID: " + id);
                 this.dispatcher('unlinkCellID', [id]);
                 this.dispatcher('refresh', []);

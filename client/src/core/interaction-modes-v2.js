@@ -4,25 +4,32 @@ class InteractionModeManager {
     constructor() {
 
         this.allModes = {
-            'Slicer': ['add', 'remove', 'rotate'],
+            'Slicer': ['add', 'remove', 'rotate', 'move'],
             'Sphere': [''],
-            '3d': ['rotate', 'select-point', 'select-ray', 'measure']
+            'Volume': ['rotate', 'zoom', 'move', 'select-point', 'select-ray', 'measure']
         };
 
         this.modes = {
             'Slicer': 'rotate',
             'Sphere': null,
-            '3d': null
+            'Volume': 'zoom'
         };
 
         this.verifyMode = true;
     }
 
     setInteractionMode(category, mode) {
-        if (this.verifyMode && !(_.contains(this.allModes[category], mode)))
-            console.error("Category " + category + " does not have the mode " + mode + " available, available modes: " + this.allModes[category]);
+        let lowercasemode = mode.toLowerCase();
+        // Quick hack to be able to add suffixes
+        // to be displayed @ menu without
+        // chainging the everywhere internally
+        lowercasemode = lowercasemode.split(' ')[0];
 
-        this.modes[category] = mode;
+        if (this.verifyMode && !(_.contains(this.allModes[category], lowercasemode)))
+            console.error("Category " + category + " does not have the mode " + lowercasemode + " available, available modes: " + this.allModes[category]);
+
+        console.log("Set interaction mode of " + category + " to " + lowercasemode);
+        this.modes[category] = lowercasemode;
     }
 
     getInteractionMode(category) {

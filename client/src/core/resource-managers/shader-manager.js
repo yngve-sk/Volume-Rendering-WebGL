@@ -19,7 +19,9 @@ let BUILTIN_PROGRAMS = {
     TextureBackMinusFront: 'TextureBackMinusFront',
     SlicerBasic: 'SlicerBasic',
     SlicerPicking: 'SlicerPicking',
-    Texture2Quad: 'Texture2Quad'
+    Texture2Quad: 'Texture2Quad',
+    VolImage2Quad: 'VolImage2Quad',
+    SlicerImage2Quad: 'SlicerImage2Quad'
 };
 
 
@@ -74,6 +76,12 @@ class ShaderManager {
 
         this.vertexShaders['Texture2Quad'] = glsl.file('../rendering/shaders/Texture2Quad/shader.v.glsl');
         this.fragmentShaders['Texture2Quad'] = glsl.file('../rendering/shaders/Texture2Quad/shader.f.glsl');
+
+        this.vertexShaders['VolImage2Quad'] = glsl.file('../rendering/shaders/Volume/Image2Quad/shader.v.glsl');
+        this.fragmentShaders['VolImage2Quad'] = glsl.file('../rendering/shaders/Volume/Image2Quad/shader.f.glsl');
+
+        this.vertexShaders['SlicerImage2Quad'] = glsl.file('../rendering/shaders/Slicer/Image2Quad/shader.v.glsl');
+        this.fragmentShaders['SlicerImage2Quad'] = glsl.file('../rendering/shaders/Slicer/Image2Quad/shader.f.glsl');
 
 
         this._initBuiltinPrograms();

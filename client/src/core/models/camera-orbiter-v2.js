@@ -11,25 +11,31 @@ console.log(Quat);
 
 class Camera {
     constructor(args) {
-        this.radius = args.radius || 1.0;
+        this.radius = args.radius || 5.2;
 
-        this.theta = args.theta  ||  Math.PI / 2;
-        this.phi = args.phi || Math.PI / 2;
+        this.theta = args.theta  ||  Math.PI / 3.0;
+        this.phi = args.phi || Math.PI / 3.0;
 
         this.target = args.target || v3.create(0, 0, 0);
 
         this.projectionSettings = args.projectionSettings || {
             fieldOfViewRadians: Math.PI / 10,
             aspectRatio: 1, // Initial
-            zNear: 1.0,
+            zNear: 0.5,
             zFar: 15.0
         };
 
-        this.ROT_SPEED_X = args.ROT_SPEED_X || 2;
-        this.ROT_SPEED_Y = args.ROT_SPEED_Y || 2;
+        this.ROT_SPEED_X = args.ROT_SPEED_X || 3.5;
+        this.ROT_SPEED_Y = args.ROT_SPEED_Y || 3.5;
+
+        this.PAN_SPEED_X = args.PAN_SPEED_X || 1.8;
+        this.PAN_SPEED_Y = args.PAN_SPEED_Y || 1.8;
+
+        this.ZOOM_SPEED = args.ZOOM_SPEED || 3.5;
 
         this.projection = null;
         this.view = null;
+        this.translationVec = v3.create(0, 0, 0);
 
         this._updateViewMatrix();
         this.setPerspective({});
@@ -42,11 +48,54 @@ class Camera {
             uv: null
         }
 
+        this.slaves = {
+            rotation: [],
+            radius: []
+        };
+
         this.upDir = 1;
 
         this.rotate(0.000001, 0.000001); // Init...
     }
 
+    linkTo(master, properties, callback) {
+        for (let property of properties)
+            master.listen(this, property, callback);
+    }
+
+    listen(slave, property, callback) {
+        this.slaves[property].push({
+            slave: slave,
+            callback: callback
+        });
+    }
+
+    _notifySlaves(property) {
+        switch (property) {
+            case 'rotation':
+                for (let slaveInfo of this.slaves[property]) {
+                    slaveInfo.slave.theta = this.theta;
+                    slaveInfo.slave.phi = this.phi;
+                    slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.callback();
+                }
+                break;
+            case 'radius':
+                for (let slaveInfo of this.slaves[property]) {
+                    slaveInfo.slave.radius = this.radius;
+                    slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.callback();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    killSlaves() {
+        this.slaves.rotation = [];
+        this.slaves.radius = [];
+    }
 
     rotate(dTheta, dPhi) {
         if (this.upDir > 0) {
@@ -71,15 +120,19 @@ class Camera {
         }
 
         this._updateViewMatrix();
+        this._notifySlaves('rotation');
     }
 
     zoom(dist) {
-        this.radius -= dist;
+        console.log("ZOOM " + dist);
+        this.radius -= dist * this.ZOOM_SPEED;
         this._updateViewMatrix();
+        this._notifySlaves('radius');
     }
 
     pan(dx, dy) {
-
+        this.translationVec[0] += dx * this.PAN_SPEED_X;
+        this.translationVec[1] -= dy * this.PAN_SPEED_Y;
     }
 
     tick() {
@@ -133,7 +186,7 @@ class Camera {
 
         // no world matrix, not needed ATM.
 
-        return m4.multiply(this.projection, this.view);
+        return m4.multiply(m4.translation(this.translationVec), m4.multiply(this.projection, this.view));
     }
 
     __unproject(devX, devY, devZ) {

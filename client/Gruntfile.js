@@ -40,7 +40,8 @@ module.exports = function (grunt) {
                 files: ['src/**/*.js', 'src/**/*.glsl'],
                 tasks: [
                     /*'jsdoc:dist',*/
-                    'browserify:dist'
+                    'browserify:dist',
+                    //'uglify:console_unlog'
                 ]
             }
         },
@@ -71,6 +72,17 @@ module.exports = function (grunt) {
                         'node_modules/angularjs-slider/dist/rzslider.js',
                         'templibs/jquery.toolbar.min.js'
                     ]
+                }
+            },
+            console_unlog: {
+                options: {
+                    mangle: false,
+                    compress: {
+                        drop_console: true
+                    }
+                },
+                files: {
+                    'build/main-compiled-noconsole.js': ['build/main-compiled.js']
                 }
             },
             mainBundle: {

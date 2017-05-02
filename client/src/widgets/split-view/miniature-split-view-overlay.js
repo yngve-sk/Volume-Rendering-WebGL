@@ -1,4 +1,12 @@
 let d3 = require('d3');
+/*let menuInfos = {
+    Volume: require('../../core/views/context-menu-config-volume'),
+    Slicer: require('../../core/views/context-menu-config-slicer')
+}*/
+let menuInfos = require('../../core/views/context-menu-configs');
+
+
+let InteractionModeManager = require('../../core/interaction-modes-v2');
 
 /**
  * Makes an overlay linked to a split view.
@@ -183,6 +191,7 @@ class MiniatureSplitViewOverlay {
                     });
                 })*/
                 .on('mousemove', function (subcell) {
+                    d3.event.stopPropagation();
                     let pos = d3.mouse(this.parentNode);
                     let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
                     self._handleEvent(cellID, subcell.name, {
@@ -232,6 +241,22 @@ class MiniatureSplitViewOverlay {
         });
 
         rects.remove();
+
+        let hasContextMenu = ['Volume', 'Slicer'];
+
+        for (let ctxOwner of hasContextMenu) {
+            // Append context menu
+            $('.subview-subcell-' + ctxOwner).contextMenu(menuInfos[ctxOwner].menu, {
+                triggerOn: 'click'
+            });
+
+            menuInfos[ctxOwner].listen((item) => {
+                InteractionModeManager.setInteractionMode(ctxOwner, item);
+            });
+        }
+
+
+
         return rendererCells;
     }
 

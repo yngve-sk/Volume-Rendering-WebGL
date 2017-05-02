@@ -9,8 +9,9 @@ let divIDs = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
         [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
         [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.SPHERE.name]: 'lvw-link-view-4'
-    }
+        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-4'
+    },
+    SELECT: 'lvw-select-view'
 };
 
 /** @module ViewSplitterMasterController
@@ -92,9 +93,13 @@ let getAllLinkModels = () => {
     return propertyNames;
 }
 
+
+
 let init = (callbacks) => {
     views.ADD = genAddRemoveView(divIDs.ADD, viewSettings);
+    views.ADD.setViewTypeChangedCallback(callbacks.viewTypeChanged);
     views.ADD.render();
+
 
     let splitbox = views.ADD.layout;
     splitbox.setChangeListener(callbacks.layoutChanged);
@@ -110,6 +115,35 @@ let init = (callbacks) => {
         views.linkers[model.name].setLinkChangedCallback(model.name, callbacks.linkChanged);
         views.linkers[model.name].render();
     }
+
+    let isLocked = false;
+    let isMinimized = true;
+
+    let selectDIV = document.getElementById(divIDs.SELECT);
+    let btnDIV = document.getElementById('lvw-select-view-btn');
+    let btnDIVIcon = document.querySelector('#lvw-select-view-btn > i');
+    let btnBaseClasslist = 'ui icon button ';
+
+    let updateSelectDiv = () => {
+        if (isLocked)
+            return;
+
+        selectDIV.classList = isMinimized ? 'minimized' : '';
+
+        btnDIV.classList = btnBaseClasslist + (isMinimized ? 'minimized' : '');
+        btnDIVIcon.classList = isMinimized ? 'expand icon' : 'compress icon';
+        views.SELECT.refresh();
+    }
+
+    btnDIV.addEventListener('click', () => {
+        isMinimized = !isMinimized;
+        updateSelectDiv();
+    });
+
+    views.SELECT = genSelectView(divIDs.SELECT, viewSettings);
+    views.SELECT.layout = splitbox;
+    views.SELECT.setViewTypeChangedCallback(callbacks.viewTypeChanged);
+    views.SELECT.render();
 
     console.log("Dispatch refresh");
     setTimeout(() => {
@@ -149,12 +183,25 @@ let read = () => {
 }
 
 let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, otherwise they are autonomous.
-    views.ADD[event].apply(views.ADD, args);
-    for (let view in views.linkers) {
-        let theView = views.linkers[view];
-        //        console.log(theView);
-        let fn = theView[event];
-        fn.apply(theView, args);
+    if (event === 'selectCellID') { // Special, highlight it briefly in other cells
+        views.ADD[event].apply(views.ADD, args);
+        for (let view in views.linkers) {
+            let theView = views.linkers[view];
+            //        console.log(theView);
+            let fn = theView[event];
+            fn.apply(theView, args);
+        }
+
+        views.SELECT.setSelected(args[0]);
+    } else {
+        views.ADD[event].apply(views.ADD, args);
+        views.SELECT[event].apply(views.SELECT, args);
+        for (let view in views.linkers) {
+            let theView = views.linkers[view];
+            //        console.log(theView);
+            let fn = theView[event];
+            fn.apply(theView, args);
+        }
     }
 };
 
@@ -191,7 +238,8 @@ let viewSettings = {
     canLink: true,
     canAddRemove: false,
     bottomTopThresholdPercentage: BaseSettings.bottomTopThresholdPercentage,
-    colors: BaseSettings.colors
+    colors: BaseSettings.colors,
+    icons: BaseSettings.icons
 };
 
 let genLinkingView = (divID, settings) => {
@@ -201,6 +249,7 @@ let genLinkingView = (divID, settings) => {
     customSettings.canAddRemove = false;
     customSettings.state = 'LINK-ADD';
     customSettings.receiveLayoutChanges = true;
+    customSettings.showIcons = BaseSettings.showIconsOnLinkingViews;
     return new MiniatureSplitView(customSettings);
 }
 
@@ -210,6 +259,18 @@ let genAddRemoveView = (divID, settings) => {
     customSettings.canLink = false;
     customSettings.canAddRemove = true;
     customSettings.dispatcher = dispatch;
+    customSettings.showIcons = BaseSettings.showIconsOnAddRemoveView;
+    return new MiniatureSplitView(customSettings);
+}
+
+let genSelectView = (divID, settings) => {
+    let customSettings = _.clone(settings);
+    customSettings.divID = divID;
+    customSettings.canLink = false;
+    customSettings.canAddRemove = false;
+    customSettings.canSelect = true;
+    customSettings.dispatcher = dispatch;
+    customSettings.showIcons = BaseSettings.showIconsOnSelectView;
     return new MiniatureSplitView(customSettings);
 }
 

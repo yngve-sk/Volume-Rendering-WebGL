@@ -37,12 +37,6 @@ class Environment {
         this.ViewManager = null; // Depends on links&view view
         this.TransferFunctionManager = new TransferFunctionManager(this);
 
-        this.GlobalOverrideLocals = {
-            'TransferFunction': false,
-            'Selection': false,
-
-        }
-
         this.listeners = {
             TFModelDidChange: { // channel
                 'GLOBAL': null, // handle
@@ -54,6 +48,8 @@ class Environment {
             }
         }
 
+
+
         // Using arrow func to always have this. be the this. of __THIS CONTEXT__
         // Same as passing this.func.bind(this) as a callback but less verbose
 
@@ -62,6 +58,14 @@ class Environment {
             console.log("LINK CHANGED!");
             console.log(propertyKey);
             this.ViewManager.linkChanged(propertyKey);
+        }
+
+        this.notifyIsoThresholdChanged = (editorName, newMin, newMax) => {
+            console.log("this.notifyIsoThresholdChanged(" + editorName + ", " + newMin + ", " + newMax + ")");
+        }
+
+        this.notifyModelPointsToGlobalChanged = (modelName, pointToGlobal) => {
+            this.ViewManager.setModelPointsToGlobal(modelName, pointToGlobal);
         }
 
         // called when the layout changes
@@ -81,6 +85,10 @@ class Environment {
             }
         }
 
+        this.notifyViewTypeChanged = (cellID, newType) => {
+            this.ViewManager.viewTypeChanged(cellID, newType);
+        }
+
         this.notifyDatasetWasLoaded = (name, header, isovalues) => {
             console.log("notifyDatasetWasLoaded!");
             this.DatasetManager.addDataset({
@@ -94,6 +102,10 @@ class Environment {
             // For now pretend only one dataset will be loaded at a time.
             this._notifyListeners('DatasetDidChange', 'LOCAL');
             this._notifyListeners('DatasetDidChange', 'GLOBAL');
+        }
+
+        this.notifyDatasetWasRead = () => {
+            this.DatasetManager.clearDataset();
         }
 
         this.readyElements = []; // Expect call from:

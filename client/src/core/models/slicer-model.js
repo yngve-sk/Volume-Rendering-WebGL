@@ -1,3 +1,5 @@
+let SIZE = 1.0; // Slicer BB size
+
 let twgl = require('twgl.js'),
     primitives = twgl.primitives,
     m4 = twgl.m4,
@@ -9,7 +11,7 @@ let MouseHandler = require('../mouse-handler');
 let OrbiterCamera = require('./camera-orbiter');
 let getSlicerBuffers = require('./slicer-model-buffers');
 
-let BufferInfo = getSlicerBuffers(Math.sqrt(2)); // Generate it now so it is cached and can be retrieved
+let BufferInfo = getSlicerBuffers(SIZE); // Generate it now so it is cached and can be retrieved
 
 let IDInfo = BufferInfo.IDInfo;
 
@@ -18,7 +20,6 @@ let Settings = require('../settings').Views.Slicer;
 
 /** @module Core/Models */
 
-let SIZE = Math.sqrt(2);
 
 /**
  * Represents an underlying discrete model of a slicer. It only represents the
@@ -28,7 +29,9 @@ let SIZE = Math.sqrt(2);
  */
 class SlicerModel {
     constructor(gl, viewManager, myID) {
+        this.viewManager = viewManager;
 
+        // Debugging only
         window['HID' + myID] = (id) => {
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
@@ -36,20 +39,10 @@ class SlicerModel {
 
         this.gl = gl;
         this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
-
-        // .get, .refresh
-
-        console.log("SlicerModel constrcutor!");
-
-        this.camera = new OrbiterCamera(v3.create(1, 3, -7), {
-            fieldOfViewRadians: Math.PI / 10,
-            aspectRatio: 1, // Initial
-            zNear: 1.0,
-            zFar: 15.0
-        });
+        this.myID = myID;
 
         this.camera = new CameraV2({
-            radius: 10.2,
+            radius: 5.2,
 
             theta: 0,
             phi: 0,
@@ -89,6 +82,42 @@ class SlicerModel {
         this._bindMouseHandler();
     }
 
+    linkCameraPhiAndThetaTo(otherCameraModel) {
+        this.camera.linkTo(otherCameraModel, ['rotation'], () => {
+            console.log("Master camera changed for slicer model w/ subview ID " + this.myID);
+            this._refreshUniforms();
+        });
+    }
+
+    getSliceOffsets(axis) {
+        switch (axis) {
+            case 'X':
+                return [
+                    this.uniforms.u_SliceOffsets[0],
+                    this.uniforms.u_SliceOffsets[1]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            case 'Y':
+                return [
+                    this.uniforms.u_SliceOffsets[2],
+                    this.uniforms.u_SliceOffsets[3]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            case 'Z':
+                return [
+                    this.uniforms.u_SliceOffsets[4],
+                    this.uniforms.u_SliceOffsets[5]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            default:
+                break;
+        }
+
+    }
+
     _refreshUniforms() {
         // Fetch uniforms from the slicer box
         for (let key in this.slicerBox.uniforms)
@@ -99,42 +128,12 @@ class SlicerModel {
     }
 
     _genAttribArrays() {
-        this.attribArrays = getSlicerBuffers(Math.sqrt(2));
+        this.attribArrays = getSlicerBuffers(SIZE);
         //this.attribArrays = this.slicerBox.getBufferArrays();
     }
 
     mouse(event) {
         this.mouseHandler.handle(event);
-        console.log("HANDLE...");
-        console.log(event);
-        if (1)
-            return;
-        // left click -> rotate / orbit camera
-        //let res = this.camera.mouse(event); // TEMP, TODO do raycasting to add/move slices etc
-
-        if (res) {
-            console.log("SlicerModel, did shoot ray");
-            console.log(res);
-        }
-
-        this._refreshUniforms();
-
-        // right click -> context menu?..
-        console.log("Slicer mouse event");
-        console.log(event);
-
-        let x0 = event.pos.x, // [0,1]
-            y0 = event.pos.y;
-
-        let x1 = (x0 * 2.0) - 1.0, // [0,1] -> [-1, 1]
-            y1 = -((y0 * 2.0) - 1.0);
-
-    }
-
-    getBuffers() {
-        let sideLength = Math.sqrt(2); // Will always just fit
-        // 1. Gen the cube vertices, 1 quad per side
-
     }
 
     _bindMouseHandler() {
@@ -223,26 +222,48 @@ class SlicerModel {
         }
 
         this.mouseHandler.on('mouseenter', null, (state) => {
+            let interactionMode = GetInteractionMode();
 
+            switch (interactionMode) {
+                case 'add': // Render PB cube faces only
+                    break;
+                case 'remove': // Render PB slices only
+                    break;
+
+                default:
+                    break;
+            }
         });
 
         this.mouseHandler.on('mouseout', null, (state) => {
             this.dragInfo.railinfo = null;
             this.slicerBox.highlightID(-1);
-        })
+        });
 
         this.mouseHandler.on('click', 'left', (state) => {
             let interactionMode = GetInteractionMode();
+            let pb = readPBPixels(state.x, state.y);
             let id = pb.id;
 
             console.log("Highlighting ID: " + id);
 
-            if (IDInfo.isFace(id)) { // Click on face, will add slice
-                // Add the slice
-                this.slicerBox.addSliceFromCubeFace(id);
+            switch (interactionMode) {
+                case 'add':
+                    if (IDInfo.isFace(id)) { // Click on face, will add slice
+                        // Add the slice
+                        this.slicerBox.addSliceFromCubeFace(id);
+                        this.slicerBox.highlightID(id);
+                    }
+                    break;
+                case 'remove':
+                    if (IDInfo.isSlice(id))
+                        this.slicerBox.removeSlice(id);
+                    break;
+                default: // nothing
+                    break;
             }
 
-            this.slicerBox.highlightID(id);
+
             this._refreshUniforms();
             return;
 
@@ -314,7 +335,7 @@ class SlicerModel {
             }
         });
         this.mouseHandler.on('mousemove', 'left', (state) => {
-            debugDisplayPickingBuffer();
+            /*debugDisplayPickingBuffer();
             let pb = readPBPixels(state.x, state.y);
             let id = pb.id;
 
@@ -335,7 +356,7 @@ class SlicerModel {
             });
 
             this.slicerBox.highlightIntersected(ray);
-            this._refreshUniforms();
+            this._refreshUniforms();*/
 
         });
         this.mouseHandler.on('drag', 'left', (state) => {
@@ -346,9 +367,13 @@ class SlicerModel {
             if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
                 let offset = pb.railOffset;
                 this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                this._refreshUniforms();
+                this.viewManager.notifySlicesDidChange(this.myID);
 
             } else { // dont rotate when drag in progress...
                 this.camera.rotate(state.dx, state.dy);
+                /*this._refreshUniforms();
+                this.viewManager.requestAnimationFrame(['Slicer'], this.myID);*/
             }
 
 
@@ -368,7 +393,6 @@ class SlicerModel {
                     //}
                     break;
             }*/
-            this._refreshUniforms();
         });
 
     }
@@ -451,6 +475,10 @@ class LabeledSlicerBox {
         }
     }
 
+    _getNormal(id) {
+        return id < 2 ? 'X' : (id < 4) ? 'Y' : 'Z';
+    }
+
     addSliceFromCubeFace(fromCubeFace) {
         // 1. Convert cube face index to direction and starting position
         let info = this._cubeFaceIDToNormalAndStartOffset(fromCubeFace);
@@ -463,6 +491,7 @@ class LabeledSlicerBox {
 
         // 3. Set the offset @ given index
         this.moveSliceToOffset(index, info.offset);
+        return index;
     }
 
     _cubeFaceIDToNormalAndStartOffset(cubefaceID) {
@@ -600,55 +629,10 @@ class LabeledSlicerBox {
         this.dragOffset = newOffset;
     }
 
-    /*getSliceAtAxisAndOffset(alongAxis, offset) {
-        let start = this._getOffsetStartIndex(alongAxis);
-        for (let id = start; id < start + 2; id++) {
-            if (
-                Math.abs(this.uniforms.u_SliceOffsets[id]) <=
-                Settings.SelectSliceSnapThreshold) {
-
-                this._initiateDragSlice(id);
-                return id;
-            }
-        }
-
-        return -1;
-    }
-
-    isSliceDragActive() {
-        return this.draggedSliceIndex !== -1;
-    }
-
-    _initiateDragSlice(id) {
-        this.draggedSliceIndex = id;
-    }
-
-    dragEnd() {
-        this.draggedSliceIndex = -1;
-    }
-
-    dragSliceToOffset(offset) {
-        if (this.draggedSliceIndex) {
-            console.error("No slice index selected...");
-        }
-
-        this.moveSliceToOffset(this.draggedSliceIndex, offset);
-    }
-
-    _setOffsetOfSliceWithIndex(id, offset) {
-        this.uniforms.u_SliceOffsets[id] = offset;
-    }
-
-    moveSliceToOffset(id, offset) {
-        this._setOffsetOfSliceWithIndex(id, offset);
-    }
-
-    moveSliceToOffset(quadID, offset) {
-        this._setOffsetOfSliceWithIndex(quadID, offset);
-    }*/
-
-    hideSlice(id) {
-        this.uniforms.u_QuadOffsetIndices[id] = -1; // Mark quad as inactive
+    removeSlice(id) {
+        this.uniforms.u_SliceOffsets[id] = -1;
+        let normal = this._getNormal(id);
+        this.qCounts[normal]--;
     }
 
     getUniforms() {

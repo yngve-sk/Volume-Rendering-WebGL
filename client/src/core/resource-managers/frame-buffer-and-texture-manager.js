@@ -24,8 +24,55 @@ class FrameBufferAndTextureManager {
         };
 
         this.transferFunctionTextures = {}; // {subviewID : TextureObj}
+
+        this._initDebugTextures();
     }
 
+
+    _initDebugTextures() {
+        let gl = this.gl;
+        this.textures['DebugTex1'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                255, 255, 255, 255,
+                192, 192, 192, 255,
+                192, 192, 192, 255,
+                255, 255, 255, 255,
+            ],
+        });
+        this.textures['DebugTex2'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                155, 155, 155, 255,
+                192, 192, 192, 255,
+                192, 122, 122, 255,
+                255, 255, 255, 255,
+            ],
+        });
+        this.textures['DebugTex3'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                55, 55, 155, 255,
+                92, 12, 192, 255,
+                192, 92, 192, 255,
+                255, 55, 55, 255,
+            ],
+        });
+        this.textures['DebugTex4'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                5, 55, 255, 255,
+                192, 192, 192, 255,
+                192, 2, 192, 255,
+                155, 5, 255, 255,
+            ],
+        });
+
+    }
 
     /**
      *

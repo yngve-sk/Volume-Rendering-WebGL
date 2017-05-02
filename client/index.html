@@ -3,32 +3,31 @@
 <head>
     <title>WebGL2 Volume Renderer</title>
 
-    <link type="text/css" rel="stylesheet" href="css/all.css">
     <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
-<!--
     <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.css" />
--->
 
     <script src="build/externals.min.js"></script>
-<!--
     <script src="templibs/jquery.toolbar.min.js"></script>
     <link type="text/css" rel="stylesheet" href="./templibs/jquery.toolbar.min.css" />
--->
 
+    <link type="text/css" rel="stylesheet" href="build/style.css">
+    <link type="text/css" rel="stylesheet" href="css/all.css">
     <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
 
-
-
-    <!--
-        <link type="text/css" rel="stylesheet" href="build/style.css">
--->
+    <script src="./templibs/contextMenu.js-master/contextMenu.js"></script>
+    <link type="text/css" rel="stylesheet" href="./templibs/contextMenu.js-master/contextMenu.css">
 </head>
 
 <body>
 
     <div ng-controller="master-controller as mc" id="master-container">
-
+        <div>
+            <div id="lvw-select-view" class="minimized" data-tooltip="Set/View the selected subview here, this will be the target for the local controls"></div>
+            <button data-tooltip="Minimize/maximize subview selection panel" id="lvw-select-view-btn" class="ui icon button minimized">
+            <i class="expand icon"></i>
+            </button>
+        </div>
         <links-and-views-view></links-and-views-view>
         <!--div class="ui black big launch fixed right floated button" id="options-button" ng-click="toggleShowControls()">
             <i class="content icon"></i>
@@ -39,9 +38,8 @@
 
 
             <div class="panel-left">
-                <vr-toolbar></vr-toolbar>
 
-<!--
+                <!--
                 <div id="slicer-toolbar-options" class="hidden">
                     <a data-tooltip="This one has new tooltip"
                          data-position="bottom left"
@@ -169,7 +167,8 @@
 
     <script src="build/main-compiled.js"></script>
 
-    <svg style="width:0;height:0"><defs><filter id="linkgroup-master-cell-filter22">
+    <svg style="width:0;height:0"><defs>
+        <filter id="linkgroup-master-cell-filter22">
 
 			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
 			<feOffset dy="3" dx="3"></feOffset>
@@ -192,6 +191,18 @@
     <canvas id="debugcanvas" width=1000, height=1000>
 
     </canvas>
+    <script>
+        console.log = function() {};
+    </script>
 </body>
+<!--footer style="font-size:8px; color: grey; opacity: 0.2">
+    <center>
+        <div>Icons made by <a href="http://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        <div>Icons made by <a href="http://www.flaticon.com/authors/nikita-golubev" title="Nikita Golubev">Nikita Golubev</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        <div>Icons made by <a href="http://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        <div>Icons made by <a href="http://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+        <div>Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    </center>
+</footer-->
 
 </html>

@@ -49065,7 +49065,9 @@ app.directive('cameraSettingsView', require('./ng-directives/camera-settings-vie
 
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
-app.directive('vrToolbar', require('./ng-directives/toolbar-view'));
+
+// OBSOLETE (for now), ctx-menu better
+/*app.directive('vrToolbar', require('./ng-directives/toolbar-view'));*/
 //app.directive('volumeViewManager', require('./ng-directives/volume-view-manager'));
 
 //require('./angular-semantic-ui.min');
@@ -49078,7 +49080,7 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":32,"./ng-directives/dataset-view":33,"./ng-directives/global-control-panel-view":34,"./ng-directives/links-and-views-view":35,"./ng-directives/local-control-panel-view":36,"./ng-directives/toolbar-view":37,"./ng-directives/transfer-function-view":38}],24:[function(require,module,exports){
+},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":31,"./ng-directives/dataset-view":32,"./ng-directives/global-control-panel-view":33,"./ng-directives/links-and-views-view":34,"./ng-directives/local-control-panel-view":35,"./ng-directives/transfer-function-view":36}],24:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
@@ -49102,7 +49104,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":40}],25:[function(require,module,exports){
+},{"../../core/environment":38}],25:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -49234,7 +49236,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":39,"../../core/environment":40,"../../core/settings":58}],26:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38,"../../core/settings":57}],26:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49253,7 +49255,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":39,"../../core/environment":40}],27:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38}],27:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
 let LinkableModels = require('../../core/linkable-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
@@ -49262,15 +49264,16 @@ let Environment = require('../../core/environment');
 let controller = function ($scope) {
 
     let viewID2LinkerKey = {
-        1: [LinkableModels.TRANSFER_FUNCTION.name],
-        2: [LinkableModels.CAMERA.name],
-        3: [LinkableModels.SLICER.name],
-        4: [LinkableModels.SPHERE.name],
+        1: LinkableModels.TRANSFER_FUNCTION.name,
+        2: LinkableModels.CAMERA.name,
+        3: LinkableModels.SLICER.name,
+        4: LinkableModels.THRESHOLDS.name,
     }
 
     let callbacks = {
         linkChanged: Environment.notifyLinkChanged,
-        layoutChanged: Environment.notifyLayoutChanged
+        layoutChanged: Environment.notifyLayoutChanged,
+        viewTypeChanged: Environment.notifyViewTypeChanged
     };
 
     // Require in here because it's not needed outside, pass in callbacks
@@ -49281,19 +49284,37 @@ let controller = function ($scope) {
 
     $scope.addViewText = adding;
 
-    let isAddMode = true;
+    $scope.MainViewMode = "ADD";
 
     $scope.addView = () => {
-        isAddMode = true;
+        $scope.MainViewMode = "ADD";
         objController.changeAddRemoveState('ADD');
         $scope.addViewText = adding;
     };
 
     $scope.removeView = () => {
-        isAddMode = false;
+        $scope.MainViewMode = "REMOVE";
         objController.changeAddRemoveState('REMOVE');
         $scope.addViewText = removeViewTextAndIcon;
     };
+
+    $scope.changeView = () => {
+        objController.changeAddRemoveState('EDIT');
+        $scope.MainViewMode = "EDIT";
+    }
+
+    $scope.isGlobal = {
+        1: false,
+        2: false,
+        3: false,
+        4: false
+    };
+
+    $scope.toggleGlobal = (id) => {
+        $scope.isGlobal[id] = !$scope.isGlobal[id];
+        Environment.notifyModelPointsToGlobalChanged(viewID2LinkerKey[id], $scope.isGlobal[id]);
+
+    }
 
     $scope.DOMReady = () => {
         objController = InitMiniatureSplitviewManager(callbacks);
@@ -49305,21 +49326,32 @@ let controller = function ($scope) {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
         [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
-        [LinkableModels.SPHERE.name]: 'LINK-ADD'
+        [LinkableModels.THRESHOLDS.name]: 'LINK-ADD'
     };
+    $scope.linkStates = linkStates;
+
 
     $scope.isActiveLinker = (id, on) => {
         return linkStates[viewID2LinkerKey[id]] === 'LINK-ADD';
     }
 
-    $scope.idActiveAddRemove = () => {
+    $scope.isAddMode = () => {
         return isAddMode;
     }
+
+
+    $scope.isChangeViewMode = () => {
+        return isChangeViewMode;
+    }
+
+
 
     $scope.getLinkerState = (id) => {
         let key = viewID2LinkerKey[id];
         return linkStates[key] === 'LINK-ADD' ? 'Adding...' : 'Deleting...';
     }
+
+
 
     // state: 'add' or 'delete'
     $scope.setLinkerState = (id, state) => {
@@ -49349,7 +49381,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":40,"../../core/linkable-models":43,"../../widgets/split-view/view-splitter-master-controller":72}],28:[function(require,module,exports){
+},{"../../core/environment":38,"../../core/linkable-models":41,"../../widgets/split-view/view-splitter-master-controller":75}],28:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49362,7 +49394,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":39,"../../core/environment":40}],29:[function(require,module,exports){
+},{"../../client2server/websocket-client":37,"../../core/environment":38}],29:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -49403,69 +49435,6 @@ module.exports = function ($scope) {
 };
 
 },{}],30:[function(require,module,exports){
-let Environment = require('../../core/environment');
-let InteractionModeManager = require('../../core/interaction-modes-v2');
-
-let controller = function ($scope) {
-    $scope.DOMReady = () => {
-
-        let selected = {
-            'Slicer': null,
-            'Sphere': null,
-            '3d': null
-        }
-
-        let setSelected = (view, newSelected) => {
-            if (selected[view])
-                $(selected[view]).removeClass('vr-toolbar-selected');
-
-            selected[view] = newSelected;
-            $(selected[view]).addClass('vr-toolbar-selected');
-        }
-
-        $('#slicer-toolbar').toolbar({
-            content: '#slicer-toolbar-options',
-            position: 'bottom',
-            hideOnClick: true,
-            event: 'click',
-            animation: 'standard'
-        });
-
-        $('#slicer-toolbar').on('toolbarItemClick', (item, source, item3) => {
-            console.log(item);
-            let action = source.getAttribute('action');
-            console.log(source);
-            setSelected('Slicer', source);
-
-            InteractionModeManager.setInteractionMode('Slicer', action);
-        });
-
-        $('#3d-toolbar').toolbar({
-            content: '#3d-toolbar-options',
-            position: 'bottom',
-            hideOnClick: true,
-            event: 'click',
-            animation: 'standard'
-        });
-
-        $('#3d-toolbar').on('toolbarItemClick', (item, source, item3) => {
-            console.log(item);
-            let action = source.getAttribute('action');
-            console.log(source);
-            setSelected('3d', source);
-
-
-            InteractionModeManager.setInteractionMode('3d', action);
-        });
-
-
-    }
-
-}
-
-module.exports = controller;
-
-},{"../../core/environment":40,"../../core/interaction-modes-v2":41}],31:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -49477,6 +49446,22 @@ let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
     let tfEditor = null; // Initialized when DOM is ready.
+
+    $scope.thresholdSlider = {
+        minValue: 0,
+        maxValue: 4095,
+        options: {
+            floor: 0,
+            ceil: 4095,
+            step: 1,
+            onChange: () => {
+                Environment.notifyIsoThresholdChanged(
+                    $scope.name,
+                    $scope.thresholdSlider.minValue,
+                    $scope.thresholdSlider.maxValue);
+            }
+        }
+    }
 
     $scope.displayOptions = {
         showHistogram: true,
@@ -49575,7 +49560,7 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":40,"../../widgets/transfer-function/transfer-function-editor-v2":74,"jquery":18,"spectrum-colorpicker":19}],32:[function(require,module,exports){
+},{"../../core/environment":38,"../../widgets/transfer-function/transfer-function-editor-v2":77,"jquery":18,"spectrum-colorpicker":19}],31:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
@@ -49597,7 +49582,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/camera-settings-view-controller":24}],33:[function(require,module,exports){
+},{"../ng-controllers/camera-settings-view-controller":24}],32:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -49618,7 +49603,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":25}],34:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":25}],33:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49641,7 +49626,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":26}],35:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":26}],34:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -49663,7 +49648,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":27}],36:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":27}],35:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49685,29 +49670,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":28}],37:[function(require,module,exports){
-let toolbarController = require('../ng-controllers/toolbar-controller');
-
-let directive = function ($timeout) {
-    return {
-        restrict: 'E',
-        scope: {},
-        controller: toolbarController,
-        link: function (scope, element, attrs) {
-            $timeout(function () {
-                console.log("attrs");
-
-                scope.DOMReady(); // Call code AFTER shit is loaded
-                // avoid executing code on DOM before it is initialized!
-            }, 0); //Calling a scoped method
-        },
-        templateUrl: 'src/angular-assets/ng-templates/toolbar-view-template.html'
-    }
-};
-
-module.exports = directive;
-
-},{"../ng-controllers/toolbar-controller":30}],38:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":28}],36:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -49738,7 +49701,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":40,"../ng-controllers/transfer-function-view-controller":31}],39:[function(require,module,exports){
+},{"../../core/environment":38,"../ng-controllers/transfer-function-view-controller":30}],37:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -49850,7 +49813,7 @@ module.exports = {
     GET: get
 };
 
-},{"../main":65,"blob-to-buffer":2}],40:[function(require,module,exports){
+},{"../main":66,"blob-to-buffer":2}],38:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -49890,12 +49853,6 @@ class Environment {
         this.ViewManager = null; // Depends on links&view view
         this.TransferFunctionManager = new TransferFunctionManager(this);
 
-        this.GlobalOverrideLocals = {
-            'TransferFunction': false,
-            'Selection': false,
-
-        }
-
         this.listeners = {
             TFModelDidChange: { // channel
                 'GLOBAL': null, // handle
@@ -49907,6 +49864,8 @@ class Environment {
             }
         }
 
+
+
         // Using arrow func to always have this. be the this. of __THIS CONTEXT__
         // Same as passing this.func.bind(this) as a callback but less verbose
 
@@ -49915,6 +49874,14 @@ class Environment {
             console.log("LINK CHANGED!");
             console.log(propertyKey);
             this.ViewManager.linkChanged(propertyKey);
+        }
+
+        this.notifyIsoThresholdChanged = (editorName, newMin, newMax) => {
+            console.log("this.notifyIsoThresholdChanged(" + editorName + ", " + newMin + ", " + newMax + ")");
+        }
+
+        this.notifyModelPointsToGlobalChanged = (modelName, pointToGlobal) => {
+            this.ViewManager.setModelPointsToGlobal(modelName, pointToGlobal);
         }
 
         // called when the layout changes
@@ -49934,6 +49901,10 @@ class Environment {
             }
         }
 
+        this.notifyViewTypeChanged = (cellID, newType) => {
+            this.ViewManager.viewTypeChanged(cellID, newType);
+        }
+
         this.notifyDatasetWasLoaded = (name, header, isovalues) => {
             console.log("notifyDatasetWasLoaded!");
             this.DatasetManager.addDataset({
@@ -49947,6 +49918,10 @@ class Environment {
             // For now pretend only one dataset will be loaded at a time.
             this._notifyListeners('DatasetDidChange', 'LOCAL');
             this._notifyListeners('DatasetDidChange', 'GLOBAL');
+        }
+
+        this.notifyDatasetWasRead = () => {
+            this.DatasetManager.clearDataset();
         }
 
         this.readyElements = []; // Expect call from:
@@ -50113,32 +50088,39 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":39,"../core/views/view-manager":60,"../datasets&selections/dataset-manager":61,"../widgets/split-view/view-splitter-master-controller":72,"../widgets/transfer-function/transfer-function":76,"../widgets/transfer-function/transfer-function-manager":75,"./interaction-modes":42}],41:[function(require,module,exports){
+},{"../client2server/websocket-client":37,"../core/views/view-manager":60,"../datasets&selections/dataset-manager":62,"../widgets/split-view/view-splitter-master-controller":75,"../widgets/transfer-function/transfer-function":79,"../widgets/transfer-function/transfer-function-manager":78,"./interaction-modes":40}],39:[function(require,module,exports){
 let _ = require('underscore');
 
 class InteractionModeManager {
     constructor() {
 
         this.allModes = {
-            'Slicer': ['add', 'remove', 'rotate'],
+            'Slicer': ['add', 'remove', 'rotate', 'move'],
             'Sphere': [''],
-            '3d': ['rotate', 'select-point', 'select-ray', 'measure']
+            'Volume': ['rotate', 'zoom', 'move', 'select-point', 'select-ray', 'measure']
         };
 
         this.modes = {
             'Slicer': 'rotate',
             'Sphere': null,
-            '3d': null
+            'Volume': 'zoom'
         };
 
         this.verifyMode = true;
     }
 
     setInteractionMode(category, mode) {
-        if (this.verifyMode && !(_.contains(this.allModes[category], mode)))
-            console.error("Category " + category + " does not have the mode " + mode + " available, available modes: " + this.allModes[category]);
+        let lowercasemode = mode.toLowerCase();
+        // Quick hack to be able to add suffixes
+        // to be displayed @ menu without
+        // chainging the everywhere internally
+        lowercasemode = lowercasemode.split(' ')[0];
 
-        this.modes[category] = mode;
+        if (this.verifyMode && !(_.contains(this.allModes[category], lowercasemode)))
+            console.error("Category " + category + " does not have the mode " + lowercasemode + " available, available modes: " + this.allModes[category]);
+
+        console.log("Set interaction mode of " + category + " to " + lowercasemode);
+        this.modes[category] = lowercasemode;
     }
 
     getInteractionMode(category) {
@@ -50157,7 +50139,7 @@ class InteractionModeManager {
 
 module.exports = new InteractionModeManager();
 
-},{"underscore":22}],42:[function(require,module,exports){
+},{"underscore":22}],40:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -50212,12 +50194,13 @@ module.exports = {
     }
 }
 
-},{}],43:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 let TransferFunction = require('../widgets/transfer-function/transfer-function');
 //let Camera = require('./models/camera');
-let Camera = require('./models/camera-orbiter');
+let Camera = require('./models/camera-orbiter-v2');
 let Slicer = require('./models/slicer-model');
 let Sphere = require('./models/sphere-model');
+let Thresholds = require('./models/thresholds');
 
 let LinkableModels = {
     TRANSFER_FUNCTION: {
@@ -50232,10 +50215,14 @@ let LinkableModels = {
         name: 'Slicer',
         class: Slicer
     },
-    SPHERE: {
+    THRESHOLDS: {
+        name: 'Thresholds',
+        class: Thresholds
+    }
+    /*SPHERE: {
         name: 'Sphere',
         class: Sphere
-    }
+    },*/
 };
 
 let modelsList = [];
@@ -50247,7 +50234,7 @@ module.exports = {
     Models: LinkableModels
 };
 
-},{"../widgets/transfer-function/transfer-function":76,"./models/camera-orbiter":45,"./models/slicer-model":47,"./models/sphere-model":48}],44:[function(require,module,exports){
+},{"../widgets/transfer-function/transfer-function":79,"./models/camera-orbiter-v2":42,"./models/slicer-model":45,"./models/sphere-model":46,"./models/thresholds":47}],42:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = twgl.m4,
     v3 = twgl.v3;
@@ -50261,25 +50248,31 @@ console.log(Quat);
 
 class Camera {
     constructor(args) {
-        this.radius = args.radius || 1.0;
+        this.radius = args.radius || 5.2;
 
-        this.theta = args.theta  ||  Math.PI / 2;
-        this.phi = args.phi || Math.PI / 2;
+        this.theta = args.theta  ||  Math.PI / 3.0;
+        this.phi = args.phi || Math.PI / 3.0;
 
         this.target = args.target || v3.create(0, 0, 0);
 
         this.projectionSettings = args.projectionSettings || {
             fieldOfViewRadians: Math.PI / 10,
             aspectRatio: 1, // Initial
-            zNear: 1.0,
+            zNear: 0.5,
             zFar: 15.0
         };
 
-        this.ROT_SPEED_X = args.ROT_SPEED_X || 2;
-        this.ROT_SPEED_Y = args.ROT_SPEED_Y || 2;
+        this.ROT_SPEED_X = args.ROT_SPEED_X || 3.5;
+        this.ROT_SPEED_Y = args.ROT_SPEED_Y || 3.5;
+
+        this.PAN_SPEED_X = args.PAN_SPEED_X || 1.8;
+        this.PAN_SPEED_Y = args.PAN_SPEED_Y || 1.8;
+
+        this.ZOOM_SPEED = args.ZOOM_SPEED || 3.5;
 
         this.projection = null;
         this.view = null;
+        this.translationVec = v3.create(0, 0, 0);
 
         this._updateViewMatrix();
         this.setPerspective({});
@@ -50292,11 +50285,54 @@ class Camera {
             uv: null
         }
 
+        this.slaves = {
+            rotation: [],
+            radius: []
+        };
+
         this.upDir = 1;
 
         this.rotate(0.000001, 0.000001); // Init...
     }
 
+    linkTo(master, properties, callback) {
+        for (let property of properties)
+            master.listen(this, property, callback);
+    }
+
+    listen(slave, property, callback) {
+        this.slaves[property].push({
+            slave: slave,
+            callback: callback
+        });
+    }
+
+    _notifySlaves(property) {
+        switch (property) {
+            case 'rotation':
+                for (let slaveInfo of this.slaves[property]) {
+                    slaveInfo.slave.theta = this.theta;
+                    slaveInfo.slave.phi = this.phi;
+                    slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.callback();
+                }
+                break;
+            case 'radius':
+                for (let slaveInfo of this.slaves[property]) {
+                    slaveInfo.slave.radius = this.radius;
+                    slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.callback();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    killSlaves() {
+        this.slaves.rotation = [];
+        this.slaves.radius = [];
+    }
 
     rotate(dTheta, dPhi) {
         if (this.upDir > 0) {
@@ -50321,15 +50357,19 @@ class Camera {
         }
 
         this._updateViewMatrix();
+        this._notifySlaves('rotation');
     }
 
     zoom(dist) {
-        this.radius -= dist;
+        console.log("ZOOM " + dist);
+        this.radius -= dist * this.ZOOM_SPEED;
         this._updateViewMatrix();
+        this._notifySlaves('radius');
     }
 
     pan(dx, dy) {
-
+        this.translationVec[0] += dx * this.PAN_SPEED_X;
+        this.translationVec[1] -= dy * this.PAN_SPEED_Y;
     }
 
     tick() {
@@ -50383,7 +50423,7 @@ class Camera {
 
         // no world matrix, not needed ATM.
 
-        return m4.multiply(this.projection, this.view);
+        return m4.multiply(m4.translation(this.translationVec), m4.multiply(this.projection, this.view));
     }
 
     __unproject(devX, devY, devZ) {
@@ -50701,7 +50741,7 @@ class Ray {
     }
 }
 
-},{"gl-matrix":4,"twgl.js":21,"underscore":22}],45:[function(require,module,exports){
+},{"gl-matrix":4,"twgl.js":21,"underscore":22}],43:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = require('twgl.js').m4,
     v3 = require('twgl.js').v3;
@@ -50880,7 +50920,7 @@ class OrbiterCamera {
 
 module.exports = OrbiterCamera;
 
-},{"./transformations":49,"twgl.js":21}],46:[function(require,module,exports){
+},{"./transformations":48,"twgl.js":21}],44:[function(require,module,exports){
 let twgl = require('twgl.js'),
     primitives = twgl.primitives,
     m4 = twgl.m4,
@@ -51566,7 +51606,9 @@ let genSlicerBuffers = (size) => {
 
 module.exports = genSlicerBuffers;
 
-},{"../settings":58,"twgl.js":21}],47:[function(require,module,exports){
+},{"../settings":57,"twgl.js":21}],45:[function(require,module,exports){
+let SIZE = 1.0; // Slicer BB size
+
 let twgl = require('twgl.js'),
     primitives = twgl.primitives,
     m4 = twgl.m4,
@@ -51578,7 +51620,7 @@ let MouseHandler = require('../mouse-handler');
 let OrbiterCamera = require('./camera-orbiter');
 let getSlicerBuffers = require('./slicer-model-buffers');
 
-let BufferInfo = getSlicerBuffers(Math.sqrt(2)); // Generate it now so it is cached and can be retrieved
+let BufferInfo = getSlicerBuffers(SIZE); // Generate it now so it is cached and can be retrieved
 
 let IDInfo = BufferInfo.IDInfo;
 
@@ -51587,7 +51629,6 @@ let Settings = require('../settings').Views.Slicer;
 
 /** @module Core/Models */
 
-let SIZE = Math.sqrt(2);
 
 /**
  * Represents an underlying discrete model of a slicer. It only represents the
@@ -51597,7 +51638,9 @@ let SIZE = Math.sqrt(2);
  */
 class SlicerModel {
     constructor(gl, viewManager, myID) {
+        this.viewManager = viewManager;
 
+        // Debugging only
         window['HID' + myID] = (id) => {
             this.slicerBox.highlightID(id);
             this._refreshUniforms();
@@ -51605,20 +51648,10 @@ class SlicerModel {
 
         this.gl = gl;
         this.pickingBuffer = viewManager.getPickingBufferInfo('SlicerPicking', myID);
-
-        // .get, .refresh
-
-        console.log("SlicerModel constrcutor!");
-
-        this.camera = new OrbiterCamera(v3.create(1, 3, -7), {
-            fieldOfViewRadians: Math.PI / 10,
-            aspectRatio: 1, // Initial
-            zNear: 1.0,
-            zFar: 15.0
-        });
+        this.myID = myID;
 
         this.camera = new CameraV2({
-            radius: 10.2,
+            radius: 5.2,
 
             theta: 0,
             phi: 0,
@@ -51658,6 +51691,42 @@ class SlicerModel {
         this._bindMouseHandler();
     }
 
+    linkCameraPhiAndThetaTo(otherCameraModel) {
+        this.camera.linkTo(otherCameraModel, ['rotation'], () => {
+            console.log("Master camera changed for slicer model w/ subview ID " + this.myID);
+            this._refreshUniforms();
+        });
+    }
+
+    getSliceOffsets(axis) {
+        switch (axis) {
+            case 'X':
+                return [
+                    this.uniforms.u_SliceOffsets[0],
+                    this.uniforms.u_SliceOffsets[1]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            case 'Y':
+                return [
+                    this.uniforms.u_SliceOffsets[2],
+                    this.uniforms.u_SliceOffsets[3]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            case 'Z':
+                return [
+                    this.uniforms.u_SliceOffsets[4],
+                    this.uniforms.u_SliceOffsets[5]
+                ].sort((a, b) => {
+                    return a > b
+                });
+            default:
+                break;
+        }
+
+    }
+
     _refreshUniforms() {
         // Fetch uniforms from the slicer box
         for (let key in this.slicerBox.uniforms)
@@ -51668,42 +51737,12 @@ class SlicerModel {
     }
 
     _genAttribArrays() {
-        this.attribArrays = getSlicerBuffers(Math.sqrt(2));
+        this.attribArrays = getSlicerBuffers(SIZE);
         //this.attribArrays = this.slicerBox.getBufferArrays();
     }
 
     mouse(event) {
         this.mouseHandler.handle(event);
-        console.log("HANDLE...");
-        console.log(event);
-        if (1)
-            return;
-        // left click -> rotate / orbit camera
-        //let res = this.camera.mouse(event); // TEMP, TODO do raycasting to add/move slices etc
-
-        if (res) {
-            console.log("SlicerModel, did shoot ray");
-            console.log(res);
-        }
-
-        this._refreshUniforms();
-
-        // right click -> context menu?..
-        console.log("Slicer mouse event");
-        console.log(event);
-
-        let x0 = event.pos.x, // [0,1]
-            y0 = event.pos.y;
-
-        let x1 = (x0 * 2.0) - 1.0, // [0,1] -> [-1, 1]
-            y1 = -((y0 * 2.0) - 1.0);
-
-    }
-
-    getBuffers() {
-        let sideLength = Math.sqrt(2); // Will always just fit
-        // 1. Gen the cube vertices, 1 quad per side
-
     }
 
     _bindMouseHandler() {
@@ -51792,26 +51831,48 @@ class SlicerModel {
         }
 
         this.mouseHandler.on('mouseenter', null, (state) => {
+            let interactionMode = GetInteractionMode();
 
+            switch (interactionMode) {
+                case 'add': // Render PB cube faces only
+                    break;
+                case 'remove': // Render PB slices only
+                    break;
+
+                default:
+                    break;
+            }
         });
 
         this.mouseHandler.on('mouseout', null, (state) => {
             this.dragInfo.railinfo = null;
             this.slicerBox.highlightID(-1);
-        })
+        });
 
         this.mouseHandler.on('click', 'left', (state) => {
             let interactionMode = GetInteractionMode();
+            let pb = readPBPixels(state.x, state.y);
             let id = pb.id;
 
             console.log("Highlighting ID: " + id);
 
-            if (IDInfo.isFace(id)) { // Click on face, will add slice
-                // Add the slice
-                this.slicerBox.addSliceFromCubeFace(id);
+            switch (interactionMode) {
+                case 'add':
+                    if (IDInfo.isFace(id)) { // Click on face, will add slice
+                        // Add the slice
+                        this.slicerBox.addSliceFromCubeFace(id);
+                        this.slicerBox.highlightID(id);
+                    }
+                    break;
+                case 'remove':
+                    if (IDInfo.isSlice(id))
+                        this.slicerBox.removeSlice(id);
+                    break;
+                default: // nothing
+                    break;
             }
 
-            this.slicerBox.highlightID(id);
+
             this._refreshUniforms();
             return;
 
@@ -51883,7 +51944,7 @@ class SlicerModel {
             }
         });
         this.mouseHandler.on('mousemove', 'left', (state) => {
-            debugDisplayPickingBuffer();
+            /*debugDisplayPickingBuffer();
             let pb = readPBPixels(state.x, state.y);
             let id = pb.id;
 
@@ -51904,7 +51965,7 @@ class SlicerModel {
             });
 
             this.slicerBox.highlightIntersected(ray);
-            this._refreshUniforms();
+            this._refreshUniforms();*/
 
         });
         this.mouseHandler.on('drag', 'left', (state) => {
@@ -51915,9 +51976,13 @@ class SlicerModel {
             if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
                 let offset = pb.railOffset;
                 this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                this._refreshUniforms();
+                this.viewManager.notifySlicesDidChange(this.myID);
 
             } else { // dont rotate when drag in progress...
                 this.camera.rotate(state.dx, state.dy);
+                /*this._refreshUniforms();
+                this.viewManager.requestAnimationFrame(['Slicer'], this.myID);*/
             }
 
 
@@ -51937,7 +52002,6 @@ class SlicerModel {
                     //}
                     break;
             }*/
-            this._refreshUniforms();
         });
 
     }
@@ -52020,6 +52084,10 @@ class LabeledSlicerBox {
         }
     }
 
+    _getNormal(id) {
+        return id < 2 ? 'X' : (id < 4) ? 'Y' : 'Z';
+    }
+
     addSliceFromCubeFace(fromCubeFace) {
         // 1. Convert cube face index to direction and starting position
         let info = this._cubeFaceIDToNormalAndStartOffset(fromCubeFace);
@@ -52032,6 +52100,7 @@ class LabeledSlicerBox {
 
         // 3. Set the offset @ given index
         this.moveSliceToOffset(index, info.offset);
+        return index;
     }
 
     _cubeFaceIDToNormalAndStartOffset(cubefaceID) {
@@ -52169,55 +52238,10 @@ class LabeledSlicerBox {
         this.dragOffset = newOffset;
     }
 
-    /*getSliceAtAxisAndOffset(alongAxis, offset) {
-        let start = this._getOffsetStartIndex(alongAxis);
-        for (let id = start; id < start + 2; id++) {
-            if (
-                Math.abs(this.uniforms.u_SliceOffsets[id]) <=
-                Settings.SelectSliceSnapThreshold) {
-
-                this._initiateDragSlice(id);
-                return id;
-            }
-        }
-
-        return -1;
-    }
-
-    isSliceDragActive() {
-        return this.draggedSliceIndex !== -1;
-    }
-
-    _initiateDragSlice(id) {
-        this.draggedSliceIndex = id;
-    }
-
-    dragEnd() {
-        this.draggedSliceIndex = -1;
-    }
-
-    dragSliceToOffset(offset) {
-        if (this.draggedSliceIndex) {
-            console.error("No slice index selected...");
-        }
-
-        this.moveSliceToOffset(this.draggedSliceIndex, offset);
-    }
-
-    _setOffsetOfSliceWithIndex(id, offset) {
-        this.uniforms.u_SliceOffsets[id] = offset;
-    }
-
-    moveSliceToOffset(id, offset) {
-        this._setOffsetOfSliceWithIndex(id, offset);
-    }
-
-    moveSliceToOffset(quadID, offset) {
-        this._setOffsetOfSliceWithIndex(quadID, offset);
-    }*/
-
-    hideSlice(id) {
-        this.uniforms.u_QuadOffsetIndices[id] = -1; // Mark quad as inactive
+    removeSlice(id) {
+        this.uniforms.u_SliceOffsets[id] = -1;
+        let normal = this._getNormal(id);
+        this.qCounts[normal]--;
     }
 
     getUniforms() {
@@ -52234,7 +52258,7 @@ class LabeledSlicerBox {
     }
 }
 
-},{"../interaction-modes-v2":41,"../mouse-handler":50,"../settings":58,"./camera-orbiter":45,"./camera-orbiter-v2":44,"./slicer-model-buffers":46,"twgl.js":21}],48:[function(require,module,exports){
+},{"../interaction-modes-v2":39,"../mouse-handler":49,"../settings":57,"./camera-orbiter":43,"./camera-orbiter-v2":42,"./slicer-model-buffers":44,"twgl.js":21}],46:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -52253,7 +52277,24 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],49:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
+class Thresholds {
+    constructor() {
+        this.minmax = [-Infinity, Infinity];
+    }
+
+    setMin(min) {
+        this.minmax[0] = min;
+    }
+
+    setMax(max) {
+        this.max[1] = max;
+    }
+}
+
+module.exports = Thresholds;
+
+},{}],48:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4,
     v3 = twgl.v3;
@@ -52317,7 +52358,7 @@ class Transformations {
 
 module.exports = Transformations;
 
-},{"twgl.js":21}],50:[function(require,module,exports){
+},{"twgl.js":21}],49:[function(require,module,exports){
 class MouseHandler {
     constructor(config) {
         this.isDrag = false;
@@ -52439,7 +52480,7 @@ class MouseHandler {
 
 module.exports = MouseHandler;
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
 let _ = require('underscore');
@@ -52488,12 +52529,35 @@ class ConfigurableRenderer {
         this.uniforms = config.uniforms
     }
 
+    /**
+     * Modifies the current configuration of a renderer
+     *
+     *
+     * @param {Object} newOptions
+     */
+    modifyConfig(newOptions) {
+        for (let stepIndex in newOptions) {
+            for (let configKey in newOptions[stepIndex]) {
+                this.steps[stepIndex][configKey] = newOptions[stepIndex][configKey];
+            }
+        }
+    }
+
     _applyViewport() {
         this.gl.viewport(
             this.viewport.x0,
             this.viewport.y0,
             this.viewport.width,
             this.viewport.height);
+    }
+
+    _applyScissorViewport() {
+        this.gl.scissor(
+            this.viewport.x0,
+            this.viewport.y0,
+            this.viewport.width,
+            this.viewport.height
+        );
     }
 
     _applySubViewport(svp01, fbinfo) {
@@ -52529,73 +52593,75 @@ class ConfigurableRenderer {
 
     }
 
-    /**
-     * Renders as instructed by the current configuration
-     */
-    render() {
+    _renderStep(step) {
         let gl = this.gl;
+        let programInfo = step.programInfo;
 
-        for (let step of this.steps) {
-            let programInfo = step.programInfo;
+        //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+        gl.useProgram(programInfo.program);
 
-            //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
-            gl.useProgram(programInfo.program);
+        twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
+        twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
-            if (!step.frameBufferInfo) {
-                this._applyViewport();
-            }
+        let applyGLSettings = () => {
+            for (let func in step.glSettings) {
+                let args = step.glSettings[func];
 
-            twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
-            twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
-
-            let applyGLSettings = () => {
-                for (let func in step.glSettings) {
-                    let args = step.glSettings[func];
-
-                    if (_.contains(['enable', 'disable', 'clear'], func)) {
-                        for (let arg of args)
-                            gl[func].call(gl, arg);
-                    } else {
-                        gl[func].apply(gl, args);
-                    }
+                if (_.contains(['enable', 'disable', 'clear'], func)) {
+                    for (let arg of args)
+                        gl[func].call(gl, arg);
+                } else {
+                    gl[func].apply(gl, args);
                 }
             }
+        }
 
-            if (step.frameBufferInfo) {
-                twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
-                if (step.subViewport) // Also applies to frame bufs
-                    this._applySubViewport(step.subViewport, step.frameBufferInfo);
+        if (step.frameBufferInfo) {
+            twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
+            if (step.subViewport) // Also applies to frame bufs
+                this._applySubViewport(step.subViewport, step.frameBufferInfo);
 
-                applyGLSettings();
-                //if (step.glSettings)
-                //    for (let func in step.glSettings) {
-                //        let args = step.glSettings[func];
-                //        gl[func].apply(gl, args);
-                //    }
+            applyGLSettings();
 
-                //twgl.drawBufferInfo(gl, step.bufferInfo);
-                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //twgl.drawBufferInfo(gl, step.bufferInfo);
+            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
 
-            } else {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+        } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null); // Target = screen!
+
+            if (step.subViewport)
+                this._applySubViewport(step.subViewport);
+            else
                 this._applyViewport();
 
-                if (step.subViewport)
-                    this._applySubViewport(step.subViewport);
+            //                gl.enable(gl.SCISSOR_TEST);
+            applyGLSettings();
 
-                applyGLSettings();
-                // if (step.glSettings)
-                //     for (let func in step.glSettings) {
-                //         let args = step.glSettings[func];
-                //         gl[func].apply(gl, args);
-                //     }
 
-                //twgl.drawBufferInfo(gl, step.bufferInfo);
-                gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
-            }
+            //twgl.drawBufferInfo(gl, step.bufferInfo);
+            gl.drawElements(gl.TRIANGLES, step.bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+            //                gl.disable(gl.SCISSOR_TEST);
         }
     }
+
+    /**
+     * Renders as instructed by the current configuration
+     * @param {bool} needsFullUpdate whether or not it needs a full update
+     * if not it'll just do the last step which should always be just
+     * rendering a texture onto a fullscreen quad
+     */
+    render(needsFullUpdate) {
+        let gl = this.gl;
+
+        if (needsFullUpdate)
+            for (let step of this.steps)
+                this._renderStep(step);
+        else
+            this._renderStep(this.steps[this.steps.length - 1]);
+
+    }
 }
+
 
 module.exports = ConfigurableRenderer;
 /**
@@ -52633,7 +52699,7 @@ module.exports = ConfigurableRenderer;
  * @memberof module:Core/Renderer
  **/
 
-},{"twgl.js":21,"underscore":22}],52:[function(require,module,exports){
+},{"twgl.js":21,"underscore":22}],51:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
@@ -52667,7 +52733,14 @@ class BufferManager {
 
 module.exports = BufferManager;
 
-},{"../../geometry/box":64,"twgl.js":21}],53:[function(require,module,exports){
+},{"../../geometry/box":65,"twgl.js":21}],52:[function(require,module,exports){
+let VolumeViewTypes = {
+    '3D View': 'Basic',
+    'Slice View': 'Slice',
+    'Surface View': 'Surface'
+};
+
+
 /**
  * Manages all rendering scheme configurations
  *
@@ -52676,17 +52749,31 @@ module.exports = BufferManager;
  */
 class ConfigurationManager {
     /**
-    * Constructs a new config manager
-    *
-    * @param {module:Core/View} viewManager the parent view manager of the config manager
-    * @constructor
-    */
+     * Constructs a new config manager
+     *
+     * @param {module:Core/View} viewManager the parent view manager of the config manager
+     * @constructor
+     */
     constructor(viewManager) {
         this.VM = viewManager;
+
+        this.activeConfigurations = {
+            0: {
+                'Volume': 'Basic',
+                'Slicer': 'Basic',
+                'SlicerPicking': 'Basic'
+            }
+        }
 
         this.configurations = {
             Volume: {
                 'Basic': (id) => {
+                    return this._generateBasicVolumeConfigForSubview(id);
+                },
+                'Slice': (id) => {
+                    return this._generateBasicVolumeConfigForSubview(id);
+                },
+                'Surface': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
                 }
             },
@@ -52704,6 +52791,13 @@ class ConfigurationManager {
 
             }
         }
+    }
+
+    setVolumeViewTypeForSubview(newType, subviewID) {
+        let configName = VolumeViewTypes[newType];
+        this.configureSubview(subviewID, {
+            'Volume': configName
+        });
     }
 
     _getConfigurationForSubview(category, name, subviewID) {
@@ -52743,6 +52837,24 @@ class ConfigurationManager {
         }
     }
 
+    configureOffscreenSubview(id, configurations) {
+        let VM = this.VM;
+
+        let subview = VM.offscreenSubviews[id];
+        for (let category in configurations) {
+            let configName = configurations[category];
+            let config = this._getConfigurationForSubview(category, configName, id);
+            subview.configureRenderer(category, config);
+        }
+    }
+
+    addSubview(id) {
+        for (let category in this.configurations) {
+            let configName = this.configurations[category];
+            let config = this._getConfigurationForSubview(category, configName, id);
+            subview.configureRenderer(category, config);
+        }
+    }
 
     _generateBasicSlicerConfigForSubview(subviewID) {
         let VM = this.VM;
@@ -52750,28 +52862,35 @@ class ConfigurationManager {
 
         let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
         let uniforms = VM.uniformManagerSlicer.getUniformBundle(subviewID);
-        uniforms.u_QuadTexture = VM.FBAndTextureManager.getTexture('UnitQuadTexture');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+
+        let SlicerImageFB = VM.FBAndTextureManager.getFrameBuffer('SlicerImageTexture' + subviewID);
 
         let BasicSlicerConfig = {
+
             uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
             steps: [
                 {
                     programInfo: VM.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null,
-                    //frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
-                    //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: null,//SlicerImageFB,
                     bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
-                    //                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-                    //                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerSliceBuffer'),
                     glSettings: {
-                        enable: [gl.DEPTH_TEST],
+                        enable: [gl.DEPTH_TEST, gl.BLEND],
                         clear: [gl.DEPTH_BUFFER_BIT],
                         disable: [gl.CULL_FACE],
-                        enable: [gl.BLEND],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
                     }
                 },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        enable: [gl.CULL_FACE],
+                        cullFace: [gl.BACK]
+                    }
+                }
                 /*{ // Render the picking buffer into a subview..
                     programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
@@ -52865,88 +52984,108 @@ class ConfigurationManager {
         return PickingConfig;
     }
 
+
     _generateBasicVolumeConfigForSubview(subviewID) {
         let VM = this.VM;
+        let gl = VM.masterContext;
         let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
         let BasicVolumeConfig = {
-            uniforms: VM.uniformManagerVolume.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'FRONT'
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, // Render to screen
-                    bufferInfo: buffer, // The bounding box!
-                    /*NEEDED UNIFORMS:
-                    u_WorldViewProjection,    <- Depends on camera for model
-                    u_BoundingBoxNormalized   <- In dataset header
-                    u_TexCoordToRayOrigin     <- In texture belonging to FB
-                    u_TexCoordToRayEndPoint   <- In texture belonging to FB
-                    u_ModelXYZToIsoValue      <- Get from texture (shared for all)
-                    u_IsoValueToColorOpacity  <- Texture for TF obj the model is pointing to
-                    u_AlphaCorrectionExponent <- Precalculated float
-                    u_SamplingRate            <- 1 voxel per step, i.e 1/max(w,h,d)
-                    */
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-            ]
-        };
-
-        return BasicVolumeConfig;
-    }
-
-    _generateDebugConfigurationForSubview(subviewID) {
-        let VM = this.VM;
-        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
-
-        let DebugConfig = {
-            uniforms: VM.uniformManagerVolume.getUniformBundle(subviewID),
+            uniforms: uniforms,
             steps: [
                 {
                     programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
                     frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
                     bufferInfo: buffer,
-                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
-                        cullFace: 'FRONT'
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
                     }
                 },
                 {
                     programInfo: VM.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
                     bufferInfo: buffer,
                     //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
-                        cullFace: 'BACK'
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
                     }
                 },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND,gl.CULL_FACE]
+                    }
+                }
+              /*  {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    subViewport: {
+                        x0: 0.05,
+                        y0: 0.7,
+                        width: 0.3,
+                        height: 0.3
+                    },
+                    glSettings: {
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    subViewport: {
+                        x0: 0.35,
+                        y0: 0.7,
+                        width: 0.3,
+                        height: 0.3
+                    },
+                    glSettings: {
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('TextureBackMinusFront'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    subViewport: {
+                        x0: 0.65,
+                        y0: 0.7,
+                        width: 0.3,
+                        height: 0.3
+                    },
+                    glSettings: {
+                        cullFace: [gl.BACK]
+                    }
+                },*/
             ]
         };
 
-        return DebugConfig;
+        return BasicVolumeConfig;
     }
-
 }
 
 module.exports = ConfigurationManager;
 
-},{}],54:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 let twgl = require('twgl.js');
 let Environment = require('../environment');
 
@@ -52973,8 +53112,55 @@ class FrameBufferAndTextureManager {
         };
 
         this.transferFunctionTextures = {}; // {subviewID : TextureObj}
+
+        this._initDebugTextures();
     }
 
+
+    _initDebugTextures() {
+        let gl = this.gl;
+        this.textures['DebugTex1'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                255, 255, 255, 255,
+                192, 192, 192, 255,
+                192, 192, 192, 255,
+                255, 255, 255, 255,
+            ],
+        });
+        this.textures['DebugTex2'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                155, 155, 155, 255,
+                192, 192, 192, 255,
+                192, 122, 122, 255,
+                255, 255, 255, 255,
+            ],
+        });
+        this.textures['DebugTex3'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                55, 55, 155, 255,
+                92, 12, 192, 255,
+                192, 92, 192, 255,
+                255, 55, 55, 255,
+            ],
+        });
+        this.textures['DebugTex4'] = twgl.createTexture(gl, {
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
+            src: [
+                5, 55, 255, 255,
+                192, 192, 192, 255,
+                192, 2, 192, 255,
+                155, 5, 255, 255,
+            ],
+        });
+
+    }
 
     /**
      *
@@ -53145,7 +53331,8 @@ class FrameBufferAndTextureManager {
 
 module.exports = FrameBufferAndTextureManager;
 
-},{"../environment":40,"twgl.js":21}],55:[function(require,module,exports){
+},{"../environment":38,"twgl.js":21}],54:[function(require,module,exports){
+let _ = require('underscore');
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
 let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
@@ -53179,6 +53366,12 @@ class ModelSyncManager {
 
         this.linkedModels = {};
 
+        this.pointsToGlobal = { // initially FALSE for all models
+
+        };
+
+        this.virtuals = [];
+
         // Note how it "magically" pulls models directly from
         // the linkable-models file.
         for (let key in AllModels) {
@@ -53199,6 +53392,10 @@ class ModelSyncManager {
 
         this.defaultModels[modelName] = {}; // Init empty obj
         this.linkedModels[modelName] = {}; // Init empty obj
+
+        this.pointsToGlobal[modelName] = false;
+
+        this.defaultModels[modelName]['GLOBAL'] = new Class(this.gl, this.viewManager, 'GLOBAL');
 
         for (let subviewID of subviewIDs) {
 
@@ -53223,15 +53420,38 @@ class ModelSyncManager {
 
         for (let modelName in this.defaultModels) {
             models[modelName] = null;
-            let activeModelSubviewID = this.linkedModels[modelName][subviewID];
-            models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
+            //let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+            //models[modelName] = this.defaultModels[modelName][activeModelSubviewID];
+            models[modelName] = this.getActiveModel(modelName, subviewID);
         }
 
         return models;
     }
 
+    getSubviewIDsLinkedWith(subviewID, modelName) {
+        let activeModelID = this._getActiveModelSubviewID(modelName, subviewID);
+        return this.getSubviewIDsLinkedWithMaster(activeModelID, modelName);
+    }
+
+    getSubviewIDsLinkedWithMaster(masterSubviewID, modelName) {
+        let subviewIDs = [];
+
+        let allIDs = getAllCellIDs();
+        for (let cellID of allIDs) {
+            if (this._getActiveModelSubviewID(modelName, cellID) === masterSubviewID)
+                subviewIDs.push(cellID);
+        }
+
+        return subviewIDs;
+    }
+
+    _getActiveModelSubviewID(modelName, subviewID) {
+        return this.pointsToGlobal[modelName] ?
+            'GLOBAL' : this.linkedModels[modelName][subviewID];
+    }
+
     getActiveModel(modelName, subviewID) {
-        let activeModelSubviewID = this.linkedModels[modelName][subviewID];
+        let activeModelSubviewID = this._getActiveModelSubviewID(modelName, subviewID);
         return this.defaultModels[modelName][activeModelSubviewID];
     }
 
@@ -53243,18 +53463,21 @@ class ModelSyncManager {
      * @param {number} subviewID
      */
     removeSubview(subviewID) {
-        delete this.defaultModels[subviewID];
-        delete this.linkedModels[subviewID];
 
-        // Reset any subviews that was pointing to this subview
-        //        let subviewIDs = getAllCellIDs();
-        //        for (let theSubviewID of subviewIDs) {
-        //            for (let modelName in this.linkedModels) {
-        //                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
-        //                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
-        //                }
-        //            }
-        //        }
+        for (let modelName in this.defaultModels) {
+            delete this.defaultModels[modelName][subviewID];
+            delete this.linkedModels[modelName][subviewID];
+        }
+
+        //Reset any subviews that was pointing to this subview
+        let subviewIDs = getAllCellIDs();
+        for (let theSubviewID of subviewIDs) {
+            for (let modelName in this.linkedModels) {
+                if (this.linkedModels[modelName][theSubviewID] === subviewID) {
+                    this.linkedModels[modelName][theSubviewID] = theSubviewID;
+                }
+            }
+        }
 
 
         this.syncWithLinkGroup();
@@ -53272,8 +53495,54 @@ class ModelSyncManager {
             this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl, this.viewManager, subviewID);
 
             // link to itself initially
-            this.linkedModels[modelName][subviewID] = subviewID;
+            if (modelName === 'TRANSFER_FUNCTION')
+                this.linkedModels[modelName][subviewID] = 'GLOBAL';
+            else
+                this.linkedModels[modelName][subviewID] = subviewID;
         }
+    }
+
+    /**
+     * Adds a virtual subview, only difference is it has
+     * no models of its own - useful for offscreen
+     * renderers
+     *
+     * @param {string|number} virtualSubviewID
+     * @param {string|number} pointsTo
+     */
+    addVirtualSubview(virtualSubviewID, pointsTo) {
+        for (let modelName in this.defaultModels) {
+            // DO NOT Construct a new object for the subview
+            // because virtual
+            // used for offscreen views only
+
+            // link to itself initially
+            this.linkedModels[modelName][virtualSubviewID] = pointsTo  ||  0;
+        }
+
+        // Flag as virtual
+        this.virtuals.push(virtualSubviewID);
+    }
+
+    /**
+     * Points a virtual subview ID to a new subview ID
+     * @param {string|number} virtualSubviewID
+     * @param {string|number} subviewID
+     */
+    linkVirtualSubviewTo(virtualSubviewID, subviewID) {
+        if (this.isVirtual(virtualSubviewID))
+            throw new Error("Expected virtual subview ID");
+
+        if (this.isVirtual(subviewID))
+            throw new Error("Expected non-virtual subview ID");
+
+        for (let modelName in this.defaultModels)
+            this.linkedModels[modelName][virtualSubviewID] = subviewID;
+
+    }
+
+    isVirtual(subviewID) {
+        return _.contains(this.virtuals, subviewID);
     }
 
     /**
@@ -53286,9 +53555,20 @@ class ModelSyncManager {
         let subviewIDs = getAllCellIDs();
 
         for (let modelKey in this.defaultModels)
-            for (let subviewID of subviewIDs)
-                this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
+            for (let subviewID of subviewIDs) // Skip virtual subviews
+                if (!(this.isVirtual(subviewID)))
+                    this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
 
+    }
+
+    call(model, method, args) {
+        let allSubviewIDs = getAllCellIDs();
+
+        for(let subviewID of allSubviewIDs) {
+            let theModel = this.defaultModels[model][subviewID];
+
+            theModel[method].bind(theModel,args);
+        }
     }
 
     updateSyncForModelKey(modelKey) {
@@ -53311,11 +53591,15 @@ class ModelSyncManager {
 
         return models;
     }
+
+    setModelPointsToGlobal(modelName, doesPointToGlobal) {
+        this.pointsToGlobal[modelName] = doesPointToGlobal;
+    }
 }
 
 module.exports = ModelSyncManager;
 
-},{"../../widgets/split-view/view-splitter-master-controller":72,"../linkable-models":43}],56:[function(require,module,exports){
+},{"../../widgets/split-view/view-splitter-master-controller":75,"../linkable-models":41,"underscore":22}],55:[function(require,module,exports){
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
@@ -53337,7 +53621,9 @@ let BUILTIN_PROGRAMS = {
     TextureBackMinusFront: 'TextureBackMinusFront',
     SlicerBasic: 'SlicerBasic',
     SlicerPicking: 'SlicerPicking',
-    Texture2Quad: 'Texture2Quad'
+    Texture2Quad: 'Texture2Quad',
+    VolImage2Quad: 'VolImage2Quad',
+    SlicerImage2Quad: 'SlicerImage2Quad'
 };
 
 
@@ -53366,8 +53652,8 @@ class ShaderManager {
         // file contents as strings, prior to running browserify
         // itself.
         // TLDR: Cannot use glslify dynamically.
-        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
-        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    return float(iso) / 32736.0;\n}\n\nvoid main() {\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        color = isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n        accumulatedAlpha += alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n    \n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n    \n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n    \n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n    \n    sliceMin *= u_BoundingBoxNormalized;    \n    sliceMax *= u_BoundingBoxNormalized;\n    \n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n    \n    //if(isWithinMinMax(iso))\n        return float(iso) / 32735.0;\n    //else \n    //    return -1.0;\n}\n\nvoid main() {\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        if(isovalue == -1.0)\n            continue; // Skip isovalue because threshold!\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        color = isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n        accumulatedAlpha += alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA; \n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
 
         this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_gridPosition; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    //projPos.x /= u_AspectRatio;\n\n    gl_Position = projPos;// vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_gridPosition;\nout vec4 outColor;\n\nvoid main() {\n    outColor = v_gridPosition;\n}\n"]);
@@ -53384,14 +53670,20 @@ class ShaderManager {
         this.vertexShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n"]);
         this.fragmentShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nin vec3 v_gridPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nvoid main() {\n\n    vec3 backPosRGB = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2back = backPosRGB - v_gridPosition;\n\n    outColor = vec4(front2back, 1.0);\n}\n"]);
 
-        this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n/*\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int Slice = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n*/\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = Slice\n*/\nuniform float u_Size;\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\n//uniform int u_SliceOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// Slice id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / Slice,\n//NOTE: max 6 Slices, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= a_id && a_id <= 11;\n}\n\n// Slice base position is always at the most negative coord allowed on respective axis\n/*\nmat4 displaceSlice() {\n    //int offsetIndex = u_SliceOffsetIndices[id];\n\n    \n    // Assume start pos is [0,0,0]\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n*/\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_discardMe = 0; // default: do not discard the Slice\n\n    // 2. Set position\n    if(isSlice()) { // Slice, then displace by offset.\n        \n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n/*\n            mat4 displaceByOffset = displaceSlice();\n*/\n            vec3 translateByOffset = translateSlice();\n            \n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n            \n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n\n            //gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n            //v_position = vec3(displaceByOffset * a_position);\n        }\n        \n    } else if(isFace()) {\n        v_discardMe = 1; // hide faces\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    } \n}\n\n"]);
-        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\nconst vec3 u_SliceColors[6] = vec3[6](\n    vec3(1.0, 0.0, 0.0),\n    vec3(1.0, 1.0, 0.0),\n    vec3(0.5, 0.5, 1.0),\n    vec3(0.7, 0.4, 0.0),\n    vec3(0.9, 0.1, 4.0),\n    vec3(0.1, 0.5, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\nuniform float u_Size;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\nuniform vec3 u_IntersectionPointDebug;\nuniform ivec2 u_DraggedSliceIndices;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nbool isSlice() {\n    return 0 <= v_id && v_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= v_id && v_id <= 11;\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n    \n    if(isFace()) {\n        myColor = u_SliceColors[v_id - 6];\n    }\n    \n    bool isHighlighted = v_id == u_HighlightID;\n    \n    if(isSlice()) {\n        myColor = u_SliceColors[v_id];\n        bool isDrag1 = (u_DraggedSliceIndices.x == v_id);\n        bool isDrag2 = (u_DraggedSliceIndices.y == v_id);\n        isHighlighted = isHighlighted || isDrag1;\n        isHighlighted = isHighlighted || isDrag2;\n    }\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n        \n    outColor = vec4(myColor, myOpacity);\n    \n    if(dist < 0.04)\n        outColor = vec4(0.1,1.0,0.6,1.0);\n}\n"]);
+        this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n/*\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int Slice = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n*/\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = Slice\n*/\nuniform float u_Size;\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\n//uniform int u_SliceOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// Slice id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / Slice,\n//NOTE: max 6 Slices, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= a_id && a_id <= 11;\n}\n\n// Slice base position is always at the most negative coord allowed on respective axis\n/*\nmat4 displaceSlice() {\n    //int offsetIndex = u_SliceOffsetIndices[id];\n\n\n    // Assume start pos is [0,0,0]\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n*/\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_discardMe = 0; // default: do not discard the Slice\n\n    // 2. Set position\n    if(isSlice()) { // Slice, then displace by offset.\n\n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n/*\n            mat4 displaceByOffset = displaceSlice();\n*/\n            vec3 translateByOffset = translateSlice();\n\n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n\n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n\n            //gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n            //v_position = vec3(displaceByOffset * a_position);\n        }\n\n    } else if(isFace()) {\n        v_discardMe = 1; // hide faces\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n}\n\n"]);
+        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\nconst vec3 u_SliceColors[6] = vec3[6](\n    vec3(1.0, 0.0, 0.0),\n    vec3(1.0, 1.0, 0.0),\n    vec3(0.5, 0.5, 1.0),\n    vec3(0.7, 0.4, 0.0),\n    vec3(0.9, 0.1, 4.0),\n    vec3(0.1, 0.5, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\nuniform float u_Size;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\nuniform vec3 u_IntersectionPointDebug;\nuniform ivec2 u_DraggedSliceIndices;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nbool isSlice() {\n    return 0 <= v_id && v_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= v_id && v_id <= 11;\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    if(isFace()) {\n        myColor = u_SliceColors[v_id - 6];\n    }\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    if(isSlice()) {\n        myColor = u_SliceColors[v_id];\n        bool isDrag1 = (u_DraggedSliceIndices.x == v_id);\n        bool isDrag2 = (u_DraggedSliceIndices.y == v_id);\n        isHighlighted = isHighlighted || isDrag1;\n        isHighlighted = isHighlighted || isDrag2;\n    }\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    if(dist < 0.04)\n        outColor = vec4(0.1,1.0,0.6,1.0);\n}\n"]);
 
-        this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform float u_Size;\nuniform int u_ActiveDragRailID;\n\nin vec4 a_position;\nin int a_id;\nin int a_direction;\n\nout vec3 v_position01;\nout vec3 v_position;\n\nflat out int v_id;\nflat out int v_discardMe;\nflat out int v_direction;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n} \n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_id = a_id;\n    v_direction = a_direction;\n    v_position01 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, vec3(u_Size));\n    \n    if(u_ActiveDragRailID > 11 && u_ActiveDragRailID != a_id) {\n        v_discardMe = 1;   \n    }\n    \n    if(isSlice()) { // Slice, then displace by offset.\n        \n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n            vec3 translateByOffset = translateSlice();\n            \n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n            \n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n        }\n    } \n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    } \n}\n\n"]);
-        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\n//uniform vec3 u_PickingRayOrigin;\n//uniform vec3 u_RayDir;\n//uniform float u_Size;\n\nin vec3 v_position01;\nin vec3 v_position;\n\nflat in int v_id;\nflat in int v_discardMe;\nflat in int v_direction;\n\nout vec4 outColor;\n\nbool isRail() {\n    return v_id > 11;\n}\n\nfloat getRailOffset() {\n    return v_position01[v_direction];\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    float r = float(v_id + 1) / 255.0; // offset it by 1 to avoid having 0 be highlighted by default.\n    float g = 0.0;\n    \n    if(isRail()) {\n        g = getRailOffset();\n    }\n\n/* // Debug only, will show mouse loc @ output\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n*/\n\n    // Encode ID into the red component\n    outColor = vec4(r,g,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
+        this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform float u_Size;\nuniform int u_ActiveDragRailID;\n\nin vec4 a_position;\nin int a_id;\nin int a_direction;\n\nout vec3 v_position01;\nout vec3 v_position;\n\nflat out int v_id;\nflat out int v_discardMe;\nflat out int v_direction;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_id = a_id;\n    v_direction = a_direction;\n    v_position01 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, vec3(u_Size));\n\n    if(u_ActiveDragRailID > 11 && u_ActiveDragRailID != a_id) {\n        v_discardMe = 1;\n    }\n\n    if(isSlice()) { // Slice, then displace by offset.\n\n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n            vec3 translateByOffset = translateSlice();\n\n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n\n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n        }\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n}\n\n"]);
+        this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\n//uniform vec3 u_PickingRayOrigin;\n//uniform vec3 u_RayDir;\n//uniform float u_Size;\n\nin vec3 v_position01;\nin vec3 v_position;\n\nflat in int v_id;\nflat in int v_discardMe;\nflat in int v_direction;\n\nout vec4 outColor;\n\nbool isRail() {\n    return v_id > 11;\n}\n\nfloat getRailOffset() {\n    return v_position01[v_direction];\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    float r = float(v_id + 1) / 255.0; // offset it by 1 to avoid having 0 be highlighted by default.\n    float g = 0.0;\n\n    if(isRail()) {\n        g = getRailOffset();\n    }\n\n/* // Debug only, will show mouse loc @ output\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n*/\n\n    // Encode ID into the red component\n    outColor = vec4(r,g,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
 
         this.vertexShaders['Texture2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
         this.fragmentShaders['Texture2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_QuadTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_QuadTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
+
+        this.vertexShaders['VolImage2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
+        this.fragmentShaders['VolImage2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_VolumeImageTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_VolumeImageTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
+
+        this.vertexShaders['SlicerImage2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
+        this.fragmentShaders['SlicerImage2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_SlicerImageTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_SlicerImageTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
 
 
         this._initBuiltinPrograms();
@@ -53452,7 +53744,7 @@ module.exports = ShaderManager;
  * @memberof module:Core/Renderer
  **/
 
-},{"glslify":14,"twgl.js":21}],57:[function(require,module,exports){
+},{"glslify":14,"twgl.js":21}],56:[function(require,module,exports){
 /**
  * Manages uniforms, maintains getter functions for all
  * uniforms, both private and shared (subview-wise)
@@ -53560,9 +53852,9 @@ class UniformManager {
 
 module.exports = UniformManager;
 
-},{}],58:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 let d3 = require('d3');
-
+let SplitViewIconSet = require('../widgets/split-view/icon-set');
 /** @module Settings */
 
 /**
@@ -53680,8 +53972,21 @@ let SETTINGS = {
             colors: {
                 'LINKS': ['red', 'green', 'white', 'aqua', 'brown', 'gold'],
                 'REMOVE': 'red',
-                'ADD': 'green'
-            }
+                'ADD': 'green',
+                'SELECT': 'green',
+                'EDIT': 'darkblue'
+            },
+            showIconsOnLinkingViews: false,
+            showIconsOnAddRemoveView: true,
+            showIconsOnSelectView: true,
+            icons: new SplitViewIconSet({
+                Icons: {
+                    'Surface View': '../client/images/icons/skull-icon.png',
+                    'Slice View': '../client/images/icons/icon-slicer.png',
+                    '3D Volume': '../client/images/icons/3d-icon-skull.png'
+                },
+                defaultIcon: '3D Volume'
+            })
         }
     },
     WSClient: {
@@ -53712,6 +54017,21 @@ let SETTINGS = {
             RailRadialSubdivisions: 7,
             RailVerticalSubdivisions: 5,
             RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
+        },
+        ContextMenus: {
+            Volume: { // Item name : icon img path
+                'Rotate': '../client/images/icons/rotate.png',
+                'Move': '../client/images/icons/move.png',
+                'Zoom': '../client/images/icons/zoom.png',
+                'Measure': '../client/images/icons/ruler.png'
+            },
+            Slicer: {
+                'Rotate': '../client/images/icons/rotate.png',
+                'Zoom': '../client/images/icons/zoom.png',
+                'Add Slice': '../client/images/icons/add.png',
+                'Remove Slice': '../client/images/icons/remove.png',
+                'Move Slice': '../client/images/icons/move-slice.png',
+            }
         }
     }
 }
@@ -53719,7 +54039,51 @@ let SETTINGS = {
 
 module.exports = SETTINGS;
 
-},{"d3":3}],59:[function(require,module,exports){
+},{"../widgets/split-view/icon-set":68,"d3":3}],58:[function(require,module,exports){
+let ContextMenus = require('../settings').Views.ContextMenus;
+
+let menus = {};
+let callbacks = {};
+
+let notify = null;
+
+let bundle = {};
+
+
+let callback = (name) => {
+    notify(name);
+}
+
+for (let ContextMenu in ContextMenus) {
+
+    menus[ContextMenu] = [];
+
+    let MenuItems = ContextMenus[ContextMenu];
+
+    for (let itemName in MenuItems) {
+        let itemIMGPath = MenuItems[itemName];
+        menus[ContextMenu].push({
+            name: itemName,
+            img: itemIMGPath,
+            title: itemName,
+            fun: () => {
+                callbacks[ContextMenu](itemName);
+            }
+        });
+    }
+
+    bundle[ContextMenu] = {
+        menu: menus[ContextMenu],
+        listen: (handle) => {
+            callbacks[ContextMenu] = handle;
+        }
+    }
+}
+
+
+module.exports = bundle;
+
+},{"../settings":57}],59:[function(require,module,exports){
 let ConfigurableRenderer = require('../rendering/configurable-renderer');
 
 /**
@@ -53755,7 +54119,12 @@ class Subview {
         this.uniforms = null;
 
         this.needsUpdate = {
-            Volume: false,
+            Volume: true,
+            Slicer: true,
+            Sphere: false
+        }
+        this.needsFullUpdate = {
+            Volume: true,
             Slicer: true,
             Sphere: false
         }
@@ -53775,40 +54144,43 @@ class Subview {
     }
 
     getAspectRatio() {
-        let total = this.viewports.volume;
+        let total = this.viewports.Volume;
         if (total)
             return total.width / total.height;
         else
             return 1; // default fallback
     }
 
-    renderSpecific(name) {
-        this.renderers[name].render();
+    renderSpecific(name, configTweak) {
+        this.renderers[name].render(configTweak);
     }
 
-    notifyNeedsUpdate(name) {
+    notifyNeedsUpdate(name, fullUpdate) {
         this.needsUpdate[name] = true;
+
+        if (fullUpdate !== undefined)
+            this.needsFullUpdate[name] = fullUpdate;
     }
 
     render() {
         if (this.needsUpdate.Volume) {
-            this.renderers.Volume.render();
-            //this.needsUpdate.volume = false;
+            this.renderers.Volume.render(this.needsFullUpdate.Volume);
+            this.renderers.Slicer.render(true);
+            this.needsUpdate.Volume = false;
+            this.needsFullUpdate.Volume = false;
+            this.needsUpdate.Slicer = false;
         }
 
         if (this.needsUpdate.Slicer) {
-            this.renderers.Slicer.render();
-            //this.needsUpdate.Slicer = false;
+            //this.renderers.Slicer.render();
+            this.needsUpdate.Slicer = false;
         }
         if (this.needsUpdate.SlicerPicking) {
-            this.renderers.SlicerPicking.render();
-            //this.needsUpdate.volume = false;
+            //this.renderers.SlicerPicking.render();
+            this.needsUpdate.SlicerPicking = false;
         }
-        //
-        //        this.renderers.sphere.render({
-        //            model: this.models.sphere,
-        //            viewport: this.viewports.sphere
-        //        });
+
+
     }
 
     /**
@@ -53861,7 +54233,7 @@ class Subview {
 
 module.exports = Subview;
 
-},{"../rendering/configurable-renderer":51}],60:[function(require,module,exports){
+},{"../rendering/configurable-renderer":50}],60:[function(require,module,exports){
 let d3 = require('d3');
 
 let Subview = require('./subview');
@@ -53876,6 +54248,7 @@ let FBAndTextureManager = require('../resource-managers/frame-buffer-and-texture
 let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
+let VolumeEventHandlerDelegate = require('./volume-event-handler-delegate');
 
 let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
 
@@ -53888,7 +54261,7 @@ let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
 let glsl = require('glslify');
-
+let InteractionModeManager = require('../interaction-modes-v2');
 
 let OverlayCellEventToModel = {
     'Sphere': 'Sphere',
@@ -53922,11 +54295,10 @@ class ViewManager {
             attribPrefix: "a_"
         });
 
-        this.subviews = {
-            //0: new Subview(this.masterContext)
-        };
-
         twgl.resizeCanvasToDisplaySize(this.masterContext.canvas);
+
+        this.subviews = {};
+        this.localControllerSelectedSubviewID = 0;
 
         this.configurationManager = new ConfigurationManager(this);
         this.modelSyncManager = new ModelSyncManager(this);
@@ -53938,31 +54310,54 @@ class ViewManager {
         this.uniformManagerUnitQuad = new UniformManager();
 
         this.bufferManager = new BufferManager(this.masterContext);
-        this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
 
-        this.boundingBoxBuffer = null; // Dependent on dataset
-        this.slicerBuffer = null; // TEMP
+        /*
+                this.boundingBoxBuffer = null; // Dependent on dataset
+                this.slicerBuffer = null; // TEMP
+        */
 
         //twgl.bindFramebufferInfo(this.masterContext);
 
+        this.volumeEventHandler = new VolumeEventHandlerDelegate(this, {
+            clickTimeout: 150
+        });
 
         let eventListenerOverlayCallback = (cellID, subcellName, event) => {
             //            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
             //                event.button);
-            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
-                event.button);
+            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " + event.button);
 
-            if (this.subviews[cellID]) {
+            switch (subcellName) {
+                case 'Volume':
+                    this.volumeEventHandler.handle(event, cellID);
+                    //this.uniformManagerVolume.updateAll();
+                    //this.uniformManagerSlicer.updateAll();
+                    break;
+                case 'Slicer': // Delegate directly to the slicer
+                    // model since it is self contained
+                    this.modelSyncManager.getActiveModel(Models.SLICER.name, cellID).mouse(event);
+                    this.uniformManagerSlicer.updateAll();
+                    //                    this.requestAnimationFrame();
+                    break;
+                case 'Sphere':
+                    break;
+            }
+
+            if (subcellName === 'Sphere')
+                return; // Ignore sphere for now.
+
+            /*if (this.subviews[cellID]) {
                 let modelName = OverlayCellEventToModel[subcellName];
                 let model = this.modelSyncManager.getActiveModel(modelName, cellID);
                 this.modelSyncManager.getActiveModel(modelName, cellID).mouse(event);
                 this.uniformManagerVolume.updateAll();
                 this.uniformManagerSlicer.updateAll();
-            } else
-            if (this.subviews[cellID])
+            } //else*/
+
+            /*if (this.subviews[cellID])
                 this.subviews[cellID].notifyEventDidHappen(subcellName, event)
-            else
-                console.log("Subview not initialized yet (active dataset required)");
+            else*/
+            console.log("Subview not initialized yet (active dataset required)");
         }
 
         let overlayConfig = {
@@ -53993,6 +54388,7 @@ class ViewManager {
         }, 1000);
     }
 
+
     /**
      * Initializes frame buffers, textures, shader programs and binds uniform managers
      * to models. To be on the safe side - everything in the environment must be
@@ -54014,7 +54410,16 @@ class ViewManager {
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
-        this.refresh();
+        //this.refresh();
+        this.requestAnimationFrame();
+    }
+
+    notifySlicesDidChange(id) {
+        this.uniformManagerSlicer.updateAll();
+        this.uniformManagerVolume.updateAll();
+        this.notifyNeedsUpdateForModel(Models.SLICER.name, id, ['Volume', 'Slicer']);
+        //this._setNeedsUpdateForAllSubviews(['Volume', 'Slicer']);
+        this.requestAnimationFrame();
     }
 
     _genTextures() {
@@ -54046,12 +54451,29 @@ class ViewManager {
 
         this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
 
-        this.FBAndTextureManager.create2DTextureFB({
+        /*this.FBAndTextureManager.create2DTextureFB({
             name: 'UnitQuadTexture'
+        });*/
+    }
+
+    _genVolumeBoundingBoxBuffer() {
+
+        this.boundingBoxBuffer = twgl.createBufferInfoFromArrays(this.masterContext, {
+            position: vertices.position,
+            indices: vertices.indices,
+            normal: vertices.normal,
+            texcoord: vertices.texcoord
         });
     }
 
     _genBuffers() {
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        let bb = dataset.header.normalizedBB;
+        let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
+        this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+
+        this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
+
         let bufferInfo = this.bufferManager.getBufferInfo('DebugCubeBuffer');
         this.bufferManager.createBoundingBoxBufferInfo('DebugCubeBuffer', 1.0, 0.5, 0.7);
 
@@ -54076,6 +54498,13 @@ class ViewManager {
         this.refresh();
     }
 
+    setModelPointsToGlobal(modelName, pointToGlobal) {
+        this.modelSyncManager.setModelPointsToGlobal(modelName, pointToGlobal);
+
+        if (modelName === Models.SLICER.name || modelName === Models.CAMERA.name)
+            this._syncSlicerAndVolumeCameras();
+    }
+
     getPickingBufferInfo(name, id) {
         let getter = () => {
             return this.FBAndTextureManager.getFrameBuffer(name);
@@ -54091,6 +54520,13 @@ class ViewManager {
     }
 
     _renderPickingBuffer(name, id) {
+        // Special case, just pick an arbitrary subview
+        // I.e use any subview to render the picking buffer using the
+        // GLOBAL uniforms. When GLOBAL mode is enabled then all subviews
+        // will have those same uniforms anyway!
+        if (id === 'GLOBAL') {
+            id = Object.keys(this.subviews)[0];
+        }
         this.uniformManagerSlicer.updateAll();
         this.subviews[id].renderSpecific(name);
     }
@@ -54192,8 +54628,15 @@ class ViewManager {
         });
     }
 
+    viewTypeChanged(subviewID, newType) {
+        // Now configure the renderer of the subview to use the
+        // shader corresponding to the view type!
+
+    }
+
     datasetDidChange() {
         this._init();
+        Environment.notifyDatasetWasRead();
     }
 
     transferFunctionDidChange(tfKey) {
@@ -54202,15 +54645,17 @@ class ViewManager {
     }
 
     _bindUniformManagers() {
-        //this._bindUniformManagerVolume();
+        this._bindUniformManagerVolume();
         this._bindUniformManagerSlicer();
-
     }
 
     _bindUniformManagerUnitQuad() {
-        this.uniformManagerUnitQuad.addShared('u_QuadTexture', () => {
+        /*this.uniformManagerUnitQuad.addShared('u_QuadTexture', () => {
             return this.FBAndTextureManager.getTexture('UnitQuadTexture');
-        });
+        });*/
+        this.uniformManagerUnitQuad.addUnique('u_QuadTexture', (subviewID) => {
+            return this.FBAndTextureManager.getTexture('UnitQuadTexture' + subviewID)
+        })
     }
 
     _bindUniformManagerSlicer() {
@@ -54265,6 +54710,9 @@ class ViewManager {
             let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
 
             return slicerModel.uniforms.u_ActiveDragRailID;
+        });
+        this.uniformManagerSlicer.addUnique('u_SlicerImageTexture', (subviewID) => {
+            return this.FBAndTextureManager.getTexture('SlicerImageTexture' + subviewID);
         });
     }
 
@@ -54325,11 +54773,44 @@ class ViewManager {
             // 2. Get the texture associated to the active model
             return this.FBAndTextureManager.getTransferFunction2DTexture(activeModel);
         });
+        this.uniformManagerVolume.addUnique('u_IsoMinMax', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID).minmax;
+        });
+
+        this.uniformManagerVolume.addUnique('u_SliceX', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID).getSliceOffsets('X');
+        });
+        this.uniformManagerVolume.addUnique('u_SliceY', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID).getSliceOffsets('Y');
+        });
+        this.uniformManagerVolume.addUnique('u_SliceZ', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID).getSliceOffsets('Z');
+        });
+        this.uniformManagerVolume.addUnique('u_VolumeImageTexture', (subviewID) => {
+            return this.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        });
+
     }
 
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
+
+        if (modelKey === Models.CAMERA.name) { // Repoint slicer cameras!
+            this._syncSlicerAndVolumeCameras()
+        }
+    }
+
+    _syncSlicerAndVolumeCameras() {
+        this.modelSyncManager.call(Models.CAMERA.name, 'killSlaves');
+
+        for (let subviewID in this.subviews) {
+            let volumeCamera = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
+
+            let slicerModel = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
+
+            slicerModel.linkCameraPhiAndThetaTo(volumeCamera);
+        }
     }
 
     _generateBasicSlicerConfigForSubview(subviewID) {
@@ -54504,12 +54985,23 @@ class ViewManager {
 
     }
 
+
     addNewView(id, initialConfigurations) {
+        // One texture to hold the output of each of these
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'VolumeImageTexture' + id
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'SlicerImageTexture' + id
+        });
+
+
         this.subviews[id] = new Subview(this.masterContext);
         this.modelSyncManager.addSubview(id, this);
         this.uniformManagerVolume.addSubview(id);
         this.uniformManagerSlicer.addSubview(id);
-        //        let config = this._generateBasicVolumeConfigForSubview(id);
+
 
         this.configurationManager.configureSubview(id, initialConfigurations || {
             Volume: 'Basic',
@@ -54517,18 +55009,22 @@ class ViewManager {
             SlicerPicking: 'Basic'
         });
 
-        /*     let volumeConfig = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('Volume', volumeConfig);
-
-        let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
-
+        /* let config = this._generateBasicVolumeConfigForSubview(id);
         let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
             slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
-
-        this.subviews[id].configureRenderer('Slicer', slicerConfig);
-        this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);
+        let volumeConfig = this._generateDebugConfigurationForSubview(id);
+        this.subviews[id].configureRenderer('Volume', slicerConfig);
 */
+        /*
+                let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
+
+
+                this.subviews[id].configureRenderer('Slicer', slicerConfig);
+                this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);*/
+
         this.syncWithLayout();
+        this._syncSlicerAndVolumeCameras();
+
     }
 
     removeView(id) {
@@ -54539,11 +55035,6 @@ class ViewManager {
         this.syncWithLayout();
     }
 
-    transferFunctionDidChangeForSubviewID(tfEditorKey) {
-        console.log("Updating TF tex... src: " + tfEditorKey);
-        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey);
-        this.uniformManagerVolume.updateAll();
-    }
 
     /**
      * Syncs the view manager with the layout, and passes the subcell
@@ -54576,23 +55067,6 @@ class ViewManager {
         this.syncWithLayout();
     }
 
-    _genBoundingBoxBuffer() {
-        let dataset = this.env.getActiveDataset('GLOBAL');
-
-        let bb = dataset.header.normalizedBB;
-
-        let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
-
-        // TODO move logic for this shit to a manager
-        this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
-
-        this.boundingBoxBuffer = twgl.createBufferInfoFromArrays(this.masterContext, {
-            position: vertices.position,
-            indices: vertices.indices,
-            normal: vertices.normal,
-            texcoord: vertices.texcoord
-        });
-    }
 
     _debugRotateCube(subviewID) {
         let cam = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
@@ -54620,7 +55094,10 @@ class ViewManager {
     refresh() {
         let gl = this.masterContext;
 
-        twgl.resizeCanvasToDisplaySize(gl.canvas);
+        this.uniformManagerSlicer.updateAll();
+        this.uniformManagerVolume.updateAll();
+
+        //twgl.resizeCanvasToDisplaySize(gl.canvas);
 
         //gl.enable(gl.DEPTH_TEST);
         //gl.enable(gl.CULL_FACE);
@@ -54639,8 +55116,82 @@ class ViewManager {
         }
 
         // if (this._debugDoRefresh)
+        //window.requestAnimationFrame(this.refresh.bind(this));
+    }
+
+
+
+    transferFunctionDidChangeForSubviewID(tfEditorKey) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        console.log("Updating TF tex... src: " + tfEditorKey);
+        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey);
+        this.uniformManagerVolume.updateAll();
+
+        let needsUpdateSubviewIDs = [];
+        if (tfEditorKey === 'GLOBAL') {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWithMaster('GLOBAL', Models.TRANSFER_FUNCTION.name);
+        } else {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(this.localControllerSelectedSubviewID, Models.TRANSFER_FUNCTION.name);
+        }
+
+        this._notifySubviewsNeedUpdate('Volume', needsUpdateSubviewIDs, true);
+        //        for (let subviewID of needsUpdateSubviewIDs) {
+        //            this.subviews[subviewID].notifyNeedsUpdate('Volume', true);
+        //        }
+
+        if (needsUpdateSubviewIDs.length > 0)
+            this.requestAnimationFrame(['Volume']);
+    }
+
+    _notifySubviewNeedsFullUpdate(subviewID, renderers) {
+        for (let renderer of renderers) {
+            this.subviews[subviewID].notifyNeedsUpdate(renderer, true);
+        }
+    }
+
+    _notifySubviewsNeedUpdate(rendererName, subviewIDs, fullUpdate) {
+        for (let subviewID of subviewIDs) {
+            this.subviews[subviewID].notifyNeedsUpdate(rendererName, fullUpdate);
+        }
+
+        for (let subviewID in this.subviews) {
+            this.subviews[subviewID].notifyNeedsUpdate(rendererName);
+        }
+    }
+
+    notifyNeedsUpdateForModel(model, sourceSubview, toUpdate) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        // 1. Get subview IDs linked with
+
+        let needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(sourceSubview, model);
+
+        for (let rendererKey of toUpdate)
+            this._notifySubviewsNeedUpdate(rendererKey, needsUpdateSubviewIDs, true);
+
+        /*        for (let subviewID of needsUpdateSubviewIDs) {
+                    for (let rendererKey of toUpdate)
+                        this.subviews[subviewID].notifyNeedsUpdate(rendererKey, true);
+                }*/
+
+        //if (needsUpdateSubviewIDs.length > 0)
+        //    this.requestAnimationFrame();
+    }
+
+    _notifyNeedsUpdate(name, subviewID) {
+        for (let theSubviewID in this.subviews) {
+            this.subviews[theSubviewID].notifyNeedsUpdate(name);
+        }
+    }
+
+    requestAnimationFrame(renderers, subviewID) {
         window.requestAnimationFrame(this.refresh.bind(this));
     }
+
+
 
     _updateTextures(subviewID) {
         let TFModelID = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
@@ -54661,7 +55212,126 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../geometry/box":64,"../../widgets/split-view/miniature-split-view-overlay":67,"../../widgets/split-view/subcell-layout":70,"../linkable-models":43,"../models/slicer-model-buffers":46,"../resource-managers/buffer-manager":52,"../resource-managers/configuration-manager":53,"../resource-managers/frame-buffer-and-texture-manager":54,"../resource-managers/model-sync-manager":55,"../resource-managers/shader-manager":56,"../resource-managers/uniform-manager":57,"../settings":58,"./subview":59,"d3":3,"glslify":14,"twgl.js":21}],61:[function(require,module,exports){
+},{"../../geometry/box":65,"../../widgets/split-view/miniature-split-view-overlay":70,"../../widgets/split-view/subcell-layout":73,"../interaction-modes-v2":39,"../linkable-models":41,"../models/slicer-model-buffers":44,"../resource-managers/buffer-manager":51,"../resource-managers/configuration-manager":52,"../resource-managers/frame-buffer-and-texture-manager":53,"../resource-managers/model-sync-manager":54,"../resource-managers/shader-manager":55,"../resource-managers/uniform-manager":56,"../settings":57,"./subview":59,"./volume-event-handler-delegate":61,"d3":3,"glslify":14,"twgl.js":21}],61:[function(require,module,exports){
+let MouseHandler = require('../mouse-handler');
+let Models = require('../linkable-models').Models;
+let GetInteractionMode = require('../interaction-modes-v2').getInteractionModeGetterForCategory('Volume');
+
+class VolumeEventHandlerDelegate {
+    constructor(viewManager) {
+        this.viewManager = viewManager;
+        this.modelSyncManager = viewManager.modelSyncManager;
+
+        this.mouseHandler = new MouseHandler({
+            clickTimeout: 150
+        });
+
+        this._bindMouseHandler();
+        this.activeSubviewID = 0;
+    }
+
+    // Events to bind...
+    // Left drag ONLY
+    // Mouse enter ->
+    _bindMouseHandler() {
+        this.mouseHandler.on('mouseenter', null, (state) => {
+            // Render picking buffer for given subviewID
+        });
+
+        this.mouseHandler.on('mouseout', null, (state) => {
+
+        });
+
+        this.mouseHandler.on('click', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+
+            switch (interactionMode) {
+                case 'select-point':
+                    break;
+                case 'select-ray':
+                    break;
+                default:
+                    break;
+            }
+        });
+
+
+
+        this.mouseHandler.on('mousedown', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            switch (interactionMode) {
+                case 'measure':
+                    // Start measure
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        let getCamera = () => {
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, this.activeSubviewID);
+        }
+
+        let update = () => {
+
+            this.viewManager.notifyNeedsUpdateForModel(Models.CAMERA.name, this.activeSubviewID, ['Volume', 'Slicer']);
+            this.viewManager.requestAnimationFrame();
+        }
+
+        this.mouseHandler.on('drag', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+
+            switch (interactionMode) {
+                case 'move':
+                    getCamera().pan(state.dx, state.dy);
+                    update();
+                    break;
+                case 'zoom':
+                    getCamera().zoom(state.dx + state.dy);
+                    update();
+                    break;
+                case 'rotate':
+                    console.log("Rotate!");
+                    getCamera().rotate(state.dx, state.dy);
+                    update();
+                    break;
+
+                case 'measure':
+                    // Where to store the "measure" cache?
+                    // To store: Start point, end point
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        this.mouseHandler.on('mouseup', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+            switch (interactionMode) {
+                case 'measure':
+                    // end measure
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        this.mouseHandler.on('mousemove', 'left', (state) => {
+
+        });
+
+    }
+
+    handle(event, subviewID) {
+        this.activeSubviewID = subviewID;
+        this.mouseHandler.handle(event);
+    }
+
+}
+
+module.exports = VolumeEventHandlerDelegate;
+
+},{"../interaction-modes-v2":39,"../linkable-models":41,"../mouse-handler":49}],62:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -54694,6 +55364,12 @@ class DatasetManager {
         if (this.cellID2Dataset[cellID])
             return this.datasets[this.cellID2Dataset[cellID]].histogram;
         return null;
+    }
+
+    clearDataset() {
+        for(let key in this.datasets) {
+            delete this.datasets[key];
+        }
     }
 
     /**
@@ -54786,7 +55462,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":62,"./volume-dataset":63}],62:[function(require,module,exports){
+},{"./selection":63,"./volume-dataset":64}],63:[function(require,module,exports){
 
 
 /**
@@ -54847,7 +55523,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -54934,7 +55610,7 @@ class VolumeDataset {
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],64:[function(require,module,exports){
+},{"d3":3}],65:[function(require,module,exports){
   /**
    * Array of the indices of corners of each face of a cube.
    * @type {Array.<number[]>}
@@ -55071,7 +55747,7 @@ function createCuboidVertices(width, height, depth) {
 
 module.exports = createCuboidVertices;
 
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 
 
 
@@ -55090,7 +55766,113 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":23,"./client2server/websocket-client":39,"./core/environment":40}],66:[function(require,module,exports){
+},{"./angular-assets/main-controller":23,"./client2server/websocket-client":37,"./core/environment":38}],67:[function(require,module,exports){
+let Icons = require('../../core/settings').Widgets.LinkerAndSplitterView.icons.icons;
+
+let menu = [];
+
+let notify = null;
+let callback = (name) => {
+    notify(name);
+}
+
+for (let iconName in Icons) {
+    let iconIMGPath = Icons[iconName];
+    menu.push({
+        name: iconName,
+        img: iconIMGPath,
+        title: iconName,
+        fun: () => {
+            notify(iconName);
+            //alert("You selected " + iconName + '!');
+        }
+    });
+}
+
+/*
+var menu = [
+    {
+        name: '3D Volume',
+        img: '../client/images/icons/skull-icon.png',
+        title: 'create button',
+        className: 'primary',
+        fun: function (data, event) {
+            alert('i am add button')
+        }
+    },
+    {
+        name: 'Slice View',
+        img: '../client/images/icons/icon-slicer.png',
+        title: 'update button',
+        fun: function (data, event) {
+            console.log('i am update button')
+        }
+    },
+    {
+        name: 'delete',
+        img: '../client/images/icons/skull-icon.png',
+        disable: true,
+        title: 'create button',
+        fun: function (data, event) {
+            console.log('i am add button')
+        },
+        submenu: [{
+            'name': 'soft delete',
+    }, {
+            'name': 'hard delete'
+    }]
+
+    }];*/
+
+module.exports = {
+    menu: menu,
+    listen: (handle) => {
+        notify = handle;
+    }
+};
+
+},{"../../core/settings":57}],68:[function(require,module,exports){
+class SplitViewIconSet {
+    constructor(args) {
+
+        this.defaultIconName = args.defaultIcon;
+        this.icons = args.Icons; // {{iconName : path}}
+        this.subviewID2IconName = {
+            0: args.defaultIcon
+        }
+    }
+
+    getIconClassName(id) {
+        return '';//this.getIcon(this.subviewID2IconName[id]);
+    }
+
+    getIconName(id) {
+        return this.subviewID2IconName[id];
+    }
+
+    getIconPath(id) {
+        return this.getIcon(this.subviewID2IconName[id]);
+    }
+
+    addCell(id) {
+        this.subviewID2IconName[id] = this.defaultIconName;
+    }
+
+    removeCell(id) {
+        delete this.subviewID2IconName[id];
+    }
+
+    getIcon(name) {
+        return this.icons[name];
+    }
+
+    setIcon(id, iconName) {
+        this.subviewID2IconName[id] = iconName;
+    }
+}
+
+module.exports = SplitViewIconSet;
+},{}],69:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -55227,8 +56009,16 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":71,"underscore":22}],67:[function(require,module,exports){
+},{"./unique-index-bag":74,"underscore":22}],70:[function(require,module,exports){
 let d3 = require('d3');
+/*let menuInfos = {
+    Volume: require('../../core/views/context-menu-config-volume'),
+    Slicer: require('../../core/views/context-menu-config-slicer')
+}*/
+let menuInfos = require('../../core/views/context-menu-configs');
+
+
+let InteractionModeManager = require('../../core/interaction-modes-v2');
 
 /**
  * Makes an overlay linked to a split view.
@@ -55413,6 +56203,7 @@ class MiniatureSplitViewOverlay {
                     });
                 })*/
                 .on('mousemove', function (subcell) {
+                    d3.event.stopPropagation();
                     let pos = d3.mouse(this.parentNode);
                     let xy = scaleAndNormalize(pos, subcell.x0, subcell.y0, subcell.width, subcell.height);
                     self._handleEvent(cellID, subcell.name, {
@@ -55462,6 +56253,22 @@ class MiniatureSplitViewOverlay {
         });
 
         rects.remove();
+
+        let hasContextMenu = ['Volume', 'Slicer'];
+
+        for (let ctxOwner of hasContextMenu) {
+            // Append context menu
+            $('.subview-subcell-' + ctxOwner).contextMenu(menuInfos[ctxOwner].menu, {
+                triggerOn: 'click'
+            });
+
+            menuInfos[ctxOwner].listen((item) => {
+                InteractionModeManager.setInteractionMode(ctxOwner, item);
+            });
+        }
+
+
+
         return rendererCells;
     }
 
@@ -55473,12 +56280,15 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"d3":3}],68:[function(require,module,exports){
+},{"../../core/interaction-modes-v2":39,"../../core/views/context-menu-configs":58,"d3":3}],71:[function(require,module,exports){
+let menuInfo = require('./context-menu-config');
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
-const $ = require('jquery');
 const d3 = require('d3');
 const LinkGrouper = require('./link-group');
+const SplitViewIconSet = require('./icon-set');
+
+let IDCACHE = -1;
 
 d3.selection.prototype.moveToFront = function () {
     return this.each(function () {
@@ -55534,6 +56344,10 @@ class MiniatureSplitView {
      * @constructor
      */
     constructor(args) {
+        if (!args ||  !args.divID) {
+            throw new Error("Args or divID is null... args: " + args);
+        }
+
         this.properties = {
             divID: args.divID,
             aspectRatio: args.aspectRatio,
@@ -55541,8 +56355,10 @@ class MiniatureSplitView {
             state: args.state,
             canLink: args.canLink,
             canAddRemove: args.canAddRemove,
+            canSelect: args.canSelect,
 
             showIDs: args.showIDs,
+            showIcons: args.showIcons,
 
             bottomTopThresholdPercentage: args.bottomTopThresholdPercentage,
 
@@ -55554,6 +56370,7 @@ class MiniatureSplitView {
 
         this.parent = $('#' + this.properties.divID);
         this.layout = new SplitBox(args.maxRows, args.maxColumns, args.aspectRatio);
+        this.icons = args.icons; //new SplitViewIconSet(args.maxRows, args.maxColumns);
 
         this.linkCache = {
             start: {
@@ -55580,6 +56397,16 @@ class MiniatureSplitView {
         };
 
         this.linkChangedCallback = {};
+        this.viewTypeChangedCallback = {};
+
+        if (args.canSelect) // Select only
+            this.changeState('SELECT');
+
+        this.selected = -1; // Highlight if selected
+    }
+
+    setViewTypeChangedCallback(handle) {
+        this.viewTypeChangedCallback = handle;
     }
 
     setSplitbox(splitbox) {
@@ -55636,9 +56463,11 @@ class MiniatureSplitView {
 
         svg.selectAll('.splitview-rect')
             .data(this.layout.flattenedLayoutPercentages)
-            .enter().append('rect')
+            .enter().append(this.properties.showIcons ? 'image' : 'rect')
             .attr('class', function (d) {
-                return "id-" + d.cellID + ' miniature-splitview-rect'
+                let iconClass = self.properties.showIcons ?
+                    self.icons.getIconClassName(d.cellID) : '';
+                return "id-" + d.cellID + ' miniature-splitview-rect ' + iconClass;
             })
             .attr('x', function (d) {
                 return (d.x0 * width);
@@ -55652,10 +56481,19 @@ class MiniatureSplitView {
             .attr('height', function (d) {
                 return d.heightN * height;
             })
+            .attr('xlink:href', (d) => {
+                return self.icons.getIconPath(d.cellID);
+            })
             .classed('linkgroup-master-cell', (d) => {
                 let isMaster = this.properties.canLink && _.contains(masterCellIDs, d.cellID);
                 //console.log("CellID " + d.cellID + " is master? " + isMaster);
                 return isMaster;
+            })
+            .classed('highlight-cell', (d) => {
+                return this.selected === d.cellID;
+            })
+            .on('mouseenter', function(d) {
+                IDCACHE = d.cellID;
             })
             .on('mousemove', function (d) {
                 if (current-- > 0)
@@ -55677,9 +56515,14 @@ class MiniatureSplitView {
                 let x0H = d.x0 * width + (isLeft ? 0 : halfRectWidth),
                     y0 = d.y0 * height;
 
-
                 switch (self.properties.state) {
                     case 'REMOVE':
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
+                        break;
+                    case 'EDIT':
+                        self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
+                        break;
+                    case 'SELECT':
                         self.showRectAt(x0Whole, y0, rectWidth, rectHeight);
                         break;
                     case 'ADD':
@@ -55780,6 +56623,28 @@ class MiniatureSplitView {
             this.drawLinkLineFromCache();
             this.applyLinkageColors();
         }
+
+        if (this.properties.showIcons) {
+            // Append context menu if show icons
+            let sel = $('image.miniature-splitview-rect');
+            sel.contextMenu(menuInfo.menu, {
+                triggerOn: 'click'
+            });
+
+            menuInfo.listen((name) => {
+                this.notifyViewTypeChanged(name, IDCACHE);
+            });
+        }
+    }
+
+    notifyViewTypeChanged(newType, cellID) {
+        if (newType !== this.icons.getIconName(cellID)) {
+            this.icons.setIcon(cellID, newType);
+
+            this.viewTypeChangedCallback(cellID, newType);
+
+            this.dispatcher("refresh", []);
+        }
     }
 
     showRectAt(x0, y0, rectWidth, rectHeight, cellID) {
@@ -55879,18 +56744,46 @@ class MiniatureSplitView {
         this.linkGrouper.ungroupMember(id);
     }
 
+    selectCellID(id) { // Highlight it briefly
+        this.selected = id;
+        this.refresh();
+
+        setTimeout(() => {
+            this.selected = -1;
+            this.refresh();
+        }, 2000);
+    }
+
+    setSelected(id) { // Highlight until a new cell is selected
+        this.selected = id;
+        this.refresh();
+    }
+
     mouseClick(row, col, direction, centerX, centerY, mouseX, mouseY) {
         let id = -1;
         switch (this.properties.state) {
+            case 'SELECT':
+                id = this.layout.getCellID(row, col);
+                this.dispatcher('selectCellID', [id]);
+                break;
+            case 'EDIT':
+                id = this.layout.getCellID(row, col);
+
+                // Pop up the context menu
+                break;
             case 'ADD':
-                if (direction === 'left' || direction === 'right')
-                    this.layout.addCellToRow(row, col, direction === 'left');
-                else
-                    this.layout.addRowAt(row, direction === 'top');
+                if (direction === 'left' || direction === 'right') {
+                    id = this.layout.addCellToRow(row, col, direction === 'left');
+                    this.icons.addCell(id);
+                } else {
+                    id = this.layout.addRowAt(row, direction === 'top');
+                    this.icons.addCell(id);
+                }
                 this.dispatcher('refresh', []);
                 return;
             case 'REMOVE':
                 id = this.layout.removeCellAt(row, col);
+                this.icons.removeCell(id);
                 //console.log("Removed cell @ ID: " + id);
                 this.dispatcher('unlinkCellID', [id]);
                 this.dispatcher('refresh', []);
@@ -56023,7 +56916,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./link-group":66,"./splitbox":69,"d3":3,"jquery":18,"underscore":22}],69:[function(require,module,exports){
+},{"./context-menu-config":67,"./icon-set":68,"./link-group":69,"./splitbox":72,"d3":3,"underscore":22}],72:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -56152,6 +57045,8 @@ class SplitBox {
             action: 'CELL_ADDED',
             id: id
         });
+
+        return id;
     }
 
     getCellID(row, col) {
@@ -56243,6 +57138,8 @@ class SplitBox {
             action: 'CELL_ADDED',
             id: id
         });
+
+        return id;
     }
 
     /* Returns the cell index (important to get right in the environment */
@@ -56394,7 +57291,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":71,"underscore":22}],70:[function(require,module,exports){
+},{"./unique-index-bag":74,"underscore":22}],73:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -56632,7 +57529,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],71:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -56674,7 +57571,7 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":22}],72:[function(require,module,exports){
+},{"underscore":22}],75:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
 let LinkableModels = require('../../core/linkable-models').Models;
@@ -56686,8 +57583,9 @@ let divIDs = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
         [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
         [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.SPHERE.name]: 'lvw-link-view-4'
-    }
+        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-4'
+    },
+    SELECT: 'lvw-select-view'
 };
 
 /** @module ViewSplitterMasterController
@@ -56769,9 +57667,13 @@ let getAllLinkModels = () => {
     return propertyNames;
 }
 
+
+
 let init = (callbacks) => {
     views.ADD = genAddRemoveView(divIDs.ADD, viewSettings);
+    views.ADD.setViewTypeChangedCallback(callbacks.viewTypeChanged);
     views.ADD.render();
+
 
     let splitbox = views.ADD.layout;
     splitbox.setChangeListener(callbacks.layoutChanged);
@@ -56787,6 +57689,35 @@ let init = (callbacks) => {
         views.linkers[model.name].setLinkChangedCallback(model.name, callbacks.linkChanged);
         views.linkers[model.name].render();
     }
+
+    let isLocked = false;
+    let isMinimized = true;
+
+    let selectDIV = document.getElementById(divIDs.SELECT);
+    let btnDIV = document.getElementById('lvw-select-view-btn');
+    let btnDIVIcon = document.querySelector('#lvw-select-view-btn > i');
+    let btnBaseClasslist = 'ui icon button ';
+
+    let updateSelectDiv = () => {
+        if (isLocked)
+            return;
+
+        selectDIV.classList = isMinimized ? 'minimized' : '';
+
+        btnDIV.classList = btnBaseClasslist + (isMinimized ? 'minimized' : '');
+        btnDIVIcon.classList = isMinimized ? 'expand icon' : 'compress icon';
+        views.SELECT.refresh();
+    }
+
+    btnDIV.addEventListener('click', () => {
+        isMinimized = !isMinimized;
+        updateSelectDiv();
+    });
+
+    views.SELECT = genSelectView(divIDs.SELECT, viewSettings);
+    views.SELECT.layout = splitbox;
+    views.SELECT.setViewTypeChangedCallback(callbacks.viewTypeChanged);
+    views.SELECT.render();
 
     console.log("Dispatch refresh");
     setTimeout(() => {
@@ -56826,12 +57757,25 @@ let read = () => {
 }
 
 let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, otherwise they are autonomous.
-    views.ADD[event].apply(views.ADD, args);
-    for (let view in views.linkers) {
-        let theView = views.linkers[view];
-        //        console.log(theView);
-        let fn = theView[event];
-        fn.apply(theView, args);
+    if (event === 'selectCellID') { // Special, highlight it briefly in other cells
+        views.ADD[event].apply(views.ADD, args);
+        for (let view in views.linkers) {
+            let theView = views.linkers[view];
+            //        console.log(theView);
+            let fn = theView[event];
+            fn.apply(theView, args);
+        }
+
+        views.SELECT.setSelected(args[0]);
+    } else {
+        views.ADD[event].apply(views.ADD, args);
+        views.SELECT[event].apply(views.SELECT, args);
+        for (let view in views.linkers) {
+            let theView = views.linkers[view];
+            //        console.log(theView);
+            let fn = theView[event];
+            fn.apply(theView, args);
+        }
     }
 };
 
@@ -56868,7 +57812,8 @@ let viewSettings = {
     canLink: true,
     canAddRemove: false,
     bottomTopThresholdPercentage: BaseSettings.bottomTopThresholdPercentage,
-    colors: BaseSettings.colors
+    colors: BaseSettings.colors,
+    icons: BaseSettings.icons
 };
 
 let genLinkingView = (divID, settings) => {
@@ -56878,6 +57823,7 @@ let genLinkingView = (divID, settings) => {
     customSettings.canAddRemove = false;
     customSettings.state = 'LINK-ADD';
     customSettings.receiveLayoutChanges = true;
+    customSettings.showIcons = BaseSettings.showIconsOnLinkingViews;
     return new MiniatureSplitView(customSettings);
 }
 
@@ -56887,6 +57833,18 @@ let genAddRemoveView = (divID, settings) => {
     customSettings.canLink = false;
     customSettings.canAddRemove = true;
     customSettings.dispatcher = dispatch;
+    customSettings.showIcons = BaseSettings.showIconsOnAddRemoveView;
+    return new MiniatureSplitView(customSettings);
+}
+
+let genSelectView = (divID, settings) => {
+    let customSettings = _.clone(settings);
+    customSettings.divID = divID;
+    customSettings.canLink = false;
+    customSettings.canAddRemove = false;
+    customSettings.canSelect = true;
+    customSettings.dispatcher = dispatch;
+    customSettings.showIcons = BaseSettings.showIconsOnSelectView;
     return new MiniatureSplitView(customSettings);
 }
 
@@ -56898,7 +57856,7 @@ module.exports = {
 // Environment needs READ ACCESS only, the ng-controller needs write access to bind
 // DOM events to change the state of the object.
 
-},{"../../core/linkable-models":43,"../../core/settings":58,"./miniature-split-view":68,"underscore":22}],73:[function(require,module,exports){
+},{"../../core/linkable-models":41,"../../core/settings":57,"./miniature-split-view":71,"underscore":22}],76:[function(require,module,exports){
 let tinycolor = require('tinycolor2');
 /** Represents a color gradient consisting of control points
  * @class
@@ -57035,7 +57993,7 @@ class ColorGradient {
 
 module.exports = ColorGradient;
 
-},{"tinycolor2":20}],74:[function(require,module,exports){
+},{"tinycolor2":20}],77:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
@@ -57332,12 +58290,15 @@ class TransferFunctionEditor {
         this.eventListenerRect = this.svgMain.append('rect')
             .attr('class', 'tf-editor-event-listener-rect')
             .on('mousedown', () => {
+            d3.event.stopPropagation();
                 this._mousedown();
             })
             .on('mouseup', () => {
+            d3.event.stopPropagation();
                 this._mouseup();
             })
             .on('mousemove', () => {
+            d3.event.stopPropagation();
                 this._mousemove();
             });
 
@@ -58546,7 +59507,7 @@ class TransferFunctionEditor {
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":40,"../../core/settings":58,"./color-gradient":73,"d3":3,"jquery":18}],75:[function(require,module,exports){
+},{"../../core/environment":38,"../../core/settings":57,"./color-gradient":76,"d3":3,"jquery":18}],78:[function(require,module,exports){
 let TransferFunction = require('./transfer-function');
 /* Manages multiple transfer functions. It handles...
     - Linking and unlinking of TFs across views
@@ -58723,7 +59684,7 @@ class TransferFunctionManager {
 
 module.exports = TransferFunctionManager;
 
-},{"./transfer-function":76}],76:[function(require,module,exports){
+},{"./transfer-function":79}],79:[function(require,module,exports){
 let d3 = require('d3');
 
 let ColorGradient = require('./color-gradient');
@@ -58754,4 +59715,4 @@ class TransferFunction {
 
 module.exports = TransferFunction;
 
-},{"./color-gradient":73,"d3":3}]},{},[65]);
+},{"./color-gradient":76,"d3":3}]},{},[66]);

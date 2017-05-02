@@ -30,6 +30,7 @@
 
 .tf-controls-container {
     min-width: 280px;
+    min-height: 520px;
 }
 
 .tf-display-options-container {
