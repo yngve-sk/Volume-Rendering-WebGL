@@ -12,6 +12,7 @@ let FBAndTextureManager = require('../resource-managers/frame-buffer-and-texture
 let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
+let PickingBufferManager = require('../resource-managers/picking-buffer-manager');
 let VolumeEventHandlerDelegate = require('./volume-event-handler-delegate');
 
 let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
@@ -53,6 +54,8 @@ class ViewManager {
             depth: true
         });
 
+        this.masterContext.clearColor(0.2, 0.2, 0.2, 1.0);
+
         this.masterContext.getExtension('EXT_color_buffer_float');
         this.masterContext.getExtension('OES_texture_float')
         twgl.setDefaults({
@@ -74,7 +77,7 @@ class ViewManager {
         this.uniformManagerUnitQuad = new UniformManager();
 
         this.bufferManager = new BufferManager(this.masterContext);
-
+        this.pickingBufferManager = new PickingBufferManager(this);
         /*
                 this.boundingBoxBuffer = null; // Dependent on dataset
                 this.slicerBuffer = null; // TEMP
@@ -89,7 +92,7 @@ class ViewManager {
         let eventListenerOverlayCallback = (cellID, subcellName, event) => {
             //            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " +
             //                event.button);
-            console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " + event.button);
+            //console.log("cellID: " + cellID + ", subcell: " + subcellName + ", loc: (" + event.pos.x + ", " + event.pos.y + "), button = " + event.button);
 
             switch (subcellName) {
                 case 'Volume':
@@ -121,7 +124,7 @@ class ViewManager {
             /*if (this.subviews[cellID])
                 this.subviews[cellID].notifyEventDidHappen(subcellName, event)
             else*/
-            console.log("Subview not initialized yet (active dataset required)");
+            //console.log("Subview not initialized yet (active dataset required)");
         }
 
         let overlayConfig = {
@@ -168,6 +171,7 @@ class ViewManager {
         this._genTextures();
         this._genFrameBuffersAndTextureTargets();
         this._genBuffers();
+        this._genPickingBuffers();
         this._bindUniformManagers();
 
         this.addNewView(0);
@@ -178,11 +182,29 @@ class ViewManager {
         this.requestAnimationFrame();
     }
 
+
     notifySlicesDidChange(id) {
         this.uniformManagerSlicer.updateAll();
         this.uniformManagerVolume.updateAll();
         this.notifyNeedsUpdateForModel(Models.SLICER.name, id, ['Volume', 'Slicer']);
         //this._setNeedsUpdateForAllSubviews(['Volume', 'Slicer']);
+        this.requestAnimationFrame();
+    }
+
+    notifySlicerNeedsUpdate(id) {
+        this.uniformManagerSlicer.updateAll();
+        this.notifyNeedsUpdateForModel(Models.SLICER.name, id, ['Slicer']);
+        this.requestAnimationFrame();
+    }
+
+    notifyIsoThresholdDidChange(editorName, newMin, newMax) {
+        let subviewID = editorName === 'GLOBAL' ? 'GLOBAL' : this.localControllerSelectedSubviewID;
+
+        let thresholds = this.modelSyncManager.getModel(Models.THRESHOLDS.name, subviewID);
+        // TODO change to active when local controls are implemented!
+
+        thresholds.setMinMax(newMin, newMax);
+        this.notifyNeedsUpdateForModel(Models.THRESHOLDS.name, 0, ['Volume']);
         this.requestAnimationFrame();
     }
 
@@ -213,11 +235,60 @@ class ViewManager {
             name: 'BackFace'
         });
 
-        this.FBAndTextureManager.create2DPickingBufferFB('SlicerPicking');
-
         /*this.FBAndTextureManager.create2DTextureFB({
             name: 'UnitQuadTexture'
         });*/
+    }
+
+    _genPickingBuffers() {
+        let gl = this.masterContext;
+
+        let SlicerPBWidth = 512,
+            SlicerPBHeight = 512;
+
+        let SlicerPBFormat = gl.RGBA;
+
+        let RailsPB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'SlicerPickingRails',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight
+        });
+
+        let CubeFacePB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'SlicerPickingCubeFaces',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight
+        });
+
+        let SlicesPB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'SlicerPickingSlices',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'SlicerRails',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight,
+            format: SlicerPBFormat,
+            fbInfo: RailsPB
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'SlicerCubeFace',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight,
+            format: SlicerPBFormat,
+            fbInfo: CubeFacePB
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'SlicerSlices',
+            width: SlicerPBWidth,
+            height: SlicerPBHeight,
+            format: SlicerPBFormat,
+            fbInfo: SlicesPB
+        });
     }
 
     _genVolumeBoundingBoxBuffer() {
@@ -281,6 +352,35 @@ class ViewManager {
             get: getter,
             refresh: refresh
         };
+    }
+
+
+    renderSlickingRailBuffer(id) {
+        if (id === 'GLOBAL')
+            id = Object.keys(this.subviews)[0];
+
+        this.uniformManagerSlicer.updateAll();
+        this.subviews[id].renderSpecific('SlicerPickingRails');
+    }
+
+    renderSlicerPickingBuffers(id) {
+        if (id === 'GLOBAL')
+            id = Object.keys(this.subviews)[0];
+
+        this.uniformManagerSlicer.updateAll();
+
+        this.subviews[id].renderSpecific('SlicerPickingCubeFaces');
+        this.subviews[id].renderSpecific('SlicerPickingSlices');
+        this.subviews[id].renderSpecific('SlicerPickingRails');
+    }
+    renderSlicerPickingBuffersV2(id, bufferNames) {
+        if (id === 'GLOBAL')
+            id = Object.keys(this.subviews)[0];
+
+        this.uniformManagerSlicer.updateAll();
+
+        for (let bufferName in bufferNames)
+            this.subviews[id].renderSpecific(bufferName);
     }
 
     _renderPickingBuffer(name, id) {
@@ -538,7 +638,8 @@ class ViewManager {
             return this.FBAndTextureManager.getTransferFunction2DTexture(activeModel);
         });
         this.uniformManagerVolume.addUnique('u_IsoMinMax', (subviewID) => {
-            return this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID).minmax;
+//            return this.modelSyncManager.getActiveModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16(); // TEMP, change to local
+            return this.modelSyncManager.getModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16();
         });
 
         this.uniformManagerVolume.addUnique('u_SliceX', (subviewID) => {
@@ -553,7 +654,6 @@ class ViewManager {
         this.uniformManagerVolume.addUnique('u_VolumeImageTexture', (subviewID) => {
             return this.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
         });
-
     }
 
 
@@ -770,7 +870,10 @@ class ViewManager {
         this.configurationManager.configureSubview(id, initialConfigurations || {
             Volume: 'Basic',
             Slicer: 'Basic',
-            SlicerPicking: 'Basic'
+            SlicerPicking: 'Basic',
+            SlicerPickingSlices: 'Default',
+            SlicerPickingRails: 'Default',
+            SlicerPickingCubeFaces: 'Default'
         });
 
         /* let config = this._generateBasicVolumeConfigForSubview(id);

@@ -146,16 +146,13 @@ class FrameBufferAndTextureManager {
         return framebuffer;
     }
 
-    create2DPickingBufferFB(name, pickingFunction) {
+    create2DPickingBufferFB(args) {
         // For now use the same thing
         let fb = this.create2DTextureFB({
-            name: name,
-            width: 1024,
-            height: 1024
+            name: args.name,
+            width: args.width,
+            height: args.height
         });
-
-        if (pickingFunction)
-            fb.pick = pickingFunction;
 
         let gl = this.gl;
 
@@ -166,6 +163,8 @@ class FrameBufferAndTextureManager {
             gl.readPixels(x, y, w, h, format, type, dst, offset);
             //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         }
+
+        return fb;
     }
 
 

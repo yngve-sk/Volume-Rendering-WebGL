@@ -261,7 +261,7 @@ class MiniatureSplitViewOverlay {
     }
 
     _handleEvent(cellID, subcellName, event) {
-        console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
+        //console.log("_handleEvent(" + cellID + ", " + subcellName + ", " + event + ")");
         this.listener(cellID, subcellName, event);
     }
 }

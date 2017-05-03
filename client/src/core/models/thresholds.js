@@ -1,6 +1,6 @@
 class Thresholds {
     constructor() {
-        this.minmax = [-Infinity, Infinity];
+        this.minmax = [0, 4095];
     }
 
     setMin(min) {
@@ -9,6 +9,18 @@ class Thresholds {
 
     setMax(max) {
         this.max[1] = max;
+    }
+
+    setMinMax(min, max) {
+        this.minmax[0] = min;
+        this.minmax[1] = max;
+    }
+
+    getMinMaxInt16() {
+        return [
+            this.minmax[0] * 8,
+            this.minmax[1] * 8
+        ];
     }
 }
 

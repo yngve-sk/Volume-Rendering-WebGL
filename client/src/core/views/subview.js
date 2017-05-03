@@ -47,6 +47,9 @@ class Subview {
             Volume: new ConfigurableRenderer(this.gl),
             Slicer: new ConfigurableRenderer(this.gl),
             SlicerPicking: new ConfigurableRenderer(this.gl),
+            SlicerPickingSlices: new ConfigurableRenderer(this.gl),
+            SlicerPickingRails: new ConfigurableRenderer(this.gl),
+            SlicerPickingCubeFaces: new ConfigurableRenderer(this.gl),
             Sphere: null
         };
 
@@ -86,7 +89,8 @@ class Subview {
         }
 
         if (this.needsUpdate.Slicer) {
-            //this.renderers.Slicer.render();
+            this.renderers.Volume.render(false);
+            this.renderers.Slicer.render(true);
             this.needsUpdate.Slicer = false;
         }
         if (this.needsUpdate.SlicerPicking) {

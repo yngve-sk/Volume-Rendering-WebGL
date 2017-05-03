@@ -656,6 +656,8 @@ let genSlicerBuffers = (size) => {
         }
     };
 
+    let railIDs = Object.keys(rails);
+    let RAILS_MAX_ID = railIDs[railIDs.length - 1];
 
     SLICERBUFFERS = {
         Vertices: Vertices,
@@ -666,15 +668,19 @@ let genSlicerBuffers = (size) => {
         IDInfo: {
             getRailInfo: getRailInfo,
             getCubeFaceInfo: getCubeFaceInfo,
+            isInvalidID: (id) => {
+                return id >= RAILS_MAX_ID && 0 >= id;
+            },
             isRail: (id) => {
-                return 11 < id;
+                return 11 < id && id <= RAILS_MAX_ID;
             },
             isFace: (id) => {
                 return 6 <= id && id <= 11;
             },
             isSlice: (id) => {
-                return id < 6;
-            }
+                return 0 <= id < 6
+            },
+            RAILS_MAX_ID: RAILS_MAX_ID
         }
     };
 

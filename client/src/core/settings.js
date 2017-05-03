@@ -172,9 +172,9 @@ let SETTINGS = {
             },
             Slicer: {
                 'Rotate': '../client/images/icons/rotate.png',
-                'Zoom': '../client/images/icons/zoom.png',
+                /*'Zoom': '../client/images/icons/zoom.png',
                 'Add Slice': '../client/images/icons/add.png',
-                'Remove Slice': '../client/images/icons/remove.png',
+                'Remove Slice': '../client/images/icons/remove.png',*/
                 'Move Slice': '../client/images/icons/move-slice.png',
             }
         }

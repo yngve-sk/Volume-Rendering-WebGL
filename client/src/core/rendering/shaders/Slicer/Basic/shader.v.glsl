@@ -133,10 +133,12 @@ void main() {
             //v_position = vec3(displaceByOffset * a_position);
         }
 
-    } else if(isFace()) {
+    } else if(isFace() && u_HighlightID != a_id) {
         v_discardMe = 1; // hide faces
+/*
         gl_Position = u_WorldViewProjection * a_position;
         v_position = vec3(a_position);
+*/
     }
     else {
         gl_Position = u_WorldViewProjection * a_position;

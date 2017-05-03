@@ -5,6 +5,7 @@ let twgl = require('twgl.js'),
     m4 = twgl.m4,
     v3 = twgl.v3;
 
+//let CameraV2 = require('./camera-orbiter-v2');
 let CameraV2 = require('./camera-orbiter-v2');
 let MouseHandler = require('../mouse-handler');
 
@@ -17,6 +18,10 @@ let IDInfo = BufferInfo.IDInfo;
 
 let GetInteractionMode = require('../interaction-modes-v2').getInteractionModeGetterForCategory('Slicer');
 let Settings = require('../settings').Views.Slicer;
+
+let clamp01 = (val) => {
+    return val < 0 ? 0 : (val > 1) ? 1 : val;
+}
 
 /** @module Core/Models */
 
@@ -90,28 +95,53 @@ class SlicerModel {
     }
 
     getSliceOffsets(axis) {
+        let clampMin = (val) => {
+            return (0 <= val && val <= 1) ? val : 0;
+        }
+
+        let clampMax = (val) => {
+            return (0 <= val && val <= 1) ? val : 1;
+        }
+
+        let theSlices = [];
+
         switch (axis) {
             case 'X':
-                return [
+                theSlices = [
                     this.uniforms.u_SliceOffsets[0],
                     this.uniforms.u_SliceOffsets[1]
                 ].sort((a, b) => {
                     return a > b
                 });
+
+                theSlices[0] = clampMin(theSlices[0]);
+                theSlices[1] = clampMax(theSlices[1]);
+
+                return theSlices;
             case 'Y':
-                return [
+                theSlices = [
                     this.uniforms.u_SliceOffsets[2],
                     this.uniforms.u_SliceOffsets[3]
                 ].sort((a, b) => {
                     return a > b
                 });
+
+                theSlices[0] = clampMin(theSlices[0]);
+                theSlices[1] = clampMax(theSlices[1]);
+
+                return theSlices;
             case 'Z':
-                return [
+                theSlices = [
                     this.uniforms.u_SliceOffsets[4],
                     this.uniforms.u_SliceOffsets[5]
                 ].sort((a, b) => {
                     return a > b
                 });
+
+                theSlices[0] = clampMin(theSlices[0]);
+                theSlices[1] = clampMax(theSlices[1]);
+
+                return theSlices;
             default:
                 break;
         }
@@ -139,45 +169,98 @@ class SlicerModel {
     _bindMouseHandler() {
         let gl = this.gl;
 
-        let debugDisplayPickingBuffer = () => {
-            let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4 * pb.width * pb.height);
+        let id = -1;
 
-            let pixels = pb.readPixels(
-                0, 0,
-                pb.width, pb.height,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest, 0
-            );
+        let refreshPBs = () => {
+            // Ehh... Render them before refreshing from PB manager...
+            this.viewManager.renderSlicerPickingBuffers(this.myID);
 
-            let debugcanvas = document.getElementById('debugcanvas');
-            let gl2 = debugcanvas.getContext('2d');
-            debugcanvas.width = pb.width;
-            debugcanvas.height = pb.height;
-            gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
-            let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
-            gl2.putImageData(imagedata, 0, 0);
+            this.viewManager.pickingBufferManager.refreshBuffer('SlicerRails', 'debugcanvas1');
+            this.viewManager.pickingBufferManager.refreshBuffer('SlicerSlices', 'debugcanvas2');
+            this.viewManager.pickingBufferManager.refreshBuffer('SlicerCubeFace', 'debugcanvas3');
         }
 
-        let readPBPixels = (mx, my) => {
-            this.pickingBuffer.refresh(); // Render it onto FB before reading
-            let pb = this.pickingBuffer.get();
-            let dest = new Uint8Array(4 * 1);
-            let pixels = pb.readPixels(
-                mx * pb.width,
-                (1.0 - my) * pb.height,
-                1.0, 1.0,
-                gl.RGBA, gl.UNSIGNED_BYTE,
-                dest, 0
-            );
-            let id = (dest[0]) - 1;
-            let railOffset = dest[1] / 255.0;
+        let refreshRailsPB = () => {
+            this.viewManager.renderSlickingRailBuffer(this.myID);
+            this.viewManager.pickingBufferManager.refreshBuffer('SlicerRails', 'debugcanvas1');
+        }
+
+        let getRailIDAndOffset = (mx, my) => {
+            let rgb = this.viewManager.pickingBufferManager.readPixel('SlicerRails', mx, my);
+
+            let id = rgb[0] - 1;
+
+            if (IDInfo.isInvalidID(id)) {
+                console.error("ID is " + id + ", expected it to be in range [12, " + IDInfo.RAILS_MAX_ID + "]");
+            }
 
             return {
-                id: id,
-                railOffset: railOffset
+                id: rgb[0] - 1,
+                railOffset: rgb[1] / 255.0
             };
         }
+
+        let getSliceID = (mx, my) => {
+            let rgb = this.viewManager.pickingBufferManager.readPixel('SlicerSlices', mx, my);
+
+            return rgb[0] - 1;
+        }
+
+        let getCubeFaceID = (mx, my) => {
+            let rgb = this.viewManager.pickingBufferManager.readPixel('SlicerCubeFace', mx, my);
+
+            return rgb[0] - 1;
+        }
+
+        let refreshSlicer = () => {
+            this._refreshUniforms();
+            this.viewManager.notifySlicerNeedsUpdate(this.myID);
+        }
+
+        let refreshSlicerAndVolume = () => {
+            this.viewManager.notifySlicesDidChange(this.myID);
+        }
+
+
+        /*        let debugDisplayPickingBuffer = () => {
+                    let pb = this.pickingBuffer.get();
+                    let dest = new Uint8Array(4 * pb.width * pb.height);
+
+                    let pixels = pb.readPixels(
+                        0, 0,
+                        pb.width, pb.height,
+                        gl.RGBA, gl.UNSIGNED_BYTE,
+                        dest, 0
+                    );
+
+                    let debugcanvas = document.getElementById('debugcanvas');
+                    let gl2 = debugcanvas.getContext('2d');
+                    debugcanvas.width = pb.width;
+                    debugcanvas.height = pb.height;
+                    gl2.clearRect(0, 0, gl2.canvas.width, gl2.canvas.height);
+                    let imagedata = new ImageData(new Uint8ClampedArray(dest), pb.width, pb.height);
+                    gl2.putImageData(imagedata, 0, 0);
+                }
+
+                let readPBPixels = (mx, my) => {
+                    this.pickingBuffer.refresh(); // Render it onto FB before reading
+                    let pb = this.pickingBuffer.get();
+                    let dest = new Uint8Array(4 * 1);
+                    let pixels = pb.readPixels(
+                        mx * pb.width,
+                        (1.0 - my) * pb.height,
+                        1.0, 1.0,
+                        gl.RGBA, gl.UNSIGNED_BYTE,
+                        dest, 0
+                    );
+                    let id = (dest[0]) - 1;
+                    let railOffset = dest[1] / 255.0;
+
+                    return {
+                        id: id,
+                        railOffset: railOffset
+                    };
+                }*/
 
 
         let dragInfo = {
@@ -224,6 +307,8 @@ class SlicerModel {
         this.mouseHandler.on('mouseenter', null, (state) => {
             let interactionMode = GetInteractionMode();
 
+            refreshPBs();
+
             switch (interactionMode) {
                 case 'add': // Render PB cube faces only
                     break;
@@ -236,28 +321,32 @@ class SlicerModel {
         });
 
         this.mouseHandler.on('mouseout', null, (state) => {
-            this.dragInfo.railinfo = null;
-            this.slicerBox.highlightID(-1);
+            dragInfo.railInfo = null;
+            this.slicerBox.resetHighlighting();
+            refreshSlicer();
         });
 
         this.mouseHandler.on('click', 'left', (state) => {
             let interactionMode = GetInteractionMode();
-            let pb = readPBPixels(state.x, state.y);
-            let id = pb.id;
-
-            console.log("Highlighting ID: " + id);
 
             switch (interactionMode) {
                 case 'add':
+                    id = getCubeFaceID(state.x, state.y);
+
                     if (IDInfo.isFace(id)) { // Click on face, will add slice
                         // Add the slice
                         this.slicerBox.addSliceFromCubeFace(id);
-                        this.slicerBox.highlightID(id);
+                        //this.slicerBox.highlightID(id);
+                    } else {
+                        this.slicerBox.resetHighlighting();
                     }
                     break;
                 case 'remove':
+                    id = getSliceID(state.x, state.y);
                     if (IDInfo.isSlice(id))
                         this.slicerBox.removeSlice(id);
+                    else
+                        this.slicerBox.resetHighlighting();
                     break;
                 default: // nothing
                     break;
@@ -286,55 +375,123 @@ class SlicerModel {
 
         this.mouseHandler.on('mousedown', 'left', (state) => {
             let interactionMode = GetInteractionMode();
-            let pb = readPBPixels(state.x, state.y);
-            let id = pb.id;
-
-            if (IDInfo.isRail(id)) { // Will initiate drag of slice
-                // 1. Find out direction of rail
-                let railInfo = IDInfo.getRailInfo(id);
-                dragInfo.railInfo = railInfo;
-
-                let offset = pb.railOffset;
-                console.log("Offset = " + offset);
-                // Drag is magically initiated!
-                this.slicerBox.initiateDragIfHit(railInfo.direction, offset, id);
-                this._refreshUniforms();
-                this.pickingBuffer.refresh();
-                debugDisplayPickingBuffer();
-
-                // 2. Find active offsets of rail
-
-                // 3. If between, move both along rail
-
-                // If close enough to one, move only that
-                // If outside either range, do nothing
-
-                return;
-            }
+            //let pb = readPBPixels(state.x, state.y);
+            //id = pb.id;
 
             switch (interactionMode) {
                 case 'rotate':
+                    // Do nothing
                     break;
-                case 'add':
-                    if (IDInfo.isFace(id))
-                        this.slicerBox.addSliceFromCubeFace(id);
-                    break;
-                case 'remove':
+                case 'move':
+                    let idAndOffset = getRailIDAndOffset(state.x, state.y);
+                    id = idAndOffset.id;
+
+                    if (IDInfo.isRail(id)) { // Will initiate drag of slice
+                        // 1. Find out direction of rail
+                        let railInfo = IDInfo.getRailInfo(id);
+                        dragInfo.railInfo = railInfo;
+
+                        let offset = idAndOffset.railOffset;
+                        console.log("Offset = " + offset);
+                        // Drag is magically initiated!
+                        this.slicerBox.initiateDragIfHit(railInfo.direction, offset, id);
+                        this._refreshUniforms();
+                        // Only need rail, now it does all, TODO fix if
+                        // it becomes an issue
+                        refreshRailsPB();
+                        refreshSlicer();
+                        return;
+                    }
                     break;
             }
+
+
+
+            /* switch (interactionMode) {
+                 case 'rotate':
+                     break;
+                 case 'add':
+                     if (IDInfo.isFace(id))
+                         this.slicerBox.addSliceFromCubeFace(id);
+                     break;
+                 case 'remove':
+                     break;
+             }*/
 
 
             console.log("MouseDOWN left");
 
         });
         this.mouseHandler.on('mouseup', 'left', (state) => {
-            if (dragInfo.railInfo) {
-                dragInfo.railInfo = null;
-                this.slicerBox.endDrag();
-                return;
+            let interactionMode = GetInteractionMode();
+
+            switch (interactionMode) {
+                case 'rotate':
+                    refreshPBs();
+                    break;
+                case 'move':
+                    if (dragInfo.railInfo) {
+                        dragInfo.railInfo = null;
+                        this.slicerBox.endDrag();
+                        this._refreshUniforms();
+                        refreshRailsPB();
+                        return;
+                    }
+                    break;
             }
+
+            this.slicerBox.resetHighlighting();
+            refreshSlicer();
+
         });
         this.mouseHandler.on('mousemove', 'left', (state) => {
+            let interactionMode = GetInteractionMode();
+
+            switch (interactionMode) {
+                case 'rotate':
+                    // Highlight nothing
+                    break;
+                case 'add':
+                    id = getCubeFaceID(state.x, state.y);
+
+                    if (IDInfo.isFace(id)) {
+                        this.slicerBox.highlightID(id);
+                        this._refreshUniforms();
+                    } else {
+                        this.slicerBox.resetHighlighting();
+                    }
+                    refreshSlicer();
+                    // Cube faces only
+                    break;
+                case 'remove':
+                    // Slices only
+                    id = getSliceID(state.x, state.y);
+
+                    if (IDInfo.isSlice(id)) {
+                        this.slicerBox.highlightID(id);
+                        this._refreshUniforms();
+                    } else {
+                        this.slicerBox.resetHighlighting();
+                    }
+                    refreshSlicer();
+                    break;
+                case 'move':
+                    // Rails only
+                    let railIDAndOffset = getRailIDAndOffset(state.x, state.y);
+                    id = railIDAndOffset.id;
+                    let railInfo = IDInfo.getRailInfo(id);
+
+                    if (IDInfo.isRail(id)) {
+                        this.slicerBox.highlightID(id);
+                        this.slicerBox.highlightPotentialDragIfHit(railInfo.direction, railIDAndOffset.railOffset);
+                        this._refreshUniforms();
+                    } else {
+                        this.slicerBox.resetHighlighting();
+                    }
+                    refreshSlicer();
+                    break;
+            }
+
             /*debugDisplayPickingBuffer();
             let pb = readPBPixels(state.x, state.y);
             let id = pb.id;
@@ -360,21 +517,43 @@ class SlicerModel {
 
         });
         this.mouseHandler.on('drag', 'left', (state) => {
-            console.log("Drag left");
+            let interactionMode = GetInteractionMode();
 
-            let pb = readPBPixels(state.x, state.y);
-
-            if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
-                let offset = pb.railOffset;
-                this.slicerBox.dragActiveSlicesAlongAxis(offset);
-                this._refreshUniforms();
-                this.viewManager.notifySlicesDidChange(this.myID);
-
-            } else { // dont rotate when drag in progress...
-                this.camera.rotate(state.dx, state.dy);
-                /*this._refreshUniforms();
-                this.viewManager.requestAnimationFrame(['Slicer'], this.myID);*/
+            switch (interactionMode) {
+                case 'rotate':
+                    this.camera.rotate(state.dx, state.dy);
+                    this._refreshUniforms();
+                    refreshSlicer();
+                    break;
+                case 'move':
+                    let railIDAndOffset = getRailIDAndOffset(state.x, state.y);
+                    id = railIDAndOffset.id;
+                    if (IDInfo.isRail(id)) {
+                        let offset = railIDAndOffset.railOffset;
+                        this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                        this._refreshUniforms();
+                        refreshSlicerAndVolume();
+                        break;
+                    }
             }
+
+
+            /* console.log("Drag left");
+
+             let pb = readPBPixels(state.x, state.y);
+
+             if (IDInfo.isRail(pb.id) && this.slicerBox.isDragActive()) {
+                 let offset = pb.railOffset;
+                 this.slicerBox.dragActiveSlicesAlongAxis(offset);
+                 this._refreshUniforms();
+                 this.viewManager.notifySlicesDidChange(this.myID);
+
+             } else { // dont rotate when drag in progress...
+                 this.camera.rotate(state.dx, state.dy);
+                 /*this._refreshUniforms();
+                 this.viewManager.requestAnimationFrame(['Slicer'], this.myID);
+             }*/
+
 
 
 
@@ -431,9 +610,9 @@ class LabeledSlicerBox {
         };
 
         this.qCounts = {
-            'X': 0,
-            'Y': 0,
-            'Z': 0
+            'X': 2,
+            'Y': 2,
+            'Z': 2
         };
 
 
@@ -483,14 +662,13 @@ class LabeledSlicerBox {
         // 1. Convert cube face index to direction and starting position
         let info = this._cubeFaceIDToNormalAndStartOffset(fromCubeFace);
 
-        // 2. Get offset index for direction (if available)
-        let index = this._getOffsetIndex(info.normal);
-
-        if (index === -1)
+        if (this.qCounts[info.normal] === 2)
             return;
 
+        let index = this._getOffsetIndex(info.normal);
         // 3. Set the offset @ given index
-        this.moveSliceToOffset(index, info.offset);
+        this.uniforms.u_SliceOffsets[index] = info.startOffset;
+
         return index;
     }
 
@@ -600,7 +778,9 @@ class LabeledSlicerBox {
         }
     }
 
-
+    resetHighlighting() {
+        this.endDrag();
+    }
 
     endDrag() {
         this.uniforms.u_ActiveDragRailID = -1;
@@ -624,6 +804,7 @@ class LabeledSlicerBox {
 
         for (let sliceID of this.draggedSliceIndices) {
             this.uniforms.u_SliceOffsets[sliceID] += deltaOffset;
+            this.uniforms.u_SliceOffsets[sliceID] = clamp01(this.uniforms.u_SliceOffsets[sliceID]);
         }
 
         this.dragOffset = newOffset;

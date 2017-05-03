@@ -40,31 +40,40 @@ class MouseHandler {
         this.state.dx = this.state.x - this.state.x0;
         this.state.dy = this.state.y - this.state.y0;
 
-        if (event.type === 'mousedown') {
-            console.log("MOUSE DOWN!!!");
-            this.timers.click = Date.now();
-            this.isDrag = true;
-            this._notifyIfExists('mousedown', event.button);
+        switch (event.type) {
+            case 'mousedown':
+                this.timers.click = Date.now();
+                this.isDrag = true;
+                this._notifyIfExists('mousedown', event.button);
 
-        } else if (event.type === 'mouseup') {
-            this.isDrag = false;
-            if ((Date.now() - this.timers.click) <= this.clickTimeout) {
-                // HANDLE CLICK
-                this._notifyIfExists('click', event.button);
-            } else {
-                this._notifyIfExists('mouseup', event.button);
-            }
+                break;
+            case 'mouseup':
+                this.isDrag = false;
+                if ((Date.now() - this.timers.click) <= this.clickTimeout) {
+                    this._notifyIfExists('click', event.button);
+                } else {
+                    this._notifyIfExists('mouseup', event.button);
+                }
+                break;
+            case 'mousemove':
+                // Either drag or hover
+                if (this.isDrag)
+                    this._notifyIfExists('drag', event.button);
+                else
+                    this._notifyIfExists('mousemove', event.button);
 
-        } else if (event.type === 'mousemove') {
-            console.log("MOUSE MOVE!!!!!");
-
-            // Either drag or hover
-            if (this.isDrag)
-                this._notifyIfExists('drag', event.button);
-            else
-                this._notifyIfExists('mousemove', event.button);
-        } else if (event.type === 'mouseout') {
-            this.isDrag = false;
+                break;
+            case 'mouseout':
+                this.isDrag = false;
+                this._notifyIfExists('mouseout', event.button);
+                break;
+            case 'mouseenter':
+                this.isDrag = false;
+                this._notifyIfExists('mouseenter', event.button);
+                break;
+            default:
+                console.error("Unsupported event type: " + event.type);
+                break;
         }
     }
 
@@ -90,9 +99,10 @@ class MouseHandler {
      * @param {number} buttonCode the button code, see __stringToButtonCode
      */
     _notifyIfExists(event, buttonCode) {
-        if (this.callbacks[event] &&
-            this.callbacks[event][buttonCode])
+        if (this.callbacks[event] && this.callbacks[event][buttonCode])
             this.callbacks[event][buttonCode](this.state); // Pass the state into the callback
+        else if(this.callbacks[event]['any'])
+            this.callbacks[event]['any'](this.state);
     }
 
     /**

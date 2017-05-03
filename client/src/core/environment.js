@@ -62,6 +62,7 @@ class Environment {
 
         this.notifyIsoThresholdChanged = (editorName, newMin, newMax) => {
             console.log("this.notifyIsoThresholdChanged(" + editorName + ", " + newMin + ", " + newMax + ")");
+            this.ViewManager.notifyIsoThresholdDidChange(editorName, newMin, newMax);
         }
 
         this.notifyModelPointsToGlobalChanged = (modelName, pointToGlobal) => {

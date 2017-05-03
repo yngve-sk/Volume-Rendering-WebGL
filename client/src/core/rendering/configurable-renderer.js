@@ -44,6 +44,8 @@ class ConfigurableRenderer {
 
         this.steps = config.steps;
         this.uniforms = config.uniforms
+
+        this.alias = config.alias; // Debugging only
     }
 
     /**

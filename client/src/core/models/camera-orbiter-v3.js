@@ -37,8 +37,6 @@ class Camera {
         this.view = null;
         this.translationVec = v3.create(0, 0, 0);
 
-        this._updateViewMatrix();
-        this.setPerspective({});
 
         this.mouseCache = {
             isDrag: false,
@@ -57,6 +55,8 @@ class Camera {
 
         this.rotate(0.000001, 0.000001); // Init...
 
+        this._updateViewMatrix();
+        this.setPerspective({});
 
     }
 
@@ -99,7 +99,7 @@ class Camera {
         this.slaves.radius = [];
     }
 
-    rotate(dTheta, dPhi) {
+    rotate(dx, dy) {
         if (this.upDir > 0) {
             this.theta += this.ROT_SPEED_X * dTheta;
         } else {
@@ -117,8 +117,10 @@ class Camera {
 
         if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
             this.upDir = 1;
+            this.up = v3.create(0, 1, 0);
         } else {
             this.upDir = -1;
+            this.up = v3.create(0, -1, 0);
         }
 
         this._updateViewMatrix();
@@ -142,11 +144,11 @@ class Camera {
     }
 
     getEyePosition() {
-        /*
-                let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
-                let y = this.radius * Math.cos(this.phi);
-                let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
-        */
+/*
+        let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
+        let y = this.radius * Math.cos(this.phi);
+        let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+*/
 
         let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
         let y = this.radius * Math.cos(this.phi);
@@ -159,10 +161,12 @@ class Camera {
         let eye = this.getEyePosition();
         let look = v3.normalize(eye);
 
-        let worldUp = v3.create(0.0, this.upDir, 0.0);
+        let worldUp = this.up;
 
         let right = v3.normalize(v3.cross(look, worldUp));
         let up = v3.normalize(v3.cross(look, right));
+
+        this.up = up;
 
         return {
             eye: eye,
@@ -183,47 +187,7 @@ class Camera {
 
     _updateViewMatrix() {
         let c = this.toCartesian();
-
-        let rad2deg = (rad) => {
-            return rad * 180 / Math.PI;
-        }
-
-        console.log("PHI = " + rad2deg(this.phi));
-        console.log("THETA = " + rad2deg(this.theta));
-        console.log("POS = " + '(' +
-            c.eye[0] + ', ' + c.eye[1] + ', ' + c.eye[2] + ')');
-        console.log("UP = " + c.up[0] + ', ' + c.up[1] + ', ' + c.up[2] + ')');
-        console.log("-----------------");
-        console.log("-----------------");
-
         this.view = m4.inverse(m4.lookAt(c.eye, c.target, c.up));
-/*
-        let zaxis = v3.normalize(v3.subtract(c.eye, c.target)); // The "forward" vector.
-        let xaxis = v3.normalize(v3.cross(c.up, zaxis)); // The "right" vector.
-        let yaxis = v3.normalize(v3.cross(zaxis, xaxis)); // The "up" vector.
-
-        // Create a 4x4 orientation matrix from the right, up, and forward vectors
-        // This is transposed which is equivalent to performing an inverse
-        // if the matrix is orthonormalized (in this case, it is).
-        let orientation = [
-            xaxis[0], yaxis[0], zaxis[0], 0,
-            xaxis[1], yaxis[1], zaxis[1], 0,
-            xaxis[2], yaxis[2], zaxis[2], 0,
-            0, 0, 0, 1
-        ];
-
-        // Create a 4x4 translation matrix.
-        // The eye position is negated which is equivalent
-        // to the inverse of the translation matrix.
-        // T(v)^-1 == T(-v)
-        let translation = [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            -c.eye[0], -c.eye[1], -c.eye[2], 1
-        ];
-
-        this.view = m4.multiply(orientation, translation);*/
     }
 
     getWorldViewProjectionMatrix(aspectRatio) {

@@ -4,6 +4,15 @@ let VolumeViewTypes = {
     'Surface View': 'Surface'
 };
 
+let DEFAULT_CONFIG = {
+    'Volume': 'Basic',
+    'Slicer': 'Basic',
+    'SlicerPicking': 'Basic',
+    'SlicerPickingSlices': 'Default',
+    'SlicerPickingRails': 'Default',
+    'SlicerPickingCubeFaces': 'Default'
+}
+
 
 /**
  * Manages all rendering scheme configurations
@@ -22,11 +31,7 @@ class ConfigurationManager {
         this.VM = viewManager;
 
         this.activeConfigurations = {
-            0: {
-                'Volume': 'Basic',
-                'Slicer': 'Basic',
-                'SlicerPicking': 'Basic'
-            }
+            0: DEFAULT_CONFIG
         }
 
         this.configurations = {
@@ -49,6 +54,21 @@ class ConfigurationManager {
             SlicerPicking: {
                 'Basic': (id) => {
                     return this._generateSlicerPickingBufferConfigForSubview(id);
+                }
+            },
+            SlicerPickingRails: {
+                'Default': (id) => {
+                    return this._generateSlicerRailsPBConfigForSubview(id);
+                }
+            },
+            SlicerPickingSlices: {
+                'Default': (id) => {
+                    return this._generateSlicerSlicesPBConfigForSubview(id);
+                }
+            },
+            SlicerPickingCubeFaces: {
+                'Default': (id) => {
+                    return this._generateSlicerCubeFacesPBConfigForSubview(id);
                 }
             },
             Sphere: {
@@ -101,6 +121,10 @@ class ConfigurationManager {
         }
     }
 
+    initializeSubviewToDefault(id) {
+        this.configureSubview(id, DEFAULT_CONFIG);
+    }
+
     configureOffscreenSubview(id, configurations) {
         let VM = this.VM;
 
@@ -136,7 +160,7 @@ class ConfigurationManager {
             steps: [
                 {
                     programInfo: VM.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null,//SlicerImageFB,
+                    frameBufferInfo: null, //SlicerImageFB,
                     bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
                     glSettings: {
                         enable: [gl.DEPTH_TEST, gl.BLEND],
@@ -144,7 +168,7 @@ class ConfigurationManager {
                         disable: [gl.CULL_FACE],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
                     }
-                },
+                }/*,
                 {
                     programInfo: VM.shaderManager.getProgramInfo('SlicerImage2Quad'),
                     frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
@@ -152,9 +176,10 @@ class ConfigurationManager {
                     //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
                         enable: [gl.CULL_FACE],
+                        //disable: [gl.BLEND],
                         cullFace: [gl.BACK]
                     }
-                }
+                }*/
                 /*{ // Render the picking buffer into a subview..
                     programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
@@ -193,7 +218,84 @@ class ConfigurationManager {
 
         return BasicSlicerConfig;
     }
+    /* SlicerRails
+     SlicerCubeFace
+     SlicerSlices*/
 
+    _generateSlicerRailsPBConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
+
+        let PickingConfig = {
+            alias: 'SlicerPBRails',
+            uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPickingRails'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        disable: [gl.BLEND, gl.CULL_FACE],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                }
+            ]
+        };
+
+        return PickingConfig;
+    }
+
+    _generateSlicerCubeFacesPBConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
+
+        let PickingConfig = {
+            alias: 'SlicerPBCubeFaces',
+            uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPickingCubeFaces'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        disable: [gl.BLEND, gl.CULL_FACE],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                }
+            ]
+        };
+
+        return PickingConfig;
+    } //TODO add renderers to subview one for each of these configs
+
+    _generateSlicerSlicesPBConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let model = VM.modelSyncManager.getActiveModel('Slicer', subviewID);
+
+        let PickingConfig = {
+            alias: 'SlicerPBSlices',
+            uniforms: VM.uniformManagerSlicer.getUniformBundle(subviewID),
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPickingSlices'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerSliceBuffer'),
+                    glSettings: {
+                        enable: [gl.DEPTH_TEST],
+                        disable: [gl.BLEND, gl.CULL_FACE],
+                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                    }
+                }
+            ]
+        };
+
+        return PickingConfig;
+    }
     _generateSlicerPickingBufferConfigForSubview(subviewID) {
         let VM = this.VM;
         let gl = VM.masterContext;
@@ -295,7 +397,7 @@ class ConfigurationManager {
                     //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
                     glSettings: {
                         clear: [gl.DEPTH_BUFFER_BIT],
-                        disable: [gl.BLEND,gl.CULL_FACE]
+                        disable: [gl.BLEND, gl.CULL_FACE]
                     }
                 }
               /*  {

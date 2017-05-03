@@ -187,12 +187,37 @@
 			<feComposite in2="shadowDiff" operator="in"></feComposite>
 			<feComposite in2="firstfilter" operator="over"></feComposite>
   </filter></defs></svg>
+    <br><br><br><br><br><br><br><br><br><br><br>
+    <div id="debug-container">
+       <div class="ui celled grid">
+        <div class="three column row">
+            <div class="column view-splitter-cell">
+                <canvas id="debugcanvas1"></canvas>
+            </div>
 
-    <canvas id="debugcanvas" width=1000, height=1000>
+            <div class="column view-splitter-cell">
+             <canvas id="debugcanvas2"></canvas>
+            </div>
 
-    </canvas>
+            <div class="column view-splitter-cell">
+
+                <canvas id="debugcanvas3"></canvas>
+            </div>
+
+           <!-- <div class="column view-splitter-cell">
+
+                <canvas id="debugcanvas4"></canvas>
+            </div>
+
+            <div class="column view-splitter-cell">
+               <canvas id="debugcanvas5"></canvas>
+            </div>-->
+        </div>
+    </div>
+
+    </div>
     <script>
-        console.log = function() {};
+//        console.log = function() {};
     </script>
 </body>
 <!--footer style="font-size:8px; color: grey; opacity: 0.2">
