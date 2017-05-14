@@ -104,9 +104,6 @@
 ![Adjust opacity](./screenshots/tf-addcontrolpoint.gif)
 
 # <a name="DeletePoint"></a>
-<br>
---
-<br>
 ```
     Deleting a control point (Double click)
 ```
@@ -114,9 +111,6 @@
 ![Adjust opacity](./screenshots/tf-delete.gif)
 
 # <a name="DropPoint"></a>
-<br>
---
-<br>
 ```
     Dropping a control point (Single click)
 ```
