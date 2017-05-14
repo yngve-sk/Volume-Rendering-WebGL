@@ -8,6 +8,8 @@ let Settings = require('../../core/settings').WSClient,
 
 let FR = new FileReader();
 
+let DatasetGet = Settings.get; // 'isovalues' or 'isovaluesAndGradientMagnitudes'
+
 let controller = function ($scope, $timeout) {
 
     let loaderElement = null;
@@ -83,7 +85,7 @@ let controller = function ($scope, $timeout) {
                 GET({
                             type: 'dataset',
                             dataset: $scope.selectedDataset,
-                            field: 'isovalues'
+                            field: DatasetGet//'isovaluesAndGradientMagnitudes'
                         },
                         false,
                         Timeouts.getDatasetIsovalues)
@@ -97,9 +99,9 @@ let controller = function ($scope, $timeout) {
                             setStatusVisibility(true);
                         }, 2000);
 
-                        let isovalues = new Int16Array(arraybuffer);
+                        let result = new Int16Array(arraybuffer);
 
-                        Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, isovalues);
+                        Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, result);
 
                     return;
 
@@ -124,6 +126,7 @@ let controller = function ($scope, $timeout) {
         loaderElement = document.getElementById('dataset-manager-view-status');
         statusElement = document.getElementById('dataset-manager-status2');
         fetchDatasets();
+        Environment.ready('DatasetController');
     }
 }
 

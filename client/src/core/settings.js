@@ -87,23 +87,23 @@ let SETTINGS = {
         TransferFunction: {
             Editor: {
                 Resolution: {
-                    width: 400,
-                    height: 200
+                    width: 600,
+                    height: 300
                 },
                 Layout: {
                     leftAxisWidthPercentage: 0.07,
                     bottomAxisHeightPercentage: 0.25,
-                    isoValueAxisHeightPercentage: 0.110,
+                    isoValueAxisHeightPercentage: 0.16,
                     contentTopPaddingPercentage: 0.2,
                     texturePreviewHeightPercentage: 0.2
                 },
                 TransferFunctionDisplay: {
                     curve: d3.curveLinear,
-                    circleRadius: 6
+                    circleRadius: 4.5
                 },
                 ColorGradientDisplay: {
-                    triangleSize: 45,
-                    crossSize: 45,
+                    triangleSize: 95,
+                    crossSize: 85,
                     trianglesGroupTranslateY: -10,
                     crossTranslateY: 17
                 }
@@ -125,10 +125,21 @@ let SETTINGS = {
             showIconsOnAddRemoveView: true,
             showIconsOnSelectView: true,
             icons: new SplitViewIconSet({
-                Icons: {
+                /*Icons: {
                     'Surface View': '../client/images/icons/skull-icon.png',
                     'Slice View': '../client/images/icons/icon-slicer.png',
                     '3D Volume': '../client/images/icons/3d-icon-skull.png'
+
+
+                },*/
+                Icons: {
+                    'Blank': '../client/images/preset-icons/Blank.png',
+                    'Basic': '../client/images/preset-icons/Basic.png',
+                    'X-Ray': '../client/images/preset-icons/X-Ray.png',
+                    'Brain': '../client/images/preset-icons/Brain.png',
+                    'Sinuses&Lungs': '../client/images/preset-icons/Sinuses&Lungs.png',
+                    'Skeleton': '../client/images/preset-icons/Skeleton.png',
+
                 },
                 defaultIcon: '3D Volume'
             })
@@ -138,9 +149,11 @@ let SETTINGS = {
         Timeouts: {
             getDatasetList: 10000,
             getDatasetHeader: 10000,
-            getDatasetIsovalues: 100000
+            getDatasetIsovalues: 200000
         },
-        loadAutomaticallyByDefault: false
+        loadAutomaticallyByDefault: false,
+        get: 'isovaluesAndGradientMagnitudes',
+        //get: 'isovalues'
     },
     Views: {
         ViewManager: {
@@ -153,14 +166,25 @@ let SETTINGS = {
                     changeLayoutThresholdMultiplier: 2.2,
                     standardSizeMultiplier: 0.7
                 }
+            },
+            DefaultViewConfig: {
+                Volume: 'Basic',
+                Volume3DPicking: 'Default',
+                Slicer: 'Basic',
+                SlicerPicking: 'Basic',
+                SlicerPickingSlices: 'Default',
+                SlicerPickingRails: 'Default',
+                SlicerPickingCubeFaces: 'Default',
+                VolumeRayRender: 'Default',
+                VolumePointRenderer: 'Default'
             }
         },
         Slicer: {
-            SelectSliceSnapThreshold: 0.25,
-            RailRadiusDisplayMode: 0.05,
-            RailRadiusPickingBufferMode: 0.11,
+            SelectSliceSnapThreshold: 0.19,
+            RailRadiusDisplayMode: 0.02,
             RailRadialSubdivisions: 7,
-            RailVerticalSubdivisions: 5,
+            RailVerticalSubdivisions: 3,
+            RailRadiusPickingBufferMode: 0.08,
             RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
         },
         ContextMenus: {
@@ -168,7 +192,9 @@ let SETTINGS = {
                 'Rotate': '../client/images/icons/rotate.png',
                 'Move': '../client/images/icons/move.png',
                 'Zoom': '../client/images/icons/zoom.png',
-                'Measure': '../client/images/icons/ruler.png'
+                //'Measure': '../client/images/icons/ruler.png',
+                //'Select Point': '../client/images/icons/ruler.png',
+                'Select Ray': '../client/images/icons/ruler.png'
             },
             Slicer: {
                 'Rotate': '../client/images/icons/rotate.png',
@@ -177,6 +203,27 @@ let SETTINGS = {
                 'Remove Slice': '../client/images/icons/remove.png',*/
                 'Move Slice': '../client/images/icons/move-slice.png',
             }
+        }
+    },
+    Lights: {
+        MaxValues: {
+            ambient: 2.0,
+            diffuse: 2.0,
+            specular: 5.0,
+            intensity: 3.0,
+            specularExponent: 1.5, // Inverted, i.e put 5 and the max exponent will be -5
+            isovalueThreshold: 0.59,
+            gradientMagBelowThresholdOpacityMultiplier: 1.0
+        },
+        Defaults: {
+            ambient: 0.2,
+            diffuse: 0.5,
+            specular: 0.9,
+            intensity: 0.2,
+            specularExponent: 0.8,
+            isovalueThresholdMIN: 0.00,
+            gradientMagBelowThresholdOpacityMultiplier: 0.8,
+            direction: [1 / Math.sqrt(3), 1 / Math.sqrt(3), 1 / Math.sqrt(3)]
         }
     }
 }

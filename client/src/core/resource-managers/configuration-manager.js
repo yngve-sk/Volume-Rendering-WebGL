@@ -4,14 +4,20 @@ let VolumeViewTypes = {
     'Surface View': 'Surface'
 };
 
+let DEFAULT_CONFIG = require('../settings').Views.ViewManager.DefaultViewConfig;
+/*
+
 let DEFAULT_CONFIG = {
     'Volume': 'Basic',
+    'Volume3DPicking': 'Default',
+    'VolumeSlicePicking': 'Default',
     'Slicer': 'Basic',
     'SlicerPicking': 'Basic',
     'SlicerPickingSlices': 'Default',
     'SlicerPickingRails': 'Default',
     'SlicerPickingCubeFaces': 'Default'
 }
+*/
 
 
 /**
@@ -39,11 +45,35 @@ class ConfigurationManager {
                 'Basic': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
                 },
+                'SelectionOnly': (id) => {
+                    return this._generateSelectionOnlyVolumeConfigForSubview(id);
+                },
+                'HighlightSelection': (id) => {
+                    return this._generateHighlightSelectionVolumeConfigForSubview(id);
+                },
+                'Basic_PrecomputedGMag': (id) => {
+                    return this._generateBasicPrecomputedGMagVolumeConfigForSubview(id);
+                },
                 'Slice': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
                 },
                 'Surface': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
+                }
+            },
+            Volume3DPicking: {
+                'Default': (id) => {
+                    return this._generateVolume3DPickingConfigForSubview(id);
+                }
+            },
+            VolumeRayRender: {
+                'Default': (id) => {
+                    return this._generateVolumeRayRenderForSubview(id);
+                }
+            },
+            VolumePointRenderer: {
+                'Default': (id) => {
+                    return this._generateVolumePointRenderForSubview(id);
                 }
             },
             Slicer: {
@@ -113,6 +143,9 @@ class ConfigurationManager {
     configureSubview(id, configurations) {
         let VM = this.VM;
 
+        if (!configurations)
+            configurations = DEFAULT_CONFIG;
+
         let subview = VM.subviews[id];
         for (let category in configurations) {
             let configName = configurations[category];
@@ -168,49 +201,7 @@ class ConfigurationManager {
                         disable: [gl.CULL_FACE],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
                     }
-                }/*,
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('SlicerImage2Quad'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: fullScreenQuadBuffer,
-                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        enable: [gl.CULL_FACE],
-                        //disable: [gl.BLEND],
-                        cullFace: [gl.BACK]
-                    }
-                }*/
-                /*{ // Render the picking buffer into a subview..
-                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-//                        depthFunc: [gl.LESS],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND],
-                        //clear: [gl.COLOR_BUFFER_BIT]
-
-                    }
-                },*/
-               /* {
-                    programInfo: VM.shaderManager.getProgramInfo('Texture2Quad'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
-                    glSettings: {
-                        clear: [gl.COLOR_BUFFER_BIT],
-                        enable: [gl.CULL_FACE],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND]
-                    }
-                },*/
-
+                }
             ]
         };
 
@@ -234,10 +225,12 @@ class ConfigurationManager {
                 {
                     programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPickingRails'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
                     glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        disable: [gl.BLEND, gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        disable: [gl.BLEND],
+                        depthFunc: [gl.LEQUAL],
+                        cullFace: [gl.BACK],
                         clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
                     }
                 }
@@ -349,7 +342,60 @@ class ConfigurationManager {
 
         return PickingConfig;
     }
+    _generateBasicPrecomputedGMagVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
 
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolume_PrecomputedGMag'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
 
     _generateBasicVolumeConfigForSubview(subviewID) {
         let VM = this.VM;
@@ -400,52 +446,263 @@ class ConfigurationManager {
                         disable: [gl.BLEND, gl.CULL_FACE]
                     }
                 }
-              /*  {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.FRONT]
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.35,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.BACK]
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('TextureBackMinusFront'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.65,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.BACK]
-                    }
-                },*/
             ]
         };
 
         return BasicVolumeConfig;
+    }
+
+    _generateSelectionOnlyVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolumeSelectionOnly'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
+
+    _generateHighlightSelectionVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolumeHighlightSelection'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;    }
+
+
+    _generateVolume3DPickingConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let pickingBufferFB = VM.FBAndTextureManager.getFrameBuffer('VolumePicking');
+        let pickingShaderProgram = VM.shaderManager.getProgramInfo('Volume3DPicking');
+
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('VolumeBackfacePicking'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: pickingShaderProgram,
+                    frameBufferInfo: pickingBufferFB,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                ]
+        };
+
+        return Config;
+    }
+
+
+    _generateVolumeRayRenderForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let pickingBufferFB = VM.FBAndTextureManager.getFrameBuffer('VolumePicking');
+        let pickingShaderProgram = VM.shaderManager.getProgramInfo('Volume3DPicking');
+
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {   // Project ray onto proj texture
+                    programInfo: VM.shaderManager.getProgramInfo('RayProjection'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('RayProjectionTexture'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                { // Render volume to screen (assumes volume is already rendered)
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null,
+                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                },
+                {   // Render the ray on top of the volume image
+                    programInfo: VM.shaderManager.getProgramInfo('VolumeRayRender'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        // Preserve color buffer to overlay
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                    }
+                }
+                ]
+        };
+
+        return Config;
+    }
+
+        _generateVolumePointRenderForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {   // Project point onto proj texture
+                    programInfo: VM.shaderManager.getProgramInfo('PointProjection'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('PointProjectionTexture'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                { // Render volume to screen (assumes volume is already rendered)
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null,
+                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                },
+                {   // Render the points on top of the volume image
+                    programInfo: VM.shaderManager.getProgramInfo('VolumePoints'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        // Preserve color buffer to overlay
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                    }
+                }
+                ]
+        };
+
+        return Config;
     }
 }
 

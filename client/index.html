@@ -5,7 +5,7 @@
 
     <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
     <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.css" />
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/6.1.1/rzslider.css" />
 
     <script src="build/externals.min.js"></script>
     <script src="templibs/jquery.toolbar.min.js"></script>
@@ -29,60 +29,10 @@
             </button>
         </div>
         <links-and-views-view></links-and-views-view>
-        <!--div class="ui black big launch fixed right floated button" id="options-button" ng-click="toggleShowControls()">
-            <i class="content icon"></i>
-            <span class="text">Controls</span>
-        </div-->
-
         <div class="panel-container">
 
 
             <div class="panel-left">
-
-                <!--
-                <div id="slicer-toolbar-options" class="hidden">
-                    <a data-tooltip="This one has new tooltip"
-                         data-position="bottom left"
-
-                       href="#" action="add"><i class="add square outline icon inverted"></i></a>
-                    <a href="#"><i class="minus square outline icon inverted"></i></a>
-                    <a href="#"><i class="move icon inverted"></i></a>
-                </div>
-
-                <div id="toolbar-container">
-                    <div
-                         data-tooltip="This one has new tooltip"
-                         data-position="bottom left"
-                         id="3d-toolbar"
-                         class="ui icon button vr-toolbar">
-                        <i class="settings huge icon"></i>
-                    </div>
-                    <div data-tooltip="This one has new tooltip"
-                         data-position="bottom left"
-                         id="slicer-toolbar" class="ui icon button vr-toolbar">
-                        <i class="setting huge icon inverted"></i>
-                    </div>
-                    <div data-tooltip="This one has new tooltip"
-                         data-position="bottom left"
-                         id="sphere-toolbar" class="ui icon button vr-toolbar">
-                        <i class="setting huge icon inverted"></i>
-                    </div>
-                </div>
--->
-
-                <script>
-                    $('#slicer-toolbar').toolbar({
-                        content: '#slicer-toolbar-options',
-                        position: 'bottom',
-                        hideOnClick: true,
-                        event: 'click',
-                        animation: 'standard'
-                    });
-                    $('#slicer-toolbar').on('toolbarItemClick', (item, source, item3) => {
-                        console.log(source.getAttribute('action'));
-                    })
-
-                </script>
                 <div id="webgl-canvas-container">
                     <canvas id="webgl-master-canvas" class="webgl-canvas">
                     </canvas>
@@ -109,22 +59,7 @@
                         </div>
 
                     </div>
-                    <!--div id="global-control-panel" ng-controller="global-control-panel as gcp">
-                        <div class="ui segments">
-                            <button class="ui button active" ng-click="getIsoValues()">Fetch Isovalues</button>
-                            <button class="ui button active" ng-click="getGradient()">Fetch Gradient</button>
-                            <button class="ui button active" ng-click="render3D()">3D Render</button>
 
-                            <button class="ui primary button" ng-click="initTextures()">
-                        _initTextures()
-                    </button>
-                            <button class="ui primary button" ng-click="initBuffers()">
-                        _initBuffers()
-                    </button>
-                        </div>
-                        <br>
-                        <tf-widget name="GLOBAL"></tf-widget>
-                    </div-->
                 </div>
             </div>
         </div>

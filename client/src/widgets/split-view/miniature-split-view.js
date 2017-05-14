@@ -119,11 +119,15 @@ class MiniatureSplitView {
         if (args.canSelect) // Select only
             this.changeState('SELECT');
 
-        this.selected = -1; // Highlight if selected
+        this.selected = args.initiallySelected || -1; // Highlight if selected
     }
 
     setViewTypeChangedCallback(handle) {
         this.viewTypeChangedCallback = handle;
+    }
+
+    setSubviewSelectionChangedCallback(handle) {
+        this.subviewSelectionChangedCallback = handle;
     }
 
     setSplitbox(splitbox) {
@@ -358,6 +362,9 @@ class MiniatureSplitView {
         if (newType !== this.icons.getIconName(cellID)) {
             this.icons.setIcon(cellID, newType);
 
+            this.dispatcher('unlinkCellID', [cellID]);
+            // Order is v important unlinking must happen before
+            // notifying environment
             this.viewTypeChangedCallback(cellID, newType);
 
             this.dispatcher("refresh", []);
@@ -473,6 +480,7 @@ class MiniatureSplitView {
 
     setSelected(id) { // Highlight until a new cell is selected
         this.selected = id;
+        this.subviewSelectionChangedCallback(id);
         this.refresh();
     }
 

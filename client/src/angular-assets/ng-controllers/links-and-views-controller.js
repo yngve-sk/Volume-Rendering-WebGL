@@ -1,5 +1,5 @@
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
-let LinkableModels = require('../../core/linkable-models').Models;
+let LinkableModels = require('../../core/all-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
 
@@ -7,15 +7,17 @@ let controller = function ($scope) {
 
     let viewID2LinkerKey = {
         1: LinkableModels.TRANSFER_FUNCTION.name,
-        2: LinkableModels.CAMERA.name,
-        3: LinkableModels.SLICER.name,
-        4: LinkableModels.THRESHOLDS.name,
+        2: LinkableModels.SLICER.name,
+        3: LinkableModels.CAMERA.name,
+        4: LinkableModels.LIGHTS.name,
+        5: LinkableModels.THRESHOLDS.name
     }
 
     let callbacks = {
         linkChanged: Environment.notifyLinkChanged,
         layoutChanged: Environment.notifyLayoutChanged,
-        viewTypeChanged: Environment.notifyViewTypeChanged
+        viewTypeChanged: Environment.notifyViewTypeChanged,
+        subviewSelectionChanged: Environment.notifyLocalControllerTargetSubviewIDDidChange
     };
 
     // Require in here because it's not needed outside, pass in callbacks
@@ -49,7 +51,8 @@ let controller = function ($scope) {
         1: false,
         2: false,
         3: false,
-        4: false
+        4: false,
+        5: false
     };
 
     $scope.toggleGlobal = (id) => {
@@ -66,8 +69,9 @@ let controller = function ($scope) {
     // ADD or REMOVE
     let linkStates = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
-        [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
+        [LinkableModels.CAMERA.name]: 'LINK-ADD',
+        [LinkableModels.LIGHTS.name]: 'LINK-ADD',
         [LinkableModels.THRESHOLDS.name]: 'LINK-ADD'
     };
     $scope.linkStates = linkStates;

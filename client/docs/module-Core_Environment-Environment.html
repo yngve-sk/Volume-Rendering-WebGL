@@ -400,156 +400,6 @@ environment.
 
 
 
-    <h4 class="name" id="getTransferFunctionForViewWithCellID"><span class="type-signature"></span>getTransferFunctionForViewWithCellID<span class="signature">(cellID)</span><span class="type-signature"> &rarr; {module:Widgets/TransferFunction~TransferFunction}</span></h4>
-
-
-
-
-
-<div class="description">
-    Gets the transfer function object given the cell ID.
-Called when a 3D view is selected, the local TF view will be
-linked to the given TF.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-
-
-<table class="params">
-    <thead>
-    <tr>
-
-        <th>Name</th>
-
-
-        <th>Type</th>
-
-
-
-
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-
-
-        <tr>
-
-                <td class="name"><code>cellID</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">number</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">the ID of the cell</td>
-        </tr>
-
-
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-
-<div class="param-desc">
-    The transfer function object belonging to the master cell ID.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-
-<span class="param-type">module:Widgets/TransferFunction~TransferFunction</span>
-
-
-    </dd>
-</dl>
-
-
-
-
-
-
-
-
-
-
     <h4 class="name" id="listen"><span class="type-signature"></span>listen<span class="signature">(channel, key, handle)</span><span class="type-signature"></span></h4>
 
 
@@ -724,7 +574,7 @@ linked to the given TF.
 
 
 
-    <h4 class="name" id="ready"><span class="type-signature"></span>ready<span class="signature">(from)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="ready"><span class="type-signature"></span>ready<span class="signature">(from, args)</span><span class="type-signature"></span></h4>
 
 
 
@@ -786,7 +636,30 @@ This function allows for shimming it.
 
 
 
-            <td class="description last">name of the controller</td>
+            <td class="description last">from name of the controller</td>
+        </tr>
+
+
+
+        <tr>
+
+                <td class="name"><code>args</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">Varies per object.</td>
         </tr>
 
 

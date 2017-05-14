@@ -3,9 +3,11 @@ let cameraSettingsViewController = require('../ng-controllers/camera-settings-vi
 let directive = function ($timeout) {
     return {
         restrict: 'E',
-        scope: {},
+        scope: { // Name, global or local!
+            name: '@'
+        },
         replace: true,
-        transclude: true,
+        transclude: false,
         controller: cameraSettingsViewController,
         link: function (scope, element, attrs) {
             $timeout(function () {

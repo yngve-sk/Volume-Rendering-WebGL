@@ -318,136 +318,6 @@
 
 
 
-    <h4 class="name" id="checkNeedsUpdateCellID"><span class="type-signature"></span>checkNeedsUpdateCellID<span class="signature">(cellID)</span><span class="type-signature"></span></h4>
-
-
-
-
-
-<div class="description">
-    Check if a TF texture needs to be for given cell.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-
-
-<table class="params">
-    <thead>
-    <tr>
-
-        <th>Name</th>
-
-
-        <th>Type</th>
-
-
-
-
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-
-
-        <tr>
-
-                <td class="name"><code>cellID</code></td>
-
-
-            <td class="type">
-
-
-<span class="param-type">number</span>
-
-
-
-            </td>
-
-
-
-
-
-            <td class="description last">the ID of the cell
-
-Note: Only functions being actively edited can trigger changes,
-hence the cellID will only be updated if its TF was recently
-edited in the TF editor.</td>
-        </tr>
-
-
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <h4 class="name" id="getCanvasForTFKey"><span class="type-signature"></span>getCanvasForTFKey<span class="signature">(key)</span><span class="type-signature"></span></h4>
 
 
@@ -1239,6 +1109,132 @@ one, shouldn't ever happen.
 
 
             <td class="description last">the cell ID</td>
+        </tr>
+
+
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h4 class="name" id="setEditor"><span class="type-signature"></span>setEditor<span class="signature">(detail)</span><span class="type-signature"></span></h4>
+
+
+
+
+
+<div class="description">
+    Initializes the editor, called from Environment after TF editor is ready with its DOM and all that.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+
+
+<table class="params">
+    <thead>
+    <tr>
+
+        <th>Name</th>
+
+
+        <th>Type</th>
+
+
+
+
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+
+        <tr>
+
+                <td class="name"><code>detail</code></td>
+
+
+            <td class="type">
+
+
+<span class="param-type">Object</span>
+
+
+
+            </td>
+
+
+
+
+
+            <td class="description last">{name: <TF Editor Name>, editor: <TF Editor>}</td>
         </tr>
 
 

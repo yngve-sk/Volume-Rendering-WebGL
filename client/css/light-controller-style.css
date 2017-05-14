@@ -1,0 +1,19 @@
+.light-controller {}
+
+.light-controller-ambdiffspec {}
+
+.light-controller-slider-container {
+    border: 1px grey solid;
+    box-sizing: border-box;
+    border-radius: 3px;
+    padding: 4px 15px 5px 10px;
+    background: rgba(216, 214, 29, 0.3);
+}
+
+.light-controller-ambdiffspec>center.widget-centered-h2,
+.light-controller-intensity>center.widget-centered-h2,
+.light-controller-threshold-settings>center.widget-centered-h2,
+{
+    width: 50%;
+    margin-left: 5%
+}

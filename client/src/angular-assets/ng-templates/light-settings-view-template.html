@@ -1,1 +1,53 @@
-<p>Hello World!</p>
+<div class="light-controller">
+    <div class="light-controller-intensity">
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h1">Overall intensity</center>
+            <rzslider class="custom-slider" rz-slider-model="intensity.value" rz-slider-options="intensity.options">
+            </rzslider>
+        </div>
+    </div>
+    <br>
+    <div class="light-controller-threshold-settings">
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h1">Lighting Range (Isovalues!)</center>
+            <rzslider class="custom-slider" rz-slider-model="isovalueThreshold.minValue" rz-slider-high="isovalueThreshold.maxValue" rz-slider-options="isovalueThreshold.options">
+
+            </rzslider>
+        </div><br>
+        <!--<div class="light-controller-slider-container">
+            <center data-tooltip="Adjusts visibility of below-threshold voxels" data-position="bottom left" class="widget-centered-h2">Outside range visibility </center>
+            <rzslider class="custom-slider" rz-slider-model="gradientMagBelowThresholdOpacityMultiplier.value" rz-slider-options="gradientMagBelowThresholdOpacityMultiplier.options">
+
+            </rzslider>
+        </div><br>-->
+    </div>
+    <div class="light-controller-ambdiffspec">
+        <center class="widget-centered-h1">Intensities</center>
+        <br>
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h2">Ambient</center>
+            <rzslider class="custom-slider" rz-slider-model="ambient.value" rz-slider-options="ambient.options">
+            </rzslider>
+        </div>
+        <br>
+
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h2">Diffuse</center>
+            <rzslider class="custom-slider" rz-slider-model="diffuse.value" rz-slider-options="diffuse.options">
+
+            </rzslider>
+        </div><br>
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h2">Specular Power</center>
+            <rzslider class="custom-slider" rz-slider-model="specular.value" rz-slider-options="specular.options">
+
+            </rzslider>
+        </div>
+        <br>
+        <div class="light-controller-slider-container">
+            <center class="widget-centered-h2">Specular Shininess</center>
+            <rzslider class="custom-slider" rz-slider-model="specularExponent.value" rz-slider-options="specularExponent.options">
+            </rzslider>
+        </div>
+    </div>
+</div>

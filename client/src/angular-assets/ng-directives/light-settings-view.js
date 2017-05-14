@@ -1,18 +1,20 @@
-let cameraSettingsViewController = require('../ng-controllers/dataset-view-controller');
+let lightSettingsViewController = require('../ng-controllers/light-settings-view-controller');
 
 let directive = function ($timeout) {
     return {
         restrict: 'E',
-        scope: {},
+        scope: { // Name, global or local!
+            name: '@'
+        },
         replace: true,
-        controller: cameraSettingsViewController,
+        controller: lightSettingsViewController,
         link: function (scope, element, attrs) {
             $timeout(function () {
 
                 scope.DOMReady();
             }, 0);
         },
-        templateUrl: 'src/angular-assets/ng-templates/camera-settings-view-template.html'
+        templateUrl: 'src/angular-assets/ng-templates/light-settings-view-template.html'
     }
 };
 

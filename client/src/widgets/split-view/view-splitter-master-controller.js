@@ -1,15 +1,16 @@
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
-let LinkableModels = require('../../core/linkable-models').Models;
+let LinkableModels = require('../../core/all-models').ActiveLinkableModels;
 let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
 
 let divIDs = {
     ADD: 'lvw-add-view',
     linkers: {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
-        [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
-        [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-4'
+        [LinkableModels.SLICER.name]: 'lvw-link-view-2',
+        [LinkableModels.CAMERA.name]: 'lvw-link-view-3',
+        [LinkableModels.LIGHTS.name]: 'lvw-link-view-4',
+        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-5'
     },
     SELECT: 'lvw-select-view'
 };
@@ -143,6 +144,7 @@ let init = (callbacks) => {
     views.SELECT = genSelectView(divIDs.SELECT, viewSettings);
     views.SELECT.layout = splitbox;
     views.SELECT.setViewTypeChangedCallback(callbacks.viewTypeChanged);
+    views.SELECT.setSubviewSelectionChangedCallback(callbacks.subviewSelectionChanged);
     views.SELECT.render();
 
     console.log("Dispatch refresh");
@@ -165,7 +167,19 @@ let getAllCellIDs = () => {
 }
 
 let getMasterCellIDForModel = (key, cellID) => {
-    return views.linkers[key].linkGrouper.getMasterCellID(cellID);
+    if (views.linkers[key])
+        return views.linkers[key].linkGrouper.getMasterCellID(cellID);
+    else // It has no link group, so it links to itself
+        return cellID;
+}
+
+let Select = (subviewID) => {
+    //views.ADD.selectCellID(subviewID);
+    views.SELECT.setSelected(subviewID);
+}
+
+let SetViewType = (viewType, subviewID) => {
+    views.SELECT.notifyViewTypeChanged(viewType, subviewID);
 }
 
 let read = () => {
@@ -182,8 +196,18 @@ let read = () => {
     }
 }
 
+let write = () => {
+    return {
+        Select: Select,
+        SetViewType: SetViewType
+    }
+}
+
 let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, otherwise they are autonomous.
     if (event === 'selectCellID') { // Special, highlight it briefly in other cells
+
+        // args = [cellID] -> Notify environment of this
+
         views.ADD[event].apply(views.ADD, args);
         for (let view in views.linkers) {
             let theView = views.linkers[view];
@@ -193,7 +217,16 @@ let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, other
         }
 
         views.SELECT.setSelected(args[0]);
-    } else {
+    }
+    /*else if (event === 'unlinkCellID') {
+           for (let view in views.linkers) {
+               let theView = views.linkers[view];
+               //        console.log(theView);
+               let fn = theView[event];
+               fn.apply(theView, args);
+           }
+       }*/
+    else {
         views.ADD[event].apply(views.ADD, args);
         views.SELECT[event].apply(views.SELECT, args);
         for (let view in views.linkers) {
@@ -266,6 +299,7 @@ let genAddRemoveView = (divID, settings) => {
 let genSelectView = (divID, settings) => {
     let customSettings = _.clone(settings);
     customSettings.divID = divID;
+    customSettings.initiallySelected = 0;
     customSettings.canLink = false;
     customSettings.canAddRemove = false;
     customSettings.canSelect = true;
@@ -277,7 +311,6 @@ let genSelectView = (divID, settings) => {
 module.exports = {
     init: init,
     read: read,
+    write: write,
     getAddRemoveView: getAddRemoveView
 };
-// Environment needs READ ACCESS only, the ng-controller needs write access to bind
-// DOM events to change the state of the object.

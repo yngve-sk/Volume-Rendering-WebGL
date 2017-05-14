@@ -4,17 +4,17 @@
         <sm-accordion-group title="'Datasets'">
             <dataset-manager-view></dataset-manager-view>
         </sm-accordion-group>
-        <sm-accordion-group title="'Transfer Function & Selections'" ng-click="onOpenTFEditorPane()">
+        <sm-accordion-group title="'Transfer Function & Threshold'" ng-click="onOpenTFEditorPane()">
             <tf-widget name="GLOBAL"></tf-widget>
         </sm-accordion-group>
+        <sm-accordion-group name="GLOBAL" title="'Light Settings'">
+            <light-settings-view name="GLOBAL"></light-settings-view>
+        </sm-accordion-group>
+        <sm-accordion-group title="'Selection Settings'">
+            <selection-settings-view-global-only name="GLOBAL"></selection-settings-view-global-only>
+        </sm-accordion-group>
         <sm-accordion-group title="'Camera Settings'">
-            <camera-settings-view></camera-settings-view>
-        </sm-accordion-group>
-        <sm-accordion-group title="'Light Settings'">
-            Group #2 Content
-        </sm-accordion-group>
-        <sm-accordion-group title="'Display Modes'">
-            Group #2 Content
+            <camera-settings-view name="GLOBAL"></camera-settings-view>
         </sm-accordion-group>
     </sm-accordion>
 </div>

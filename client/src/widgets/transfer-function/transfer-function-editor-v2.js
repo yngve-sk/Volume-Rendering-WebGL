@@ -1,10 +1,19 @@
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
-let ColorGradient = require('./color-gradient');
+//let ColorGradient = require('./color-gradient');
 let Environment = require('../../core/environment');
 
 let TFEditorSettings = require('../../core/settings').Widgets.TransferFunction.Editor;
+
+// D3 drag nad double click don't work well together, drag seems to override
+// dblclick...
+let TIME = Date.now(); // Used for timing mouse events etc
+let dblClickWait = 300;
+let mouseupmousedowntimeout = 300;
+let clickTimeout = null;
+let awaitingClick = false;
+let awaitingDoubleClick = false;
 
 /**
  * Represents the front-end of the transfer function editor.
@@ -64,9 +73,9 @@ class TransferFunctionEditor {
             this._updateTFModel();
         }
 
-        Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyTFModelDidChange);
+        //Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyTFModelDidChange);
 
-        Environment.listen('DatasetDidChange', EnvironmentTFKey, this.notifyDatasetDidChange);
+        //Environment.listen('DatasetDidChange', EnvironmentTFKey, this.notifyDatasetDidChange);
 
 
 
@@ -164,6 +173,11 @@ class TransferFunctionEditor {
 
         this.displayOptions = displayOptions;
 
+        this.isothreshold = {
+            min: 0,
+            max: 4095
+        }
+
         /*------------------------------------------------*/
         /*------------------------------------------------*/
         /*------------------------------------------------*/
@@ -230,6 +244,15 @@ class TransferFunctionEditor {
         return Environment.getHistogramForTFEditor(this.EnvironmentTFKey);
     };
 
+    setHistogram(histogramOBJ) {
+        let numEntries = Object.keys(histogramOBJ).length;
+
+        this.histogram = new Uint8Array(numEntries);
+
+        for (let i = 0; i < numEntries; i++)
+            this.histogram[i] = histogramOBJ[i];
+    }
+
     _getHistogramSelections() {
         Environment.getHistogramSelectionsForTFEditor(this.EnvironmentTFKey)
     }
@@ -238,16 +261,26 @@ class TransferFunctionEditor {
         Environment.get3DViewSelectionsHistogramForTFEditor(this.EnvironmentTFKey)
     }
 
+    setTFModel(model) {
+        this.tfModel = model;
+        this.colorGradientObject = model.colorGradient;
+        this.controlPoints = model.controlPoints;
+        this._refreshColorGradient();
+        this.render();
+    }
+
     _updateTFModel() {
         this.tfModel = this._getModel();
         this.colorGradientObject = this.tfModel.colorGradient;
         this.controlPoints = this.tfModel.controlPoints;
+        this._refreshColorGradient();
+        this.render();
     }
 
     _updateDatasetModel() {
-        this.histogram = this._getHistogram();
-        this.histogramSelection = this._getHistogramSelections();
-        this.viewSelectionHistogram = this._get3DViewSelectionHistogram();
+        //this.histogram = this._getHistogram();
+        //this.histogramSelection = this._getHistogramSelections();
+        //this.viewSelectionHistogram = this._get3DViewSelectionHistogram();
     }
 
     notifyModelDidChange() {
@@ -263,8 +296,6 @@ class TransferFunctionEditor {
             .attr('class', 'tf-editor-background-canvas ng-id' + this.$scope$id)
             .attr('width', 400)
             .attr('height', 400); // 400x400 pixels to render on
-
-        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID(this.EnvironmentTFKey, this.$scope$id);
 
         this.svgMain = d3.select(this.container)
             .append('svg')
@@ -294,15 +325,15 @@ class TransferFunctionEditor {
         this.eventListenerRect = this.svgMain.append('rect')
             .attr('class', 'tf-editor-event-listener-rect')
             .on('mousedown', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mousedown();
             })
             .on('mouseup', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mouseup();
             })
             .on('mousemove', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mousemove();
             });
 
@@ -575,6 +606,8 @@ class TransferFunctionEditor {
         this._clearHistogramSelection();
         this._clearHistogram();
         this._clearTransferFunction();
+        this._clearColorGradient();
+        this._renderColorGradient(this._getSizes());
         // Empty the contents of all
 
         // TODO!
@@ -675,6 +708,14 @@ class TransferFunctionEditor {
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
+        if(this.displayOptions.applyThreshold) {
+            let yThresholded = new Uint8Array(histogram.length);
+            for(let i = this.isothreshold.min; i < this.isothreshold.max; i++)
+                yThresholded[i] = histogram[i];
+
+            yDomain = d3.extent(yThresholded);
+        }
+
         let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
@@ -713,16 +754,36 @@ class TransferFunctionEditor {
             .attr('class', 'tf-editor-3d-selection-histogram-area');
     }
 
+    updateIsoThreshold(min, max) {
+        this.isothreshold = {
+            min: min,
+            max: max
+        }
+
+        this._refreshHistogram();
+        this._refreshHistogramSelection();
+    };
+
     _renderHistogram(sizes) {
         if (!this.displayOptions.showHistogram)
             return;
 
-        let histogram = this._getHistogram();
+        let histogram = this.histogram;
         if (!histogram || histogram.length === 0)
             return;
 
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
+
+
+        if(this.displayOptions.applyThreshold) {
+            let yThresholded = new Uint8Array(histogram.length);
+            for(let i = this.isothreshold.min; i < this.isothreshold.max; i++)
+                yThresholded[i] = histogram[i];
+
+            histogram = yThresholded;
+            yDomain = d3.extent(yThresholded);
+        }
 
         // Displace to make it work as log-scale
         yDomain[0] += 1;
@@ -779,7 +840,7 @@ class TransferFunctionEditor {
         if (!this.displayOptions.showTransferFunction)
             return;
 
-        if (this.controlPoints === null || this.controlPoints.length === 0)
+        if (this.controlPoints === null) // || this.controlPoints.length === 0)
             return;
 
         this._renderControlPointSplines();
@@ -815,18 +876,61 @@ class TransferFunctionEditor {
         let self = this;
         let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
+        var dragCircle = d3.drag()
+            .on('start', function (d) {
+                d3.event.sourceEvent.stopPropagation();
+                //d3.event.sourceEvent.preventDefault();
+                self.selected = self.dragged = d;
+            })
+            .on('drag', () => {
+                this._mousemove();
+            })
+            .on('end', () => {
+                this._mouseup();
+            });
+
+
+
+
+        let click = () => {
+            console.log("Click!");
+            if (Date.now() - TIME < dblClickWait && awaitingDoubleClick) { // dblclick!
+                clearTimeout(clickTimeout); // Stop normal click event
+                //                alert("Dblclick!");
+                this._removeSelectedControlPoint();
+                awaitingDoubleClick = false;
+            } else {
+                TIME = Date.now();
+                awaitingDoubleClick = true;
+                clickTimeout = setTimeout(() => {
+                    awaitingDoubleClick = false;
+                    //                    alert("Click!");
+                    this._moveSelectedControlPointToBottom();
+                }, dblClickWait);
+
+                awaitingClick = false;
+            }
+        }
+
         circles.enter().append("circle")
             .attr("r", circleRadius)
             .attr('class', 'tf-editor-control-point')
-            .on("mousedown", (d) => {
-                this.selected = this.dragged = d;
-                this._mousedown();
+            .on("mousedown", function (d) {
+                self.selected = self.dragged = d;
+                self._mousedown();
+                TIME = Date.now();
+                awaitingClick = true;
             })
             .on("mouseup", () => {
                 this._mouseup();
+                if (awaitingDoubleClick || Date.now() - TIME < mouseupmousedowntimeout) {
+                    click();
+                }
+                awaitingClick = false;
             })
             .on('mouseenter', function () {
                 d3.select(this).classed('selected', true);
+                awaitingClick = false;
             })
             .on('mouseout', function (d) {
                 d3.select(this).classed('selected', self.selected === d);
@@ -835,6 +939,22 @@ class TransferFunctionEditor {
                     self._renderTransferFunction();
                 }
             })
+            .on("mousemove", () => {
+                this._mousemove();
+                awaitingClick = false;
+            })
+            /*.on('click', () => {
+                console.log("Click!");
+                if (Date.now() - TIME < clickWait) { // dblclick!
+                    clearTimeout(clickTimeout); // Stop normal click event
+                    alert("Dblclick!");
+                } else {
+                    TIME = Date.now();
+                    clickTimeout = setTimeout(() => {
+                        alert("Click!");
+                    }, clickWait);
+                }
+            })*/
             .attr("cx", (d) => {
                 return this.scales.content.x(d[0]);
             })
@@ -844,7 +964,10 @@ class TransferFunctionEditor {
             .classed("selected", (d) => {
                 return d === this.selected;
             })
-            .attr("r", circleRadius);
+            .attr("r", circleRadius)
+        //.call(dragCircle);
+
+
 
         circles
 
@@ -858,12 +981,9 @@ class TransferFunctionEditor {
         circles.exit().remove();
     }
 
-    _renderColorOpacityBitmap() {
-
-    }
 
     _renderColorGradient(sizes) {
-        if (!this.colorGradientObject || this.colorGradientObject.gradient.length === 0)
+        if (!this.colorGradientObject) // || this.colorGradientObject.gradient.length === 0)
             return;
 
         this._renderColorGradientRect();
@@ -1097,7 +1217,7 @@ class TransferFunctionEditor {
         context.putImageData(new ImageData(data2, width, height), 0, 0);
 
         // CALL POSSIBLY OBSOLETE...
-        Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
+        Environment.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
 
         this._notifyTFDidChange();
     }
@@ -1200,8 +1320,6 @@ class TransferFunctionEditor {
         context.putImageData(newImageData, 0, offsetY, 0, 0, canvasNode.width, cHeight);
 
     }
-
-
 
     _renderColorGradientControlPoints(sizes) {
         let triangle = d3.symbol()
@@ -1427,7 +1545,13 @@ class TransferFunctionEditor {
 
                 let mouseNormalized = [mouseXNormalized, mouseYNormalized];
 
-                this.controlPoints.push(this.selected = this.dragged = mouseNormalized);
+                this.controlPoints.insert(this.selected = this.dragged = mouseNormalized);
+                /*
+                this.dragged = mouseNormalized;
+                this.selected = this.dragged;
+
+
+                this.controlPoints.push(this.selected = this.dragged = mouseNormalized);*/
                 this._refreshTransferFunction();
                 break;
             default:
@@ -1447,6 +1571,7 @@ class TransferFunctionEditor {
             case 'TF':
                 if (!this.dragged) return;
                 this.dragged = null;
+                this.controlPoints.sortPreserve(0);
                 this._refreshTransferFunction();
             default:
                 break;
@@ -1477,7 +1602,7 @@ class TransferFunctionEditor {
                 let m = d3.mouse(this.transferFunctionGroup.node());
                 this.dragged[0] = clamp01(this.scales.content.x.invert(m[0]));
                 this.dragged[1] = clamp01(this.scales.content.y.invert(m[1]));
-
+                this.controlPoints.sortPreserve(0);
                 this._refreshTransferFunction();
                 break;
             default:
@@ -1502,6 +1627,13 @@ class TransferFunctionEditor {
     _removeSelectedControlPoint() {
         let i = this.controlPoints.indexOf(this.selected);
         this.controlPoints.splice(i, 1);
+        this.selected = this.controlPoints.length ? this.controlPoints[i > 0 ? i - 1 : 0] : null;
+        this._refreshTransferFunction();
+    }
+
+    _moveSelectedControlPointToBottom() {
+        let i = this.controlPoints.indexOf(this.selected);
+        this.controlPoints.toBottom(i);
         this.selected = this.controlPoints.length ? this.controlPoints[i > 0 ? i - 1 : 0] : null;
         this._refreshTransferFunction();
     }

@@ -49062,9 +49062,13 @@ app.directive('linksAndViewsView', require('./ng-directives/links-and-views-view
 app.directive('tfWidget', require('./ng-directives/transfer-function-view'));
 app.directive('datasetManagerView', require('./ng-directives/dataset-view'));
 app.directive('cameraSettingsView', require('./ng-directives/camera-settings-view'));
+app.directive('lightSettingsView', require('./ng-directives/light-settings-view'));
+app.directive('selectionSettingsView', require('./ng-directives/selection-settings-view'));
+app.directive('selectionSettingsViewGlobalOnly', require('./ng-directives/selection-settings-view-globalonly'));
 
 app.directive('globalControlPanel', require('./ng-directives/global-control-panel-view'));
 app.directive('localControlPanel', require('./ng-directives/local-control-panel-view'));
+
 
 // OBSOLETE (for now), ctx-menu better
 /*app.directive('vrToolbar', require('./ng-directives/toolbar-view'));*/
@@ -49080,31 +49084,60 @@ setTimeout(() => {
 // TODO move this to directives or whatnot... Semantic UI init stuff
 module.exports = app;
 
-},{"./ng-controllers/master-controller":29,"./ng-directives/camera-settings-view":31,"./ng-directives/dataset-view":32,"./ng-directives/global-control-panel-view":33,"./ng-directives/links-and-views-view":34,"./ng-directives/local-control-panel-view":35,"./ng-directives/transfer-function-view":36}],24:[function(require,module,exports){
+},{"./ng-controllers/master-controller":30,"./ng-directives/camera-settings-view":33,"./ng-directives/dataset-view":34,"./ng-directives/global-control-panel-view":35,"./ng-directives/light-settings-view":36,"./ng-directives/links-and-views-view":37,"./ng-directives/local-control-panel-view":38,"./ng-directives/selection-settings-view":40,"./ng-directives/selection-settings-view-globalonly":39,"./ng-directives/transfer-function-view":41}],24:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let controller = function ($scope, $timeout) {
 
     $scope.cameraMode = 'perspective';
+    $scope.zoom = '100%';
 
     $scope.setCameraMode = (mode) => {
         $scope.cameraMode = mode;
+        Environment.notifyCameraSettingsDidChangeAtEditor($scope.name, {
+            mode: mode
+        });
     }
 
     $scope.alignCamera = (align) => {
         console.log("align " + align);
+        Environment.notifyCameraSettingsDidChangeAtEditor($scope.name, {
+            align: align
+        });
     }
 
     $scope.resetZoom = () => {
         console.log("Reset zoom!");
+        Environment.notifyCameraSettingsDidChangeAtEditor($scope.name, {
+            zoomFactor: 1
+        });
+        $scope.zoom = ('100%');
     }
 
-    $scope.DOMReady = () => {}
+    let zoomListener = (newZoom) => {
+        $scope.zoom = (Math.round(100 * newZoom) + '%');
+        $scope.$apply();
+    }
+
+    let syncWithModel = (newModel) => {
+        //alert("Resyncing camera view @ " + $scope.name);
+        //console.log(newModel);
+        $scope.cameraMode = newModel.mode;
+        $scope.zoom = (Math.round(100 * newModel.zoomFactor) + '%');
+        $scope.$apply();
+
+        newModel.setZoomListener(zoomListener);
+    }
+
+    $scope.DOMReady = () => {
+        Environment.listen('CameraModelDidChange', $scope.name, syncWithModel);
+        Environment.ready('CameraController', $scope.name);
+    }
 }
 
 module.exports = controller;
 
-},{"../../core/environment":38}],25:[function(require,module,exports){
+},{"../../core/environment":45}],25:[function(require,module,exports){
 let Environment = require('../../core/environment');
 
 let WSClient = require('../../client2server/websocket-client'),
@@ -49114,6 +49147,8 @@ let Settings = require('../../core/settings').WSClient,
     Timeouts = Settings.Timeouts;
 
 let FR = new FileReader();
+
+let DatasetGet = Settings.get; // 'isovalues' or 'isovaluesAndGradientMagnitudes'
 
 let controller = function ($scope, $timeout) {
 
@@ -49190,7 +49225,7 @@ let controller = function ($scope, $timeout) {
                 GET({
                             type: 'dataset',
                             dataset: $scope.selectedDataset,
-                            field: 'isovalues'
+                            field: DatasetGet//'isovaluesAndGradientMagnitudes'
                         },
                         false,
                         Timeouts.getDatasetIsovalues)
@@ -49204,9 +49239,9 @@ let controller = function ($scope, $timeout) {
                             setStatusVisibility(true);
                         }, 2000);
 
-                        let isovalues = new Int16Array(arraybuffer);
+                        let result = new Int16Array(arraybuffer);
 
-                        Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, isovalues);
+                        Environment.notifyDatasetWasLoaded($scope.selectedDataset, header, result);
 
                     return;
 
@@ -49231,12 +49266,13 @@ let controller = function ($scope, $timeout) {
         loaderElement = document.getElementById('dataset-manager-view-status');
         statusElement = document.getElementById('dataset-manager-status2');
         fetchDatasets();
+        Environment.ready('DatasetController');
     }
 }
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38,"../../core/settings":58}],26:[function(require,module,exports){
+},{"../../client2server/websocket-client":42,"../../core/environment":45,"../../core/settings":76}],26:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49255,9 +49291,220 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38}],27:[function(require,module,exports){
+},{"../../client2server/websocket-client":42,"../../core/environment":45}],27:[function(require,module,exports){
+let Environment = require('../../core/environment');
+let LightSettings = require('../../core/settings').Lights;
+
+
+let controller = function ($scope, $timeout) {
+
+    let MAX = LightSettings.MaxValues;
+    let Defaults = LightSettings.Defaults;
+
+    let transform = (val) => {
+        let theValueItself = $scope[val].value;
+
+        theValueItself *= MAX[val];
+        theValueItself /= 100;
+
+        return theValueItself;
+    }
+
+    let transformMinMax = (val) => {
+        let theMinValue = $scope[val].minValue;
+
+        theMinValue *= MAX[val];
+        theMinValue /= 100;
+
+        let theMaxValue = $scope[val].maxValue;
+        theMaxValue *= MAX[val];
+        theMaxValue /= 100;
+
+        return {
+            min: theMinValue,
+            max: theMaxValue
+        };
+    }
+
+    let reverseTransformInitial = (val) => {
+        let theValueItself = Defaults[val];
+
+        theValueItself /= MAX[val];
+        theValueItself *= 100;
+
+        return theValueItself;
+    }
+
+    let reverseTransformArb = (name, val) => {
+        val /= MAX[name];
+        val *= 100;
+
+        return val;
+    }
+
+    let update = (val) => {
+        let args = {
+            [val]: transform(val)
+        };
+        Environment.notifyLightSettingsDidChangeAtEditor($scope.name, args);
+    }
+
+    let updateMinMax = (val) => {
+        let args = {
+            [val]: transformMinMax(val)
+        }
+
+        //console.log(args);
+        Environment.notifyLightSettingsDidChangeAtEditor($scope.name, args);
+    }
+
+    let updateInverse = (val) => {
+        let args = {
+            [val]: -transform(val)
+        };
+        Environment.notifyLightSettingsDidChangeAtEditor($scope.name, args);
+    }
+
+
+    $scope.ambient = {
+        value: reverseTransformInitial('ambient'),
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                update('ambient');
+            }
+        }
+    };
+
+    $scope.diffuse = {
+        value: reverseTransformInitial('diffuse'),
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                update('diffuse');
+            }
+        }
+    };
+
+    $scope.specular = {
+        value: reverseTransformInitial('specular'),
+        minValue: 0,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                update('specular');
+            }
+        }
+    };
+    $scope.intensity = {
+        value: reverseTransformInitial('intensity'),
+        minValue: 0,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                update('intensity');
+            }
+        }
+    };
+    $scope.specularExponent = {
+        value: reverseTransformInitial('specularExponent'),
+        minValue: 0,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                updateInverse('specularExponent');
+            }
+        }
+    };
+
+    $scope.isovalueThreshold = {
+        minValue: 0.0,
+        maxValue: 100.0,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            draggableRange: true,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                updateMinMax('isovalueThreshold');
+            }
+        }
+    };
+
+/*    $scope.gradientMagBelowThresholdOpacityMultiplier = {
+        value: reverseTransform('gradientMagBelowThresholdOpacityMultiplier'),
+        minValue: 0,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                update('gradientMagBelowThresholdOpacityMultiplier');
+            }
+        }
+    };*/
+
+    let syncWithModel = (newModel) => {
+        //alert("Resyncing light view @ " + $scope.name);
+        //console.log(newModel);
+        $scope.ambient.value = reverseTransformArb('ambient', newModel.ambient);
+        $scope.diffuse.value = reverseTransformArb('diffuse', newModel.diffuse);
+        $scope.specular.value = reverseTransformArb('specular', newModel.specular);
+        $scope.specularExponent.value = reverseTransformArb('specularExponent', newModel.specularExponent);
+        $scope.intensity.value = reverseTransformArb('intensity', newModel.intensity);
+        $scope.isovalueThreshold.minValue = reverseTransformArb('isovalueThreshold', newModel.isovalueThreshold.min);
+        $scope.isovalueThreshold.maxValue = reverseTransformArb('isovalueThreshold', newModel.isovalueThreshold.max);
+    }
+
+    $scope.DOMReady = () => {
+        Environment.listen('LightModelDidChange', $scope.name, syncWithModel);
+        Environment.ready('LightController');
+    }
+}
+
+module.exports = controller;
+
+},{"../../core/environment":45,"../../core/settings":76}],28:[function(require,module,exports){
 let InitMiniatureSplitviewManager = require('../../widgets/split-view/view-splitter-master-controller').init;
-let LinkableModels = require('../../core/linkable-models').Models;
+let LinkableModels = require('../../core/all-models').Models;
 //let shared = require('../../widgets/split-view/controller-view-shared-variables');
 let Environment = require('../../core/environment');
 
@@ -49265,15 +49512,17 @@ let controller = function ($scope) {
 
     let viewID2LinkerKey = {
         1: LinkableModels.TRANSFER_FUNCTION.name,
-        2: LinkableModels.CAMERA.name,
-        3: LinkableModels.SLICER.name,
-        4: LinkableModels.THRESHOLDS.name,
+        2: LinkableModels.SLICER.name,
+        3: LinkableModels.CAMERA.name,
+        4: LinkableModels.LIGHTS.name,
+        5: LinkableModels.THRESHOLDS.name
     }
 
     let callbacks = {
         linkChanged: Environment.notifyLinkChanged,
         layoutChanged: Environment.notifyLayoutChanged,
-        viewTypeChanged: Environment.notifyViewTypeChanged
+        viewTypeChanged: Environment.notifyViewTypeChanged,
+        subviewSelectionChanged: Environment.notifyLocalControllerTargetSubviewIDDidChange
     };
 
     // Require in here because it's not needed outside, pass in callbacks
@@ -49307,7 +49556,8 @@ let controller = function ($scope) {
         1: false,
         2: false,
         3: false,
-        4: false
+        4: false,
+        5: false
     };
 
     $scope.toggleGlobal = (id) => {
@@ -49324,8 +49574,9 @@ let controller = function ($scope) {
     // ADD or REMOVE
     let linkStates = {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'LINK-ADD',
-        [LinkableModels.CAMERA.name]: 'LINK-ADD',
         [LinkableModels.SLICER.name]: 'LINK-ADD',
+        [LinkableModels.CAMERA.name]: 'LINK-ADD',
+        [LinkableModels.LIGHTS.name]: 'LINK-ADD',
         [LinkableModels.THRESHOLDS.name]: 'LINK-ADD'
     };
     $scope.linkStates = linkStates;
@@ -49381,7 +49632,7 @@ let controller = function ($scope) {
 
 module.exports = controller;
 
-},{"../../core/environment":38,"../../core/linkable-models":41,"../../widgets/split-view/view-splitter-master-controller":76}],28:[function(require,module,exports){
+},{"../../core/all-models":43,"../../core/environment":45,"../../widgets/split-view/view-splitter-master-controller":94}],29:[function(require,module,exports){
 let Environment = require('../../core/environment');
 let GET = require('../../client2server/websocket-client').GET;
 
@@ -49390,11 +49641,16 @@ let controller = function ($scope) {
         console.log("Local control panel DOM ready.");
     }
 
+    $scope.onOpenTFEditorPane = () => {
+        setTimeout(function () {
+            window.dispatchEvent(new Event('resizeTFEditor'));
+        }, 200);
+    }
 }
 
 module.exports = controller;
 
-},{"../../client2server/websocket-client":37,"../../core/environment":38}],29:[function(require,module,exports){
+},{"../../client2server/websocket-client":42,"../../core/environment":45}],30:[function(require,module,exports){
 // Manages the global layout, i.e show or hide widget panes, side bars, top bars etc.
 // DOES NOT manage view splitting for the 3D view or any other layouting that is local
 // to a specific subview.
@@ -49422,7 +49678,7 @@ module.exports = function ($scope) {
     $('.panel-left').resizable({
         handleSelector: '.splitter',
         resizeHeight: false,
-        onDrag: () => {
+        onDragEnd: () => {
             window.dispatchEvent(new Event('resize'));
             console.log("Dispatched resize!");
         }
@@ -49434,7 +49690,120 @@ module.exports = function ($scope) {
 
 };
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
+let Environment = require('../../core/environment');
+
+let controller = function ($scope, $timeout) {
+
+    let RayMode = 'Hide';
+    let PointMode = 'Hide';
+
+    $scope.clearRay = () => {
+        Environment.notifyClearRay($scope.name);
+        $scope.showRay = false;
+    }
+
+    $scope.clearPoints = () => {
+        Environment.notifyClearPoints($scope.name);
+        $scope.showPoints = false;
+    }
+
+    $scope.setRayMode = (mode) => {
+        RayMode = mode;
+        console.log("Set ray mode to " + mode);
+        Environment.notifyRayDisplayModeDidChange($scope.name, mode);
+    }
+
+    $scope.setPointMode = (mode) => {
+        PointMode = mode;
+        console.log("Set point mode to " + mode);
+        Environment.notifyPointDisplayModeDidChange($scope.name, mode);
+    }
+
+    $scope.nonSelectedOpacitySlider = {
+        value: 100,
+        options: {
+            floor: 0,
+            ceil: 100,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "%";
+            },
+            onChange: () => {
+                // Radius is in millimeters, transform this to
+                Environment.notifyNonSelectedOpacityDidChange($scope.name, $scope.nonSelectedOpacitySlider.value / 100)
+            }
+        }
+    }
+    angular.element(document).ready(function () {
+        $scope.$broadcast('rzSliderForceRender');
+    });
+
+    $scope.rayRadiusSlider = {
+        value: 10,
+        options: {
+            floor: 1.0,
+            ceil: 50,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "mm.";
+            },
+            onChange: () => {
+                // Radius is in millimeters, transform this to
+                Environment.notifyRayRadiusDidChange($scope.name, $scope.rayRadiusSlider.value)
+            }
+        }
+    };
+
+    $scope.pointRadiusSlider = {
+        value: 10,
+        options: {
+            floor: 1.0,
+            ceil: 15,
+            step: 0.1,
+            precision: 1,
+            translate: (d) => {
+                return d + "mm.";
+            },
+            onChange: () => {
+                Environment.notifyPointRadiusDidChange($scope.name, $scope.pointRadiusSlider.value)
+            }
+        }
+    };
+
+    $scope.showRay = false;
+    $scope.showPoints = false;
+
+    $scope.$watch('showRay', () => {
+        console.log("Show ray is now " + $scope.showRay);
+        Environment.notifyShowRayDidChange($scope.showRay);
+    });
+
+    $scope.$watch('showPoints', () => {
+        console.log("Show pts is now " + $scope.showPoints);
+        Environment.notifyShowPointsDidChange($scope.showPoints);
+    });
+
+
+    let syncWithModel = (newModel) => {
+//        alert("Resyncing selection display model view @ " + $scope.name);
+//        console.log(newModel);
+        $scope.showRay = newModel.displayRay;
+        $scope.displayPoints = newModel.displayPoints;
+        $scope.$apply();
+    }
+
+    $scope.DOMReady = () => {
+        Environment.listen('SelectionDisplayModelDidChange', $scope.name, syncWithModel);
+        Environment.ready('SelectionController', $scope.name);
+    }
+}
+
+module.exports = controller;
+
+},{"../../core/environment":45}],32:[function(require,module,exports){
 let TF_INTERACTION_MODES = {
     1: 'Select',
     2: 'TF'
@@ -49443,6 +49812,7 @@ let $ = require('jquery');
 require('spectrum-colorpicker');
 let TransferFunctionEditor = require('../../widgets/transfer-function/transfer-function-editor-v2');
 let Environment = require('../../core/environment');
+let Settings = require('../../core/settings');
 
 let controller = function ($scope, $timeout) {
     let tfEditor = null; // Initialized when DOM is ready.
@@ -49459,6 +49829,8 @@ let controller = function ($scope, $timeout) {
                     $scope.name,
                     $scope.thresholdSlider.minValue,
                     $scope.thresholdSlider.maxValue);
+                tfEditor.updateIsoThreshold($scope.thresholdSlider.minValue,
+                    $scope.thresholdSlider.maxValue);
             }
         }
     }
@@ -49467,7 +49839,8 @@ let controller = function ($scope, $timeout) {
         showHistogram: true,
         showHistogramSelection: true,
         showTransferFunction: true,
-        show3DSelectionHistogram: false
+        show3DSelectionHistogram: false,
+        applyThreshold: false
     };
 
     $scope.displayOptionsChanged = function () {
@@ -49488,11 +49861,17 @@ let controller = function ($scope, $timeout) {
             readOnly: false,
             disabled: false,
             showTicks: false,
-            showTicksValues: false
-        }
+            showTicksValues: false,
+            onChange: () => {
+                Environment.notifyGradientMagnitudeWeightingChanged(
+                    $scope.name,
+                    Math.max(0.1, ($scope.gradientMagSlider.weighting / 90.0))
+                );
+            }
+        },
     };
 
-    $scope.curvatureSlider = {
+    $scope.overallOpacitySlider = {
         weighting: 100,
         minValue: 0,
         options: {
@@ -49506,7 +49885,13 @@ let controller = function ($scope, $timeout) {
             readOnly: false,
             disabled: false,
             showTicks: false,
-            showTicksValues: false
+            showTicksValues: false,
+            onChange: () => {
+                Environment.notifyOverallOpacityChanged(
+                    $scope.name,
+                    Math.max(0.1, ($scope.overallOpacitySlider.weighting / 100.0))
+                );
+            }
         }
     };
 
@@ -49533,19 +49918,42 @@ let controller = function ($scope, $timeout) {
             $scope.getInteractionMode,
             $scope.$id,
             $scope.name);
+
+        let canvas = document.querySelector('.tf-editor-background-canvas.ng-id' + $scope.$id);
+
+        Environment.ready('TransferFunctionController', {
+            name: $scope.name,
+            editor: tfEditor,
+            canvas: canvas
+        });
+
         tfEditor.notifyModelDidChange();
         tfEditor.render();
 
         $scope.$watch('displayOptions', (newV, oldV) => {
-            console.log("DISP OPTIONS CHANGE!");
             tfEditor.render();
         }, true);
 
-        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID($scope.name, $scope.$id)
+        //Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID($scope.name, $scope.$id)
 
-        console.log("L93 TF Ctrlr");
-        Environment.ready('TransferFunctionController');
     }
+
+    Environment.listen('TFModelDidChange', $scope.name, (detail) => {
+        let tf = detail.TRANSFER_FUNCTION,
+            threshold = detail.THRESHOLDS;
+
+        tfEditor.setTFModel(tf);
+
+        $scope.thresholdSlider.minValue = threshold.minmax[0];
+        $scope.thresholdSlider.maxValue = threshold.minmax[1];
+
+        $scope.gradientMagSlider.value = tf.gradientMagnitudeWeighting * 90.0;
+        $scope.overallOpacitySlider.value = tf.overallOpacity * 100.0;
+    });
+
+    Environment.listen('DatasetDidChange', $scope.name, (detail) => {
+        let dataset = detail.dataset;
+    });
 
     $scope.renderTFEditor = () => {
         console.log("$scope.renderTFEditor");
@@ -49560,15 +49968,17 @@ let controller = function ($scope, $timeout) {
 
 module.exports = controller;
 
-},{"../../core/environment":38,"../../widgets/transfer-function/transfer-function-editor-v2":78,"jquery":18,"spectrum-colorpicker":19}],31:[function(require,module,exports){
+},{"../../core/environment":45,"../../core/settings":76,"../../widgets/transfer-function/transfer-function-editor-v2":95,"jquery":18,"spectrum-colorpicker":19}],33:[function(require,module,exports){
 let cameraSettingsViewController = require('../ng-controllers/camera-settings-view-controller');
 
 let directive = function ($timeout) {
     return {
         restrict: 'E',
-        scope: {},
+        scope: { // Name, global or local!
+            name: '@'
+        },
         replace: true,
-        transclude: true,
+        transclude: false,
         controller: cameraSettingsViewController,
         link: function (scope, element, attrs) {
             $timeout(function () {
@@ -49582,7 +49992,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/camera-settings-view-controller":24}],32:[function(require,module,exports){
+},{"../ng-controllers/camera-settings-view-controller":24}],34:[function(require,module,exports){
 let datasetViewController = require('../ng-controllers/dataset-view-controller');
 
 let directive = function ($timeout) {
@@ -49603,7 +50013,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/dataset-view-controller":25}],33:[function(require,module,exports){
+},{"../ng-controllers/dataset-view-controller":25}],35:[function(require,module,exports){
 let globalControlPanelController = require('../ng-controllers/global-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49626,7 +50036,30 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/global-control-panel-controller":26}],34:[function(require,module,exports){
+},{"../ng-controllers/global-control-panel-controller":26}],36:[function(require,module,exports){
+let lightSettingsViewController = require('../ng-controllers/light-settings-view-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: { // Name, global or local!
+            name: '@'
+        },
+        replace: true,
+        controller: lightSettingsViewController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+
+                scope.DOMReady();
+            }, 0);
+        },
+        templateUrl: 'src/angular-assets/ng-templates/light-settings-view-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/light-settings-view-controller":27}],37:[function(require,module,exports){
 let localController = require('../ng-controllers/links-and-views-controller');
 
 let directive = function ($timeout) {
@@ -49648,7 +50081,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/links-and-views-controller":27}],35:[function(require,module,exports){
+},{"../ng-controllers/links-and-views-controller":28}],38:[function(require,module,exports){
 let localControlPanelController = require('../ng-controllers/local-control-panel-controller');
 
 let directive = function ($timeout) {
@@ -49670,7 +50103,55 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../ng-controllers/local-control-panel-controller":28}],36:[function(require,module,exports){
+},{"../ng-controllers/local-control-panel-controller":29}],39:[function(require,module,exports){
+let selectionSettingsViewController = require('../ng-controllers/selection-settings-view-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: { // Name, global or local!
+            name: '@'
+        },
+        replace: true,
+        transclude: true,
+        controller: selectionSettingsViewController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+
+                scope.DOMReady();
+            }, 0);
+        },
+        templateUrl: 'src/angular-assets/ng-templates/selection-settings-view-globalonly-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/selection-settings-view-controller":31}],40:[function(require,module,exports){
+let selectionSettingsViewController = require('../ng-controllers/selection-settings-view-controller');
+
+let directive = function ($timeout) {
+    return {
+        restrict: 'E',
+        scope: { // Name, global or local!
+            name: '@'
+        },
+        replace: true,
+        transclude: true,
+        controller: selectionSettingsViewController,
+        link: function (scope, element, attrs) {
+            $timeout(function () {
+
+                scope.DOMReady();
+            }, 0);
+        },
+        templateUrl: 'src/angular-assets/ng-templates/selection-settings-view-template.html'
+    }
+};
+
+module.exports = directive;
+
+},{"../ng-controllers/selection-settings-view-controller":31}],41:[function(require,module,exports){
 let localController = require('../ng-controllers/transfer-function-view-controller');
 //let sui = require('./sui-path');
 let Environment = require('../../core/environment');
@@ -49684,10 +50165,6 @@ let directive = function ($timeout) {
             $timeout(function () {
                 console.log("attrs");
                 console.log(attrs);
-
-                // Initialize the transfer function obj in the environment with name
-                Environment.TransferFunctionManager.addTransferFunction(scope.name);
-
                 scope.DOMReady(); // Call code AFTER shit is loaded
                 // avoid executing code on DOM before it is initialized!
             }, 0); //Calling a scoped method
@@ -49701,7 +50178,7 @@ let directive = function ($timeout) {
 
 module.exports = directive;
 
-},{"../../core/environment":38,"../ng-controllers/transfer-function-view-controller":30}],37:[function(require,module,exports){
+},{"../../core/environment":45,"../ng-controllers/transfer-function-view-controller":32}],42:[function(require,module,exports){
 /**@module WebsocketClient */
 // EVENT TYPES:
 // 'get', get a resource
@@ -49813,7 +50290,115 @@ module.exports = {
     GET: get
 };
 
-},{"../main":67,"blob-to-buffer":2}],38:[function(require,module,exports){
+},{"../main":85,"blob-to-buffer":2}],43:[function(require,module,exports){
+let TransferFunction = require('./models/transfer-function');
+//let Camera = require('./models/camera');
+let Camera = require('./models/camera-orbiter-v2');
+let Slicer = require('./models/slicer-model');
+let Sphere = require('./models/sphere-model');
+let Thresholds = require('./models/thresholds');
+let LightModel = require('./models/light-model-v2');
+let SelectionDisplayModel = require('./models/selection-display-model');
+
+let Models = {
+    TRANSFER_FUNCTION: {
+        name: 'TRANSFER_FUNCTION',
+        class: TransferFunction
+    },
+    CAMERA: {
+        name: 'CAMERA',
+        class: Camera
+    },
+    LIGHTS: {
+        name: 'Lights',
+        class: LightModel
+    },
+    SLICER: {
+        name: 'Slicer',
+        class: Slicer
+    },
+    THRESHOLDS: {
+        name: 'Thresholds',
+        class: Thresholds
+    },
+    SELECTION_DISPLAY: {
+        name: 'SelectionDisplayModel',
+        class: SelectionDisplayModel
+    }
+    /*SPHERE: {
+        name: 'Sphere',
+        class: Sphere
+    },*/
+};
+
+// Models that are actually used by linker views
+let ActiveLinkableModels = {
+    TRANSFER_FUNCTION: {
+        name: 'TRANSFER_FUNCTION',
+        class: TransferFunction
+    },
+    SLICER: {
+        name: 'Slicer',
+        class: Slicer
+    },
+    CAMERA: {
+        name: 'CAMERA',
+        class: Camera
+    },
+    LIGHTS: {
+        name: 'Lights',
+        class: LightModel
+    },
+    THRESHOLDS: {
+        name: 'Thresholds',
+        class: Thresholds
+    }
+};
+
+let LocalOnly = {
+
+}
+
+let modelsList = [];
+for (let key in Models)
+    modelsList.push(Models[key].name);
+
+module.exports = {
+    ModelsList: modelsList,
+    Models: Models,
+    ActiveLinkableModels: ActiveLinkableModels
+};
+
+},{"./models/camera-orbiter-v2":48,"./models/light-model-v2":51,"./models/selection-display-model":52,"./models/slicer-model":54,"./models/sphere-model":55,"./models/thresholds":56,"./models/transfer-function":57}],44:[function(require,module,exports){
+let displayFBImage = (image, w, h, target) => {
+    let canvas = document.getElementById(target);
+
+    let ctx = canvas.getContext('2d');
+
+    canvas.width = w;
+    canvas.height = h;
+
+    ctx.clearRect(0, 0, w, h);
+
+    let imagedata = new ImageData(new Uint8ClampedArray(image), w, h);
+    ctx.putImageData(imagedata, 0, 0);
+}
+
+let displayFBImageFromFramebuffer = (gl, fb, width, height, target) => {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb.framebuffer);
+
+    let dest = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, dest);
+
+    displayFBImage(dest, width, height, target);
+}
+
+module.exports = {
+    displayFBImage: displayFBImage,
+    displayFBImageFromFramebuffer: displayFBImageFromFramebuffer
+};
+
+},{}],45:[function(require,module,exports){
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
@@ -49822,10 +50407,20 @@ let modes = require('./interaction-modes'),
     Interactions = modes.Interactions,
     CameraModes = modes.CameraModes;
 
-let TransferFunctionManager = require('../widgets/transfer-function/transfer-function-manager');
-let TransferFunction = require('../widgets/transfer-function/transfer-function');
+let Models = require('./all-models').Models;
+
+//let TransferFunction = require('../widgets/transfer-function/transfer-function');
 
 let WSClient = require('../client2server/websocket-client');
+
+
+let MODEL2LISTENERKEY = {
+                [Models.TRANSFER_FUNCTION.name]: 'TFModelDidChange',
+                [Models.CAMERA.name]: 'CameraModelDidChange',
+                [Models.LIGHTS.name]: 'LightModelDidChange',
+                [Models.THRESHOLDS.name]: 'TFModelDidChange', // Same local subview
+                [Models.SELECTION_DISPLAY.name]: 'SelectionDisplayModelDidChange'
+};
 
 /** @module Core/Environment */
 
@@ -49850,10 +50445,26 @@ class Environment {
         // The links must also be refreshed because a view may be obsolete.
         this.layout = LinksAndLayout.read().layout; // Reads layout from view splitter
 
+        this.SelectSubview = LinksAndLayout.write().Select;
+        this.SetViewType = LinksAndLayout.write().SetViewType;
+
         this.ViewManager = null; // Depends on links&view view
-        this.TransferFunctionManager = new TransferFunctionManager(this);
+
+        this.tfEditors = {
+            'GLOBAL': {
+                editor: null,
+                canvas: null
+            },
+            'LOCAL': {
+                editor: null,
+                canvas: null
+            },
+        };
 
         this.listeners = {
+            LocalSubviewDidChange: (id) => {
+                console.log("Subview changed!")
+            },
             TFModelDidChange: { // channel
                 'GLOBAL': null, // handle
                 'LOCAL': null
@@ -49861,8 +50472,47 @@ class Environment {
             DatasetDidChange: {
                 'GLOBAL': null,
                 'LOCAL': null
+            },
+            CameraModelDidChange: {
+                'GLOBAL': null,
+                'LOCAL': null
+            },
+            LightModelDidChange: {
+                'GLOBAL': null,
+                'LOCAL': null
+            },
+            SelectionDisplayModelDidChange: {
+                'GLOBAL': null,
+                'LOCAL': null
             }
-        }
+        };
+
+        this.modelGetters = {
+            TFModelDidChange: (name) => {
+                return {
+                    TRANSFER_FUNCTION: this.ViewManager.getModelObjectForEditor(Models.TRANSFER_FUNCTION, name),
+                    THRESHOLDS: this.ViewManager.getModelObjectForEditor(Models.THRESHOLDS, name)
+                };
+            },
+            DatasetDidChange: (name) => {
+                let dataset = this.DatasetManager.getDataset('GLOBAL');
+                let histogram = dataset.histogram;
+
+                // TF Editor doesn't need anything other than histo
+                return {
+                    histogram: histogram
+                };
+            },
+            CameraModelDidChange: (name) => {
+                return this.ViewManager.getModelObjectForEditor(Models.CAMERA, name);
+            },
+            LightModelDidChange: (name) => {
+                return this.ViewManager.getModelObjectForEditor(Models.LIGHTS, name);
+            },
+            SelectionDisplayModelDidChange: (name) => {
+                return this.ViewManager.getModelObjectForEditor(Models.SELECTION_DISPLAY, name);
+            }
+        };
 
 
 
@@ -49873,7 +50523,14 @@ class Environment {
         this.notifyLinkChanged = (propertyKey) => {
             console.log("LINK CHANGED!");
             console.log(propertyKey);
+
             this.ViewManager.linkChanged(propertyKey);
+
+            let modelChangeListenerKey = MODEL2LISTENERKEY[propertyKey];
+            // Notify local subview to refresh
+            // If it doesnt exist there is no subview i.e no need to update
+            if (modelChangeListenerKey)
+                this._notifyListeners(modelChangeListenerKey, 'LOCAL');
         }
 
         this.notifyIsoThresholdChanged = (editorName, newMin, newMax) => {
@@ -49903,26 +50560,78 @@ class Environment {
         }
 
         this.notifyViewTypeChanged = (cellID, newType) => {
-            this.ViewManager.viewTypeChanged(cellID, newType);
+            this.ViewManager.notifyViewTypeChanged(cellID, newType);
+            let LocalControllerSubview = this.ViewManager.localControllerSelectedSubviewID;
+
+            if (LocalControllerSubview === cellID) {
+                this.ViewManager.notifyTransferFunctionDidChangeAtEditor('LOCAL');
+                this.SelectSubview(cellID);
+            } else { // TF needs manual update to render texture and all that.
+                setTimeout(() => {
+                    this.SelectSubview(cellID);
+                    setTimeout(() => {
+                        this.SelectSubview(LocalControllerSubview);
+                    }, 1000)
+                }, 1000);
+
+                //this.ViewManager.localControllerSelectedSubviewID = cellID;
+                //this.ViewManager.notifyTransferFunctionDidChangeAtEditor('LOCAL');
+                //this.ViewManager.localControllerSelectedSubviewID = LocalControllerSubview;
+            }
         }
 
-        this.notifyDatasetWasLoaded = (name, header, isovalues) => {
+        this.notifyLocalControllerTargetSubviewIDDidChange = (newTarget) => {
+            this.ViewManager.notifyLocalControllerSelectionDidChange(newTarget);
+
+            // Link TF model to local TF editor
+            //this.TransferFunctionManager.setLocalEditorActiveSubview(newTarget);
+            this._notifyListeners('TFModelDidChange', 'LOCAL');
+
+            // Link camera model to local camera settings editor
+            this._notifyListeners('CameraModelDidChange', 'LOCAL');
+
+            // Link light settings model to local light settings editor
+            this._notifyListeners('LightModelDidChange', 'LOCAL');
+
+            // Slicer has no editor, needs no notification
+
+            // Notify selection settings changed
+            this._notifyListeners('SelectionDisplayModelDidChange', 'LOCAL');
+        }
+
+        this.notifyDatasetWasLoaded = (name, header, isovaluesAndGradientMagnitudes) => {
             console.log("notifyDatasetWasLoaded!");
             this.DatasetManager.addDataset({
                 name: name,
                 header: header,
-                isovalues: isovalues
+                isovalues: isovaluesAndGradientMagnitudes
             });
 
-            this.ViewManager.datasetDidChange();
+            this.tfEditors.GLOBAL.editor.setHistogram(header.histogram);
+            this.tfEditors.LOCAL.editor.setHistogram(header.histogram);
+
+            this.ViewManager.notifyDatasetDidChange();
 
             // For now pretend only one dataset will be loaded at a time.
             this._notifyListeners('DatasetDidChange', 'LOCAL');
             this._notifyListeners('DatasetDidChange', 'GLOBAL');
+
+            this._notifyListeners('TFModelDidChange', 'GLOBAL');
+            this._notifyListeners('TFModelDidChange', 'LOCAL');
+
+            this._notifyListeners('CameraModelDidChange', 'GLOBAL');
+            this._notifyListeners('CameraModelDidChange', 'LOCAL');
+
+            this._notifyListeners('LightModelDidChange', 'GLOBAL');
+            this._notifyListeners('LightModelDidChange', 'LOCAL');
+
+            this._notifyListeners('SelectionDisplayModelDidChange', 'LOCAL');
+
+            this.notifyLocalControllerTargetSubviewIDDidChange(0);
         }
 
         this.notifyDatasetWasRead = () => {
-            this.DatasetManager.clearDataset();
+            //this.DatasetManager.clearDataset();
         }
 
         this.readyElements = []; // Expect call from:
@@ -49966,21 +50675,33 @@ class Environment {
      * to be initialized, before they themselves can be initialized.
      * This function allows for shimming it.
      *
-     * @param {string} from name of the controller
+     * @param {string} from from name of the controller
+     * @param {Object} args Varies per object.
      */
-    ready(from) {
+    ready(from, args) {
         console.log("READY from " + from);
         this.readyElements.push(from);
+        console.log("Num elements = " + this.readyElements.length);
 
         switch (from) {
             case 'LinksAndViewsController':
                 this.ViewManager = new ViewManager(this, LinksAndLayout.getAddRemoveView);
                 break;
             case 'TransferFunctionController':
+                this.tfEditors[args.name] = {
+                    editor: args.editor,
+                    canvas: args.canvas
+                };
+                //this.TransferFunctionManager.setEditor(args);
                 break;
             default:
                 break;
         }
+
+        // Bind all local controllers to subview 0 initially
+        // FIXME get a more reliable way to ensure that all views are initialized
+        if (this.readyElements.length >= 10)
+            this.notifyLocalControllerTargetSubviewIDDidChange(0);
     }
 
     /**
@@ -49993,9 +50714,21 @@ class Environment {
      */
     _initNewView(id) {
         this.ViewManager.addNewView(id);
-        this.TransferFunctionManager.addTransferFunction(id);
-        console.log(this.TransferFunctionManager.tfs);
-        console.log(this.ViewManager.subviews);
+
+        //this.TransferFunctionManager.addTransferFunction(id);
+        //console.log(this.TransferFunctionManager.tfs);
+        // console.log(this.ViewManager.subviews);
+    }
+
+    _updateLocalControls() {
+        for (let key in MODEL2LISTENERKEY) {
+            this._notifyListeners(MODEL2LISTENERKEY[key], 'LOCAL');
+        }
+    }
+
+    notifyViewmanagerInitialized() {
+        this.SetViewType('Basic', 0);
+        this.SelectSubview(0);
     }
 
     /**
@@ -50007,58 +50740,102 @@ class Environment {
      * @param {number} id the ID of the view
      */
     _removeView(id) {
-        this.ViewManager.removeView(id);
-        this.TransferFunctionManager.removeTransferFunction(id);
-        console.log(this.TransferFunctionManager.tfs);
+        let selectedNeedsUpdate = this.ViewManager.removeView(id);
+        if (selectedNeedsUpdate) {
+            this._updateLocalControls();
+        }
+
         console.log(this.ViewManager.subviews);
     }
 
+    notifyGradientMagnitudeWeightingChanged(editorKey, newValue) {
+        this.ViewManager.notifyGradientMagnitudeWeightingChanged(editorKey, newValue);
+    }
+    notifyOverallOpacityChanged(editorKey, newValue) {
+        this.ViewManager.notifyOverallOpacityChanged(editorKey, newValue);
+    }
 
 
-    /**
-     * Gets the transfer function object given the cell ID.
-     * Called when a 3D view is selected, the local TF view will be
-     * linked to the given TF.
-     *
-     * @param {number} cellID - the ID of the cell
-     * @returns {module:Widgets/TransferFunction~TransferFunction} The transfer function object belonging to the master cell ID.
-     */
-    getTransferFunctionForViewWithCellID(cellID) {
-        if (this.GlobalOverrideLocals['TransferFunction'])
-            return this.TransferFunctionManager.getTransferFunction('GLOBAL');
+    notifyClearRay(editorKey) {
+        this.ViewManager.notifyClearRay(editorKey);
+    }
 
-        let masterID = this.links.getMasterCellIDForModel('TransferFunction', cellID);
+    notifyClearPoints(editorKey) {
+        this.ViewManager.notifyClearPoints(editorKey);
+    }
 
-        return this.TransferFunctionManager.getTransferFunction(masterID);
+    notifyRayRadiusDidChange(editorKey, newRadius) {
+        this.ViewManager.notifyRayRadiusDidChange(editorKey, newRadius);
+    }
+
+    notifyPointRadiusDidChange(editorKey, newRadius) {
+        this.ViewManager.notifyPointRadiusDidChange(editorKey, newRadius);
+    }
+
+
+    notifyRayDisplayModeDidChange(editorKey, mode) {
+        this.ViewManager.notifyRayDisplayModeDidChange(editorKey, mode);
+        this._notifyListeners('TFModelDidChange', 'LOCAL');
+        this._notifyListeners('LightModelDidChange', 'LOCAL');
+    }
+
+    notifyPointDisplayModeDidChange(editorKey, mode) {
+        this.ViewManager.notifyPointDisplayModeDidChange(editorKey, mode);
+    }
+
+    notifyDiscreteTFDidChange(tfEditorKey, textureBounds) {
+        this.tfEditors[tfEditorKey].textureBounds = textureBounds;
     }
 
     notifyTransferFunctionDidChangeAtEditor(tfEditorKey) {
-        this.ViewManager.transferFunctionDidChangeForSubviewID(tfEditorKey);
+        this.ViewManager.notifyTransferFunctionDidChangeAtEditor(tfEditorKey);
+    }
+
+    notifyNonSelectedOpacityDidChange(editorKey, value01) {
+        this.ViewManager.notifyNonSelectedOpacityDidChange(editorKey, value01);
+    }
+
+    notifyCameraSettingsDidChangeAtEditor(key, args) {
+        this.ViewManager.notifyCameraSettingsDidChangeAtEditor(key, args);
+    }
+
+    notifyShowRayDidChange(showRay) {
+        this.ViewManager.notifyShowRayDidChange(showRay);
+    }
+
+    notifyShowPointsDidChange(showPoints) {
+        this.ViewManager.notifyShowPointsDidChange(showPoints);
+    }
+
+    notifyLightSettingsDidChangeAtEditor(key, args) {
+        this.ViewManager.notifyLightSettingsDidChangeAtEditor(key, args);
     }
 
     /* Find the cell ID associated to the TF */
     getHistogramForTFEditor(tfEditorKey) {
-        // 1. Find out which cell ID the TF editor is pointing to
-        let cellID = this.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
+        let masterCellID = this.ViewManager.getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey);
 
-        return this.DatasetManager.getHistogramForCellID(cellID);
+        return this.DatasetManager.getHistogramForCellID(masterCellID);
+    }
+
+    getTFEditorInfo(tfEditorKey) {
+        return this.tfEditors[tfEditorKey];
     }
 
     getHistogramSelectionsForTFEditor(tfEditorKey) {
-        let cellID = this.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
+        let masterCellID = this.ViewManager.getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey);
 
-        return this.DatasetManager.getHistogramSelectionForCellID(cellID);
+        return this.DatasetManager.getHistogramSelectionForCellID(masterCellID);
     }
 
     get3DViewSelectionsHistogramForTFEditor(tfEditorKey) {
-        let cellID = this.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
+        let masterCellID = this.ViewManager.getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey);
 
         return this.DatasetManager.getViewSelectionForCellID(cellID);
     }
 
     getTransferFunctionForTFEditor(tfEditorKey) {
-        this.TransferFunctionManager.test();
-        return this.TransferFunctionManager.getTransferFunctionForTFEditorKey(tfEditorKey);
+        return this.ViewManager.getTransferFunctionForTFEditor(tfEditorKey);
     }
 
     getActiveDataset(cellID) {
@@ -50079,7 +50856,7 @@ class Environment {
     }
 
     _notifyListeners(channel, key) {
-        this.listeners[channel][key]();
+        this.listeners[channel][key](this.modelGetters[channel](key));
     }
 
 
@@ -50089,8 +50866,13 @@ let env = new Environment();
 window.TheEnvironment = env; // For debugging
 module.exports = env; //new Environment();
 
-},{"../client2server/websocket-client":37,"../core/views/view-manager":61,"../datasets&selections/dataset-manager":63,"../widgets/split-view/view-splitter-master-controller":76,"../widgets/transfer-function/transfer-function":80,"../widgets/transfer-function/transfer-function-manager":79,"./interaction-modes":40}],39:[function(require,module,exports){
+},{"../client2server/websocket-client":42,"../core/views/view-manager":79,"../datasets&selections/dataset-manager":81,"../widgets/split-view/view-splitter-master-controller":94,"./all-models":43,"./interaction-modes":47}],46:[function(require,module,exports){
 let _ = require('underscore');
+
+let ALIASES = {
+    'Select Point': 'select-point',
+    'Select Ray': 'select-ray'
+};
 
 class InteractionModeManager {
     constructor() {
@@ -50115,7 +50897,12 @@ class InteractionModeManager {
         // Quick hack to be able to add suffixes
         // to be displayed @ menu without
         // chainging the everywhere internally
-        lowercasemode = lowercasemode.split(' ')[0];
+        let lcmsplit = lowercasemode.split(' ');
+        lowercasemode = lcmsplit[0];
+
+        if (lowercasemode === 'select') {
+            lowercasemode += '-' + lcmsplit[1];
+        }
 
         if (this.verifyMode && !(_.contains(this.allModes[category], lowercasemode)))
             console.error("Category " + category + " does not have the mode " + lowercasemode + " available, available modes: " + this.allModes[category]);
@@ -50140,7 +50927,7 @@ class InteractionModeManager {
 
 module.exports = new InteractionModeManager();
 
-},{"underscore":22}],40:[function(require,module,exports){
+},{"underscore":22}],47:[function(require,module,exports){
 // Enum imitation of modes, contains...
 // Interaction modes
 // Camera modes
@@ -50195,52 +50982,15 @@ module.exports = {
     }
 }
 
-},{}],41:[function(require,module,exports){
-let TransferFunction = require('../widgets/transfer-function/transfer-function');
-//let Camera = require('./models/camera');
-let Camera = require('./models/camera-orbiter-v2');
-let Slicer = require('./models/slicer-model');
-let Sphere = require('./models/sphere-model');
-let Thresholds = require('./models/thresholds');
-
-let LinkableModels = {
-    TRANSFER_FUNCTION: {
-        name: 'TRANSFER_FUNCTION',
-        class: TransferFunction
-    },
-    CAMERA: {
-        name: 'CAMERA',
-        class: Camera
-    },
-    SLICER: {
-        name: 'Slicer',
-        class: Slicer
-    },
-    THRESHOLDS: {
-        name: 'Thresholds',
-        class: Thresholds
-    }
-    /*SPHERE: {
-        name: 'Sphere',
-        class: Sphere
-    },*/
-};
-
-let modelsList = [];
-for (let key in LinkableModels)
-    modelsList.push(LinkableModels[key].name);
-
-module.exports = {
-    ModelsList: modelsList,
-    Models: LinkableModels
-};
-
-},{"../widgets/transfer-function/transfer-function":80,"./models/camera-orbiter-v2":42,"./models/slicer-model":45,"./models/sphere-model":46,"./models/thresholds":47}],42:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = twgl.m4,
     v3 = twgl.v3;
 
-let glmvec4 = require('gl-matrix').vec4;
+let glm = require('gl-matrix'),
+    glmvec3 = glm.vec3,
+    glmmat4 = glm.mat4,
+    glmmat3 = glm.mat3;
 
 let Quat = require('gl-matrix').quat;
 let _ = require('underscore');
@@ -50250,10 +51000,15 @@ console.log(Quat);
 class Camera {
     constructor(args) {
         this.radius = args.radius || 5.2;
+        this.refRadius = this.radius;
+
+        this.zoomFactor = 1.0;
+        this.zoomListener = null;
 
         this.theta = args.theta  ||  Math.PI / 3.0;
         this.phi = args.phi || Math.PI / 3.0;
 
+        this.eye = null; // Will be cached
         this.target = args.target || v3.create(0, 0, 0);
 
         this.projectionSettings = args.projectionSettings || {
@@ -50275,8 +51030,6 @@ class Camera {
         this.view = null;
         this.translationVec = v3.create(0, 0, 0);
 
-        this._updateViewMatrix();
-        this.setPerspective({});
 
         this.mouseCache = {
             isDrag: false,
@@ -50292,10 +51045,28 @@ class Camera {
         };
 
         this.upDir = 1;
+        this.mode = "perspective";
 
-        this.rotate(0.000001, 0.000001); // Init...
+        this.UP = v3.create(0, 1, 0);
+        this.RIGHT = v3.create(1, 0, 0);
+        this.EYE = v3.create(-2, 2, -5);
+        this.TARGET = v3.create(0, 0, 0);
 
+        this.prevEye = [4, 4, 4];
+        this.nextEye = [4, 4, 3];
 
+        this.prevAngle = [];
+        this.nextAngle = [];
+
+        /*
+                rot from prev to next, around axis: prev X next by angle Theta:
+                get the matrix
+                multiply into rotation matrix
+                recalc eye position and shiet
+        */
+
+        this._updateViewMatrixV2();
+        this.setPerspective({});
     }
 
     linkTo(master, properties, callback) {
@@ -50314,16 +51085,24 @@ class Camera {
         switch (property) {
             case 'rotation':
                 for (let slaveInfo of this.slaves[property]) {
-                    slaveInfo.slave.theta = this.theta;
-                    slaveInfo.slave.phi = this.phi;
-                    slaveInfo.slave._updateViewMatrix();
+                    //slaveInfo.slave.theta = this.theta;
+                    //slaveInfo.slave.phi = this.phi;
+                    //slaveInfo.slave.mode = this.mode;
+                    //slaveInfo.slave.upDir = this.upDir;
+                    //slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.slave.UP = this.UP;
+                    slaveInfo.slave.RIGHT = this.RIGHT;
+                    slaveInfo.slave.EYE = this.EYE;
+                    slaveInfo.slave._updateViewMatrixV2();
                     slaveInfo.callback();
                 }
                 break;
             case 'radius':
                 for (let slaveInfo of this.slaves[property]) {
-                    slaveInfo.slave.radius = this.radius;
-                    slaveInfo.slave._updateViewMatrix();
+                    //slaveInfo.slave.radius = this.radius;
+                    //slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.slave.zoomFactor = this.zoomFactor;
+                    slaveInfo.slave._updateViewMatrixV2();
                     slaveInfo.callback();
                 }
                 break;
@@ -50332,42 +51111,162 @@ class Camera {
         }
     }
 
+    setZoomListener(listener) {
+        this.zoomListener = listener;
+    }
+
+    _notifyZoomListener(needsApply) {
+        if (this.zoomListener)
+            this.zoomListener(this.zoomFactor);
+    }
+
     killSlaves() {
         this.slaves.rotation = [];
         this.slaves.radius = [];
     }
 
-    rotate(dTheta, dPhi) {
-        if (this.upDir > 0) {
-            this.theta += this.ROT_SPEED_X * dTheta;
-        } else {
-            this.theta -= this.ROT_SPEED_X * dTheta;
-        }
+    /*
+     rotate(dTheta, dPhi) {
+         let dtheta = this.ROT_SPEED_X * dTheta;
 
-        this.phi += this.ROT_SPEED_Y * dPhi;
+         if (this.upDir > 0) {
+             this.theta += this.ROT_SPEED_X * dTheta;
+         } else {
+             this.theta -= this.ROT_SPEED_X * dTheta;
+         }
 
-        let _2PI = Math.PI * 2;
+         this.phi += this.ROT_SPEED_Y * dPhi;
 
-        if (this.phi > _2PI)
-            this.phi -= _2PI;
-        else if (this.phi < -_2PI)
-            this.phi += _2PI;
+         let _2PI = Math.PI * 2;
 
-        if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
-            this.upDir = 1;
-        } else {
-            this.upDir = -1;
-        }
+         if (this.phi > _2PI)
+             this.phi -= _2PI;
+         else if (this.phi < -_2PI)
+             this.phi += _2PI;
 
-        this._updateViewMatrix();
+         if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
+             this.upDir = 1;
+         } else {
+             this.upDir = -1;
+         }
+
+         //this.phi = Math.PI/2;
+
+         this._updateViewMatrix();
+         this._notifySlaves('rotation');
+     }   */
+
+    /*    rotate(dTheta, dPhi) {
+            let dtheta = this.ROT_SPEED_X * dTheta;
+
+            if (this.upDir > 0) {
+                this.theta += this.ROT_SPEED_X * dTheta;
+            } else {
+                this.theta -= this.ROT_SPEED_X * dTheta;
+            }
+
+            this.phi += this.ROT_SPEED_Y * dPhi;
+
+            let _2PI = Math.PI * 2;
+
+            if (this.phi > _2PI)
+                this.phi -= _2PI;
+            else if (this.phi < -_2PI)
+                this.phi += _2PI;
+
+            if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
+                this.upDir = 1;
+            } else {
+                this.upDir = -1;
+            }
+
+            //this.phi = Math.PI/2;
+
+            this._updateViewMatrix();
+            this._notifySlaves('rotation');
+        }*/
+
+    rotate(dx, dy, x, y) {
+
+        // Rotate dx rad around UP
+        // Update RIGHT
+
+        let rotX = -this.ROT_SPEED_X * dx,
+            rotY = this.ROT_SPEED_Y * dy;
+
+        this._rotateAngles(rotX, rotY);
+        /*        // 1. Rotate around up
+                let rotAroundUP = m4.axisRotation(this.UP, rotX);
+
+                // 2. Apply rotation to RIGHT vector
+                this.RIGHT = m4.transformDirection(rotAroundUP, this.RIGHT);
+
+                // 3. Rotate around RIGHT
+                let rotAroundRIGHT = m4.axisRotation(this.RIGHT, rotY);
+
+                // 4. Apply rotation to UP vector
+                this.UP = m4.transformDirection(rotAroundRIGHT, this.UP);
+
+                this.EYE = m4.transformPoint(rotAroundUP, this.EYE);
+                this.EYE = m4.transformPoint(rotAroundRIGHT, this.EYE);
+
+                // Now calculate view matrix
+                /*let lookat = m4.lookAt(this.EYE * this.zoomFactor, this.TARGET, this.UP);
+                this.view = m4.inverse(lookat);*/
+        this._updateViewMatrixV2();
         this._notifySlaves('rotation');
+    }
+
+    _rotateAngles(rotX, rotY) {
+        let rotAroundUP = m4.axisRotation(this.UP, rotX);
+
+        // 2. Apply rotation to RIGHT vector
+        this.RIGHT = m4.transformDirection(rotAroundUP, this.RIGHT);
+
+        // 3. Rotate around RIGHT
+        let rotAroundRIGHT = m4.axisRotation(this.RIGHT, rotY);
+
+        // 4. Apply rotation to UP vector
+        this.UP = m4.transformDirection(rotAroundRIGHT, this.UP);
+
+        this.EYE = m4.transformPoint(rotAroundUP, this.EYE);
+        this.EYE = m4.transformPoint(rotAroundRIGHT, this.EYE);
+
+        // Now calculate view matrix
+        /*let lookat = m4.lookAt(this.EYE * this.zoomFactor, this.TARGET, this.UP);
+        this.view = m4.inverse(lookat);*/
+        /*this._updateViewMatrixV2();
+        this._notifySlaves('rotation');*/
+    }
+
+    repositionTo(newUP, newRIGHT) {
+        // 1. Find angle between newUP and this UP
+        // 2. Find angle between newRIGHT and this RIGHT
+
+        let angleUP = Math.acos(v3.dot(newUP, this.UP)),
+            angleRIGHT = Math.acos(v3.dot(newRIGHT, this.RIGHT));
+
+        // TODO do after quat.
     }
 
     zoom(dist) {
         console.log("ZOOM " + dist);
-        this.radius -= dist * this.ZOOM_SPEED;
-        this._updateViewMatrix();
+        //this.radius -= dist * this.ZOOM_SPEED;
+
+        this.zoomFactor += dist * this.ZOOM_SPEED;
+        //this._updateZoom();
+
+        //this._updateViewMatrix();
+        this._updateViewMatrixV2();
+        if (this.mode === 'ortho')
+            this.setOrtho();
+
         this._notifySlaves('radius');
+    }
+
+    _updateZoom() {
+        // perspective zoom
+        this.radius = this.zoomFactor * this.refRadius;
     }
 
     pan(dx, dy) {
@@ -50386,11 +51285,12 @@ class Camera {
                 let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
         */
 
-        let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
-        let y = this.radius * Math.cos(this.phi);
-        let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+        let x = this.radius * Math.sin(this.phi + Math.PI / 2) * Math.sin(this.theta);
+        let y = this.radius * Math.cos(this.phi + Math.PI / 2);
+        let z = this.radius * Math.sin(this.phi + Math.PI / 2) * Math.cos(this.theta);
 
-        return v3.create(x, y, z);
+        this.eye = v3.create(x, y, z);
+        return this.eye;
     }
 
     toCartesian() {
@@ -50411,12 +51311,121 @@ class Camera {
     }
 
     setPerspective(args) {
+        if (!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
         this.projection = m4.perspective(
             args.fieldOfViewRadians || this.projectionSettings.fieldOfViewRadians,
             args.aspectRatio || this.projectionSettings.aspectRatio,
             args.zNear || this.projectionSettings.zNear,
             args.zFar || this.projectionSettings.zFar
         );
+    }
+
+    _updateProjectionSettings(args) {
+        for (let key in args) {
+            this.projectionSettings[key] = args[key];
+        }
+    }
+
+    setOrtho(args) {
+        // Use near plane
+
+        if (!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
+
+        let zNear = args.zNear ||  this.projectionSettings.zNear,
+            zFar = args.zFar ||  this.projectionSettings.zFar,
+            ar = args.aspectRatio || this.projectionSettings.aspectRatio,
+            fovy = args.fieldOfViewRadians  ||  this.projectionSettings.fieldOfViewRadians;
+
+
+        // this coeff seems to work best, TODO
+        // find formula taking in FOV, zNear zFar to calculate
+        // ortho zNear
+        let zStep = 0.41; // 1 = use zFar plane, 0 = use zNear
+
+        //let near2Far = zFar - zNear,
+        //    orthoPlaneZ = zNear + zStep * near2Far;
+        let near2Far = (zFar - zNear),
+            zOffset = near2Far * zStep,
+            orthoPlaneZ = zOffset / this.zoomFactor;
+
+        // Use AR to get center2sidesX, ar = w/h => w = ar*h
+        let center2sidesY = orthoPlaneZ * Math.tan(fovy / 2),
+            center2sidesX = center2sidesY * ar;
+
+        let top = -center2sidesY,
+            right = center2sidesX,
+            bottom = center2sidesY,
+            left = -center2sidesX;
+
+        // use same zNear / far as perspective camera
+
+        this.projection = m4.ortho(left, right, top, bottom, zNear, zFar);
+    }
+
+    changeState(args) {
+        if (args.mode) {
+            if (args.mode === 'ortho') {
+                this.setOrtho();
+            } else if (args.mode === 'perspective') {
+                this.setPerspective();
+            } else {
+                console.error("Invalid mode " + args.mode);
+            }
+            this.mode = args.mode;
+        }
+
+        if (args.align) {
+            switch (args.align) {
+                case 'X':
+
+                    break;
+                case 'Y':
+
+                    break;
+                case 'Z':
+
+                    break;
+                case '-X':
+
+                    break;
+                case '-Y':
+
+                    break;
+                case '-Z':
+
+                    break;
+            }
+        }
+
+        if (args.zoomFactor) {
+            this.zoomFactor = args.zoomFactor;
+            this._updateViewMatrixV2(true);
+        }
+    }
+
+    _updateViewMatrixV2(skipNotify) {
+        let eye = this.EYE;
+
+        /* if(this.mode === 'perspective') {
+
+         } else {
+             eye = v3.negate(this.EYE);
+         }*/
+
+        let lookat = m4.lookAt(v3.divScalar(eye, this.zoomFactor), this.TARGET, this.UP);
+
+        this.view = m4.inverse(lookat);
+
+        if (!skipNotify)
+            this._notifyZoomListener();
     }
 
     _updateViewMatrix() {
@@ -50426,6 +51435,7 @@ class Camera {
             return rad * 180 / Math.PI;
         }
 
+        console.log("zoom factor = " + this.zoomFactor);
         console.log("PHI = " + rad2deg(this.phi));
         console.log("THETA = " + rad2deg(this.theta));
         console.log("POS = " + '(' +
@@ -50434,41 +51444,22 @@ class Camera {
         console.log("-----------------");
         console.log("-----------------");
 
-        this.view = m4.inverse(m4.lookAt(c.eye, c.target, c.up));
-/*
-        let zaxis = v3.normalize(v3.subtract(c.eye, c.target)); // The "forward" vector.
-        let xaxis = v3.normalize(v3.cross(c.up, zaxis)); // The "right" vector.
-        let yaxis = v3.normalize(v3.cross(zaxis, xaxis)); // The "up" vector.
+        let lookat = m4.lookAt(c.eye, c.target, c.up);
 
-        // Create a 4x4 orientation matrix from the right, up, and forward vectors
-        // This is transposed which is equivalent to performing an inverse
-        // if the matrix is orthonormalized (in this case, it is).
-        let orientation = [
-            xaxis[0], yaxis[0], zaxis[0], 0,
-            xaxis[1], yaxis[1], zaxis[1], 0,
-            xaxis[2], yaxis[2], zaxis[2], 0,
-            0, 0, 0, 1
-        ];
-
-        // Create a 4x4 translation matrix.
-        // The eye position is negated which is equivalent
-        // to the inverse of the translation matrix.
-        // T(v)^-1 == T(-v)
-        let translation = [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            -c.eye[0], -c.eye[1], -c.eye[2], 1
-        ];
-
-        this.view = m4.multiply(orientation, translation);*/
+        this.view = m4.inverse(lookat);
     }
 
     getWorldViewProjectionMatrix(aspectRatio) {
         if (aspectRatio)
-            this.setPerspective({
-                aspectRatio: aspectRatio
-            });
+            if (this.mode === "perspective")
+                this.setPerspective({
+                    aspectRatio: aspectRatio
+                });
+            else {
+                this.setOrtho({
+                    aspectRatio: aspectRatio
+                })
+            }
 
         // no world matrix, not needed ATM.
 
@@ -50479,8 +51470,8 @@ class Camera {
 
         let inverseVP = m4.inverse(m4.multiply(this.projection, this.view));
 
-        let homogenous = glmvec4.fromValues(devX, devY, devZ, 1.0);
-        let p = glmvec4.transformMat4(homogenous, homogenous, inverseVP),
+        let homogenous = glmvec3.fromValues(devX, devY, devZ, 1.0);
+        let p = glmvec3.transformMat4(homogenous, homogenous, inverseVP),
             w = p[3];
 
         // Divide by w also
@@ -50498,16 +51489,16 @@ class Camera {
         let p0 = this.__unproject(device.x, device.y, -1);
         let p1 = this.__unproject(device.x, device.y, 1);
 
-        let homogenous = glmvec4.fromValues(device.x, device.y, -1.0, 1.0);
+        let homogenous = glmvec3.fromValues(device.x, device.y, -1.0, 1.0);
 
         let inverseView = m4.inverse(this.view),
             inverseP = m4.inverse(this.projection);
 
-        let rayFromEye = glmvec4.transformMat4(glmvec4.create(), homogenous, inverseP);
+        let rayFromEye = glmvec3.transformMat4(glmvec3.create(), homogenous, inverseP);
         rayFromEye[2] = -1; // z
         rayFromEye[3] = 1; // w
 
-        let rayFromEyeWORLD = glmvec4.transformMat4(glmvec4.create(), rayFromEye, inverseView);
+        let rayFromEyeWORLD = glmvec3.transformMat4(glmvec3.create(), rayFromEye, inverseView);
         rayFromEyeWORLD = v3.negate(v3.normalize(v3.create(rayFromEyeWORLD[0], rayFromEyeWORLD[1], rayFromEyeWORLD[2])));
 
         let rayV2 = v3.normalize(v3.subtract(p1, p0));
@@ -50790,7 +51781,7 @@ class Ray {
     }
 }
 
-},{"gl-matrix":4,"twgl.js":21,"underscore":22}],43:[function(require,module,exports){
+},{"gl-matrix":4,"twgl.js":21,"underscore":22}],49:[function(require,module,exports){
 let twgl = require('twgl.js'),
     m4 = require('twgl.js').m4,
     v3 = require('twgl.js').v3;
@@ -50969,7 +51960,200 @@ class OrbiterCamera {
 
 module.exports = OrbiterCamera;
 
-},{"./transformations":48,"twgl.js":21}],44:[function(require,module,exports){
+},{"./transformations":58,"twgl.js":21}],50:[function(require,module,exports){
+let tinycolor = require('tinycolor2');
+/** Represents a color gradient consisting of control points
+ * @class
+ * @memberof module:Widgets/TransferFunction
+ */
+class ColorGradient {
+
+
+    /**
+     * Constructs a new color gradient with given initial control points.
+     *
+     *
+     * @param {module:Widgets/TransferFunction.CGControlPoint[]} Array of control points, may be empty
+     * @constructor
+     * @memberof module:Widgets/TransferFunction
+
+     */
+    constructor(controlPoints) {
+        //this.gradient = []; // Format: [{offset: n, color: color}], offset is between 0 and 100
+        this.gradient = controlPoints || [];
+    }
+
+
+
+
+    /**
+     * Represents one control point.
+     * @typedef {Object} CGControlPoint
+     * @property {string} color - Color of the control points, as HEX
+     * @property {number} offset - offset of the control point, must be in range [0,100].
+     * @memberof module:Widgets/TransferFunction
+     */
+
+
+    /**
+     * Adds a control point and returns the array index
+     *
+     * @param {module:Widgets/TransferFunction.CGControlPoint} Point - The control point
+     * @returns {number} The index of the control point
+     *
+     */
+    addControlPoint(point) {
+        let index = this._findInsertionIndexForOffset(point.offset);
+        this.gradient.splice(index, 0, {
+            color: point.color,
+            offset: point.offset
+        });
+
+        return index;
+    }
+
+    /**
+     * Removes a control point, given offset
+     *
+     * @param {number} offset - the offset, must be [0,100] and existing
+     * @returns {bool} true if offset was deleted
+     */
+    removeControlPoint(offset) {
+        let deletionPoint = this._findInsertionIndexForOffset(offset);
+
+        if (deletionPoint !== -1) {
+            this.removeControlPointAtIndex(deletionPoint);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    /**
+     *
+     * @param {number} index - Index of the control point
+     */
+    removeControlPointAtIndex(index) {
+        this.gradient.splice(index, 1);
+    }
+
+    /**
+     * Changes the color for control point at given index
+     *
+     * @param {number} index
+     * @param {string} newColor - the color
+     */
+    setColorAt(index, newColor) {
+        if (index < 0)
+            return;
+        this.gradient[index].color = newColor;
+    }
+
+    /**
+     * Moves the control point at given index to the
+     * new offset
+     *
+     * @param {number} index - the current index of the control point
+     * @param {number} newOffset - the offset to move it to
+     * @returns {number} the new index of this control point
+     */
+    moveControlPoint(index, newOffset) {
+        if (index < 0)
+            return;
+
+        let elem = this.gradient[index];
+        this.gradient.splice(index, 1);
+
+        return this.addControlPoint({
+            color: elem.color,
+            offset: newOffset
+        });
+    }
+
+    _findFirstIndexBiggerThan(offset) {
+        let index = -1;
+        for (let i = 0; i < this.gradient.length; i++) {
+            if (this.gradient[i].offset >= offset) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+
+    _findInsertionIndexForOffset(offset) {
+        if (this.gradient.length === 0)
+            return 0;
+
+        for (let i = 0; i < this.gradient.length; i++) {
+            if (this.gradient[i].offset > offset)
+                return i;
+        }
+        return this.gradient.length;
+    }
+}
+
+module.exports = ColorGradient;
+
+},{"tinycolor2":20}],51:[function(require,module,exports){
+let v3 = require('twgl.js').v3;
+let Defaults = require('../settings').Lights.Defaults;
+
+let gmagMIN = 0.005;
+
+let clampgMagMin = (min) => {
+    return min > gmagMIN ? min : gmagMIN;
+}
+
+class LightModel {
+    constructor(initialSetup) {
+
+        let sqrt3 = Math.sqrt(3);
+
+        this.ambient = initialSetup.ambient || Defaults.ambient;
+        this.diffuse = initialSetup.diffuse || Defaults.diffuse;
+        this.specular = initialSetup.specular || Defaults.specular;
+        this.specularExponent = initialSetup.specularExponent || Defaults.specularExponent;
+        this.intensity = initialSetup.intensity || Defaults.intensity;
+        this.direction = initialSetup.direction || Defaults.direction;
+
+        this.isovalueThreshold = {
+            min: 0,
+            max: 1.0
+        };
+        this.gradientMagBelowThresholdOpacityMultiplier = initialSetup.gradientMagBelowThresholdOpacityMultiplier || Defaults.gradientMagBelowThresholdOpacityMultiplier;
+    }
+
+    update(args) {
+        for (let key in args)
+            this[key] = args[key];
+    }
+
+    getGradientMagnitudeLightingRange() {
+        return new Float32Array([clampgMagMin(this.isovalueThreshold.min), this.isovalueThreshold.max]);
+    }
+
+    applyPresetFromJSON(preset) {
+        for(let attrib in preset) {
+            this[attrib] = preset[attrib];
+        }
+    }
+}
+
+
+module.exports = LightModel;
+},{"../settings":76,"twgl.js":21}],52:[function(require,module,exports){
+class SelectionDisplayModel {
+    constructor() {
+        this.displayRay = false;
+        this.displayPoints = false;
+    }
+}
+
+module.exports = SelectionDisplayModel;
+},{}],53:[function(require,module,exports){
 let twgl = require('twgl.js'),
     primitives = twgl.primitives,
     m4 = twgl.m4,
@@ -51661,7 +52845,7 @@ let genSlicerBuffers = (size) => {
 
 module.exports = genSlicerBuffers;
 
-},{"../settings":58,"twgl.js":21}],45:[function(require,module,exports){
+},{"../settings":76,"twgl.js":21}],54:[function(require,module,exports){
 let SIZE = 1.0; // Slicer BB size
 
 let twgl = require('twgl.js'),
@@ -51724,8 +52908,8 @@ class SlicerModel {
                 zFar: 18.0
             },
 
-            ROT_SPEED_X: 3.5,
-            ROT_SPEED_Y: 3.5
+            ROT_SPEED_X: 2.1,
+            ROT_SPEED_Y: 2.1
         });
 
 
@@ -52185,7 +53369,7 @@ class SlicerModel {
 
             switch (interactionMode) {
                 case 'rotate':
-                    this.camera.rotate(state.dx, state.dy);
+                    this.camera.rotate(state.dx, state.dy, state.x, state.y);
                     this._refreshUniforms();
                     refreshSlicer();
                     break;
@@ -52494,7 +53678,7 @@ class LabeledSlicerBox {
     }
 }
 
-},{"../interaction-modes-v2":39,"../mouse-handler":49,"../settings":58,"./camera-orbiter":43,"./camera-orbiter-v2":42,"./slicer-model-buffers":44,"twgl.js":21}],46:[function(require,module,exports){
+},{"../interaction-modes-v2":46,"../mouse-handler":59,"../settings":76,"./camera-orbiter":49,"./camera-orbiter-v2":48,"./slicer-model-buffers":53,"twgl.js":21}],55:[function(require,module,exports){
 /**
  * Represents an underlying discrete model of a sphere.
  * @memberof module:Core/Models
@@ -52513,7 +53697,7 @@ class SphereModel {
 
 module.exports = SphereModel;
 
-},{}],47:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 class Thresholds {
     constructor() {
         this.minmax = [0, 4095];
@@ -52538,11 +53722,114 @@ class Thresholds {
             this.minmax[1] * 8
         ];
     }
+
+    applyPresetFromJSON(preset) {
+        for (let attrib in preset) {
+            this[attrib] = preset[attrib];
+        }
+    }
 }
 
 module.exports = Thresholds;
 
-},{}],48:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
+let d3 = require('d3');
+
+let ColorGradient = require('./color-gradient');
+
+
+/**
+ * Represents a transfer function, holding a color gradient
+ * and an opacity gradient. Note: Interpolation happens in the editor
+ * and WebGL reads the texture directly from the canvas.
+ * @class TransferFunction
+ * @memberof module:Widgets/TransferFunction
+ */
+class TransferFunction {
+    constructor() {
+        //        this.options = new TransferFunctionOptions();
+        // 1D color gradient axis
+        this.controlPoints = [];
+
+        // sorts is in ascending order, and returns the new index of
+        // the input index
+
+        this.colorGradient = new ColorGradient([{
+            color: '#ffffff',
+            offset: 10.0
+        }, {
+            color: '#000000',
+            offset: 20.0
+        }]);
+
+        this.opacityAxis = null;
+
+        // REMEMBER TO BIND THIS WHEN ACCESSING IT FROM A TF-EDITOR.
+        this.splines = null; // d3.line with curve, used for interpolation
+
+        this.curve = d3.curveLinear();
+
+        this.gradientMagnitudeWeighting = 0;
+        this.overallOpacity = 0;
+        this._applyCustomFuncs();
+    }
+
+    _applyCustomFuncs() {
+        this.controlPoints.sortPreserve = (preserveIndex) => {
+            let preserveValue = this.controlPoints[preserveIndex];
+            this.controlPoints.splice(preserveIndex, 1);
+
+            this.controlPoints.sort((a, b) => {
+                return a[0] - b[0];
+            });
+
+            // Insert old value
+
+            let didInsert = false;
+            let newIndex = -1;
+
+            for (let i = 0; i < this.controlPoints.length; i++) {
+                if (this.controlPoints[i][0] >= preserveValue[0]) {
+                    // Insert!
+                    this.controlPoints.splice(i, 0, preserveValue);
+                    didInsert = true;
+                    newIndex = i;
+                    break;
+                }
+            }
+
+            if (!didInsert) {
+                this.controlPoints.push(preserveValue);
+                newIndex = this.controlPoints.length - 1;
+            }
+
+            return newIndex;
+        }
+
+        this.controlPoints.insert = (elem) => {
+            this.controlPoints.push(elem);
+            this.controlPoints.sortPreserve(this.controlPoints.length - 1);
+        }
+
+        this.controlPoints.toBottom = function (i) {
+            this[i][1] = 0;
+        }
+    }
+
+    applyPresetFromJSON(preset) {
+        for (let attrib in preset) {
+            this[attrib] = preset[attrib];
+        }
+
+        // re-apply custom funcs (quick fix, should do smt more "proper" than this shitty design)
+        this._applyCustomFuncs();
+        this.colorGradient = new ColorGradient(preset['colorGradient'].gradient);
+    }
+}
+
+module.exports = TransferFunction;
+
+},{"./color-gradient":50,"d3":3}],58:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4,
     v3 = twgl.v3;
@@ -52606,7 +53893,7 @@ class Transformations {
 
 module.exports = Transformations;
 
-},{"twgl.js":21}],49:[function(require,module,exports){
+},{"twgl.js":21}],59:[function(require,module,exports){
 class MouseHandler {
     constructor(config) {
         this.isDrag = false;
@@ -52738,7 +54025,284 @@ class MouseHandler {
 
 module.exports = MouseHandler;
 
-},{}],50:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [
+                [0.0026962931608551953, 0],
+                [0.09040704260048096, 0],
+                [0.10340122770264774, 0],
+                [0.12614105782754992, 0.484848484848485],
+                [0.17811779823621704, 0.7878787878787878],
+                [0.23659163119596754, 0.7272727272727273],
+                [0.24633727002259265, 0.5252525252525253],
+                [0.29831401043125977, 0.5151515151515151],
+                [0.3243023806355933, 0.12121212121212133],
+                [0.42825586145292754, 0.080808080808081],
+                [0.5776889901278456, 0.14141414141414155],
+                [0.6524055544653046, 0]
+            ],
+        colorGradient: {
+            gradient: [
+                {
+                    color: "#000000",
+                    offset: 9.36555896608633
+                    }, {
+                    color: "#b49068",
+                    offset: 16.18750514095402
+                    }, {
+                    color: "#b91f1f",
+                    offset: 25.933143314922155
+                    }, {
+                    color: "#ffffff",
+                    offset: 45.424422397408435
+                    }]
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.6,
+        overallOpacity: 0.68
+    },
+        [Models.LIGHTS.name]: {
+        ambient: 0.794,
+        diffuse: 1.1320000000000001,
+        specular: 0.22,
+        specularExponent: -0.33599999999999997,
+        intensity: 0.231,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0,
+            max: 0.59
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [0, 4027]
+    }
+}
+
+},{"../all-models":43}],61:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [],
+        colorGradient: {
+            gradient: []
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.3,
+        overallOpacity: 0.5
+    },
+    [Models.LIGHTS.name]: {
+
+        ambient: 0.938,
+        diffuse: 0.986,
+        specular: 0.755,
+        specularExponent: -0.5309999999999999,
+        intensity: 0.27299999999999996,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0.01,
+            max: 1.0000499999999999
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [112, 4095]
+    }
+}
+
+},{"../all-models":43}],62:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [[0.0811969068494073, 0], [0.2181244861929768, 0], [0.23933820421950946, 0], [0.25274585662673676, 0.09090909090909105], [0.26146868458151623, 0.21212121212121227], [0.28763716844585463, 0.1010101010101011], [0.28782670256586984, 0], [0.3272236074722876, 0], [0.3484373254988203, 0.010101010101010277], [0.37268157467200047, 0], [0.4120784795784183, 0.010101010101010277], [0.5211776008577291, 0], [0.8424138561601311, 0]],
+        colorGradient: {
+            gradient: [{
+                color: "#f62100",
+                offset: 24.402303934951835
+            }, {
+                color: "#ca7c13",
+                offset: 25.44908421013945
+            }, {
+                color: "#ffffff",
+                offset: 26.146867540147564
+            }, {
+                color: "#d6d6d6",
+                offset: 28.479616445452514
+            }, {
+                color: "#f7f7f7",
+                offset: 44.541430729691704
+            }]
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.1,
+        overallOpacity: 1
+    },
+    [Models.LIGHTS.name]: {
+        ambient: 0.75,
+        diffuse: 0.418,
+        specular: 0.015,
+        specularExponent: -0.5309999999999999,
+        intensity: 0.7680000000000001,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0.11504999999999999,
+            max: 0.38232
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [809, 1875]
+    }
+}
+
+},{"../all-models":43}],63:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [[0.012048362440665775, 0], [0.05144526734708358, 0.5050505050505052], [0.13630014523349368, 0.8181818181818182], [0.15145280096673128, 0.8787878787878788], [0.19691076816644412, 0.8282828282828283], [0.4181395418717133, 0]],
+        colorGradient: {
+            gradient: [{
+                color: "#f6f6f6",
+                offset: 9.690323012704063
+            }, {
+                color: "#d42f16",
+                offset: 11.811694620330703
+            }, {
+                color: "#0fca4f",
+                offset: 12.720854564379621
+            }, {
+                color: "#a71f0b",
+                offset: 24.23687186292423
+            }, {
+                color: "#f7f7f7",
+                offset: 51.20860000665043
+            }]
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.7333333333333333,
+        overallOpacity: 0.3
+    },
+    [Models.LIGHTS.name]: {
+        ambient: 1.392,
+        diffuse: 0.5539999999999999,
+        specular: 0.05,
+        specularExponent: -0.9119999999999999,
+        intensity: 0.27299999999999996,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0,
+            max: 0.36875
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [0, 1063]
+    }
+}
+
+},{"../all-models":43}],64:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [[0.20086886146650887, 0], [0.3391177093927762, 0.46464646464646475], [0.5695324266378049, 0.5252525252525253], [0.73082274921845, 0.9393939393939394]],
+        colorGradient: {
+            gradient: [{
+                color: "#050403",
+                offset: 23.927132117705533
+            }, {
+                color: "#f9f8f8",
+                offset: 33.14371963555668
+            }]
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.5333333333333333,
+        overallOpacity: 1
+    },
+    [Models.LIGHTS.name]: {
+
+        ambient: 0.93,
+        diffuse: 0.772,
+        specular: 0,
+        specularExponent: -0.38549999999999995,
+        intensity: 0.027000000000000003,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0,
+            max: 1.0000499999999999
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [989, 4095]
+    }
+}
+
+},{"../all-models":43}],65:[function(require,module,exports){
+let Models = require('../all-models').Models;
+
+module.exports = {
+        [Models.TRANSFER_FUNCTION.name]: {
+        controlPoints: [[0.19691076816644412, 0.8282828282828283], [0.7787727020805331, 0]],
+        colorGradient: {
+            gradient: [{
+                color: "#33c123",
+                offset: 12.11474839077201
+            }, {
+                color: "#020302",
+                offset: 27.57045513412859
+            }, {
+                color: "#ffffff",
+                offset: 28.782667481343807
+            }, {
+                color: "#fafdfa",
+                offset: 33.93457064064601
+            }]
+        },
+        opacityAxis: null,
+        splines: null,
+        curve: {},
+        gradientMagnitudeWeighting: 0.6888888888888889,
+        overallOpacity: 0.22
+    },
+    [Models.LIGHTS.name]: {
+
+        ambient: 0.938,
+        diffuse: 0.986,
+        specular: 0.755,
+        specularExponent: -0.5309999999999999,
+        intensity: 0.27299999999999996,
+        direction: [0.5773502691896258, 0.5773502691896258, 0.5773502691896258],
+        isovalueThreshold: {
+            min: 0.12330999999999998,
+            max: 1.0000499999999999
+        },
+        gradientMagBelowThresholdOpacityMultiplier: 0.8
+
+    },
+    [Models.THRESHOLDS.name]: {
+        minmax: [112, 4095]
+    }
+}
+
+},{"../all-models":43}],66:[function(require,module,exports){
 let twgl = require('twgl.js');
 let m4 = twgl.m4;
 let _ = require('underscore');
@@ -52860,6 +54424,13 @@ class ConfigurableRenderer {
         //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
         gl.useProgram(programInfo.program);
 
+        let uniformBlockInfos = programInfo.blockInfos;
+
+        for(let uniformBlock in uniformBlockInfos) {
+            programInfo.blockInfos[uniformBlock].uniforms = this.uniforms[uniformBlock];
+            twgl.setUniformBlock(gl, programInfo, uniformBlockInfos[uniformBlock]);
+        }
+
         twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
         twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 
@@ -52959,7 +54530,7 @@ module.exports = ConfigurableRenderer;
  * @memberof module:Core/Renderer
  **/
 
-},{"twgl.js":21,"underscore":22}],51:[function(require,module,exports){
+},{"twgl.js":21,"underscore":22}],67:[function(require,module,exports){
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
 
@@ -52993,21 +54564,27 @@ class BufferManager {
 
 module.exports = BufferManager;
 
-},{"../../geometry/box":66,"twgl.js":21}],52:[function(require,module,exports){
+},{"../../geometry/box":84,"twgl.js":21}],68:[function(require,module,exports){
 let VolumeViewTypes = {
     '3D View': 'Basic',
     'Slice View': 'Slice',
     'Surface View': 'Surface'
 };
 
+let DEFAULT_CONFIG = require('../settings').Views.ViewManager.DefaultViewConfig;
+/*
+
 let DEFAULT_CONFIG = {
     'Volume': 'Basic',
+    'Volume3DPicking': 'Default',
+    'VolumeSlicePicking': 'Default',
     'Slicer': 'Basic',
     'SlicerPicking': 'Basic',
     'SlicerPickingSlices': 'Default',
     'SlicerPickingRails': 'Default',
     'SlicerPickingCubeFaces': 'Default'
 }
+*/
 
 
 /**
@@ -53035,11 +54612,35 @@ class ConfigurationManager {
                 'Basic': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
                 },
+                'SelectionOnly': (id) => {
+                    return this._generateSelectionOnlyVolumeConfigForSubview(id);
+                },
+                'HighlightSelection': (id) => {
+                    return this._generateHighlightSelectionVolumeConfigForSubview(id);
+                },
+                'Basic_PrecomputedGMag': (id) => {
+                    return this._generateBasicPrecomputedGMagVolumeConfigForSubview(id);
+                },
                 'Slice': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
                 },
                 'Surface': (id) => {
                     return this._generateBasicVolumeConfigForSubview(id);
+                }
+            },
+            Volume3DPicking: {
+                'Default': (id) => {
+                    return this._generateVolume3DPickingConfigForSubview(id);
+                }
+            },
+            VolumeRayRender: {
+                'Default': (id) => {
+                    return this._generateVolumeRayRenderForSubview(id);
+                }
+            },
+            VolumePointRenderer: {
+                'Default': (id) => {
+                    return this._generateVolumePointRenderForSubview(id);
                 }
             },
             Slicer: {
@@ -53109,6 +54710,9 @@ class ConfigurationManager {
     configureSubview(id, configurations) {
         let VM = this.VM;
 
+        if (!configurations)
+            configurations = DEFAULT_CONFIG;
+
         let subview = VM.subviews[id];
         for (let category in configurations) {
             let configName = configurations[category];
@@ -53164,49 +54768,7 @@ class ConfigurationManager {
                         disable: [gl.CULL_FACE],
                         blendFunc: [gl.SRC_ALPHA, gl.ONE],
                     }
-                }/*,
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('SlicerImage2Quad'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: fullScreenQuadBuffer,
-                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        enable: [gl.CULL_FACE],
-                        //disable: [gl.BLEND],
-                        cullFace: [gl.BACK]
-                    }
-                }*/
-                /*{ // Render the picking buffer into a subview..
-                    programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerBuffer'),
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-//                        depthFunc: [gl.LESS],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND],
-                        //clear: [gl.COLOR_BUFFER_BIT]
-
-                    }
-                },*/
-               /* {
-                    programInfo: VM.shaderManager.getProgramInfo('Texture2Quad'),
-                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
-                    glSettings: {
-                        clear: [gl.COLOR_BUFFER_BIT],
-                        enable: [gl.CULL_FACE],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND]
-                    }
-                },*/
-
+                }
             ]
         };
 
@@ -53230,10 +54792,12 @@ class ConfigurationManager {
                 {
                     programInfo: VM.shaderManager.getProgramInfo('SlicerPicking'),
                     frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('SlicerPickingRails'),
-                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailBuffer'),
+                    bufferInfo: VM.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
                     glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        disable: [gl.BLEND, gl.CULL_FACE],
+                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
+                        disable: [gl.BLEND],
+                        depthFunc: [gl.LEQUAL],
+                        cullFace: [gl.BACK],
                         clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
                     }
                 }
@@ -53345,7 +54909,60 @@ class ConfigurationManager {
 
         return PickingConfig;
     }
+    _generateBasicPrecomputedGMagVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
 
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolume_PrecomputedGMag'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
 
     _generateBasicVolumeConfigForSubview(subviewID) {
         let VM = this.VM;
@@ -53396,58 +55013,269 @@ class ConfigurationManager {
                         disable: [gl.BLEND, gl.CULL_FACE]
                     }
                 }
-              /*  {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.FRONT]
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.35,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.BACK]
-                    }
-                },
-                {
-                    programInfo: VM.shaderManager.getProgramInfo('TextureBackMinusFront'),
-                    frameBufferInfo: null,
-                    bufferInfo: buffer,
-                    subViewport: {
-                        x0: 0.65,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        cullFace: [gl.BACK]
-                    }
-                },*/
             ]
         };
 
         return BasicVolumeConfig;
     }
+
+    _generateSelectionOnlyVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolumeSelectionOnly'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;
+    }
+
+    _generateHighlightSelectionVolumeConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+        let fullScreenQuadBuffer = VM.bufferManager.getBufferInfo('FullScreenQuadBuffer');
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let VolumeImageFB = VM.FBAndTextureManager.getFrameBuffer('VolumeImageTexture' + subviewID);
+
+
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
+        uniforms.u_VolumeImageTexture = VM.FBAndTextureManager.getTexture('DebugTex' + subviewID);
+
+        let BasicVolumeConfig = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('BackFace'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('BasicVolumeHighlightSelection'),
+                    frameBufferInfo: VolumeImageFB, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: buffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT, gl.COLOR_BUFFER_BIT],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null, //VM.FBAndTextureManager.getFrameBuffer('FrontFace'),
+                    bufferInfo: fullScreenQuadBuffer,
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                }
+            ]
+        };
+
+        return BasicVolumeConfig;    }
+
+
+    _generateVolume3DPickingConfigForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let pickingBufferFB = VM.FBAndTextureManager.getFrameBuffer('VolumePicking');
+        let pickingShaderProgram = VM.shaderManager.getProgramInfo('Volume3DPicking');
+
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {
+                    programInfo: VM.shaderManager.getProgramInfo('PositionToRGB'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('VolumeBackfacePicking'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.FRONT]
+                    }
+                },
+                {
+                    programInfo: pickingShaderProgram,
+                    frameBufferInfo: pickingBufferFB,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                ]
+        };
+
+        return Config;
+    }
+
+
+    _generateVolumeRayRenderForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let pickingBufferFB = VM.FBAndTextureManager.getFrameBuffer('VolumePicking');
+        let pickingShaderProgram = VM.shaderManager.getProgramInfo('Volume3DPicking');
+
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {   // Project ray onto proj texture
+                    programInfo: VM.shaderManager.getProgramInfo('RayProjection'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('RayProjectionTexture'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                { // Render volume to screen (assumes volume is already rendered)
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null,
+                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                },
+                {   // Render the ray on top of the volume image
+                    programInfo: VM.shaderManager.getProgramInfo('VolumeRayRender'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        // Preserve color buffer to overlay
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                    }
+                }
+                ]
+        };
+
+        return Config;
+    }
+
+        _generateVolumePointRenderForSubview(subviewID) {
+        let VM = this.VM;
+        let gl = VM.masterContext;
+        let buffer = VM.bufferManager.getBufferInfo('VolumeBB');
+
+        let uniforms = VM.uniformManagerVolume.getUniformBundle(subviewID);
+
+        let Config = {
+            uniforms: uniforms,
+            steps: [
+                {   // Project point onto proj texture
+                    programInfo: VM.shaderManager.getProgramInfo('PointProjection'),
+                    frameBufferInfo: VM.FBAndTextureManager.getFrameBuffer('PointProjectionTexture'),
+                    bufferInfo: buffer,
+                    glSettings: {
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        disable: [gl.BLEND],
+                        enable: [gl.CULL_FACE, gl.DEPTH_TEST],
+                        cullFace: [gl.BACK]
+                    }
+                },
+                { // Render volume to screen (assumes volume is already rendered)
+                    programInfo: VM.shaderManager.getProgramInfo('VolImage2Quad'),
+                    frameBufferInfo: null,
+                    bufferInfo: VM.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
+                    //bufferInfo: VM.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
+                    glSettings: {
+                        clear: [gl.DEPTH_BUFFER_BIT],
+                        disable: [gl.BLEND, gl.CULL_FACE]
+                    }
+                },
+                {   // Render the points on top of the volume image
+                    programInfo: VM.shaderManager.getProgramInfo('VolumePoints'),
+                    frameBufferInfo: null,
+                    bufferInfo: buffer,
+                    glSettings: {
+                        // Preserve color buffer to overlay
+                        //clear: [gl.COLOR_BUFFER_BIT],
+                    }
+                }
+                ]
+        };
+
+        return Config;
+    }
 }
 
 module.exports = ConfigurationManager;
 
-},{}],53:[function(require,module,exports){
+},{"../settings":76}],69:[function(require,module,exports){
 let twgl = require('twgl.js');
 let Environment = require('../environment');
 
@@ -53565,6 +55393,10 @@ class FrameBufferAndTextureManager {
      * @param {module:Core/Renderer.FramebufferDetail} detail
      */
     create2DTextureFB(detail) {
+
+        if (this.textures[detail.name] && this.framebuffers[detail.name])
+            return; // Already created
+
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
@@ -53654,16 +55486,48 @@ class FrameBufferAndTextureManager {
             });
     }
 
-    createTransferFunction2DTexture(tfEditorKey) {
+    /**
+     * @typedef {Object} GridPos2Isovalue3DTextureDetail
+     * @property {string} name name of the texture (used when fetching it)
+     * @property {number} cols number of cols
+     * @property {number} rows number of rows
+     * @property {number} slices number of slices
+     * @property {Int16Array} isovalues the isovalue array
+     *
+     * @memberof module:Core/Renderer
+     **/
+
+    /**
+     * Creates a 3D texture from an isovalue array
+     *
+     * @param {module:Core/Renderer.GridPos2Isovalue3DTextureDetail} detail
+     */
+    createGridPos2IsovalueGMag3DTexture(detail) {
+        let gl = this.gl;
+        this.textures[detail.name] =
+            twgl.createTexture(gl, {
+                target: gl.TEXTURE_3D,
+                width: detail.cols,
+                height: detail.rows,
+                depth: detail.slices,
+                internalFormat: gl.RG16I, // format when sampling from shader
+                format: gl.RG_INTEGER, // format of data
+                type: gl.SHORT, // type of data
+                src: detail.isovalues,
+                wrapS: gl.CLAMP_TO_EDGE,
+                wrapT: gl.CLAMP_TO_EDGE,
+                wrapR: gl.CLAMP_TO_EDGE,
+                premultiplyAlpha: false
+            });
+    }
+
+    createTransferFunction2DTexture(tfEditorKey, localSubviewMasterCellID) {
         let gl = this.gl;
 
         let TFEditor = tfEditorKey; // LOCAL or GLOBAL
 
-        // 1. Find out which subview the TF editor is currently pointing to
-        let subviewID = this.env.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
-
         // 2. Get the canvas of the editor, so it can be loaded into a tex
-        let info = this.env.TransferFunctionManager.getCanvasForTFKey(tfEditorKey);
+        let info = this.env.getTFEditorInfo(tfEditorKey);
         let isoToColorData = info.canvas,
             bounds = info.textureBounds;
 
@@ -53671,8 +55535,10 @@ class FrameBufferAndTextureManager {
         let imgdata = isoToColorData.getContext('2d').getImageData(bounds.x, bounds.y, bounds.width, 1);
         let buffer = imgdata.data; // UInt8ClampedArray, i.e all values [0,255]
 
+        let key = tfEditorKey === 'GLOBAL' ? 'GLOBAL' : localSubviewMasterCellID;
+
         // 4. Create the texture bound to the given subviewID
-        this.transferFunctionTextures[subviewID] = twgl.createTexture(gl, {
+        this.transferFunctionTextures[key] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
             internalFormat: gl.RGBA,
             width: bounds.width,
@@ -53692,13 +55558,13 @@ class FrameBufferAndTextureManager {
 
 module.exports = FrameBufferAndTextureManager;
 
-},{"../environment":38,"twgl.js":21}],54:[function(require,module,exports){
+},{"../environment":45,"twgl.js":21}],70:[function(require,module,exports){
 let _ = require('underscore');
 let ReadViewSplitter = require('../../widgets/split-view/view-splitter-master-controller').read();
 
 let getMasterCellIDForModel = ReadViewSplitter.links.getMasterCellIDForModel;
 let getAllCellIDs = ReadViewSplitter.layout.getAllCellIDs;
-let AllModels = require('../linkable-models').Models;
+let AllModels = require('../all-models').Models;
 
 /**
  * @module Core/ResourceManagers
@@ -53733,8 +55599,6 @@ class ModelSyncManager {
 
         this.virtuals = [];
 
-        // Note how it "magically" pulls models directly from
-        // the linkable-models file.
         for (let key in AllModels) {
             let model = AllModels[key];
             this.addModel(model.name, model.class);
@@ -53789,8 +55653,17 @@ class ModelSyncManager {
         return models;
     }
 
+    applyPresetsToSubview(presets, subviewID) {
+        this.syncWithLinkGroup(); // Unlinking is already done at this point
+        for(let modelName in presets) {
+            this.defaultModels[modelName][subviewID].applyPresetFromJSON(presets[modelName]);
+            this.pointsToGlobal[modelName] = false;
+        }
+
+    }
+
     getSubviewIDsLinkedWith(subviewID, modelName) {
-        let activeModelID = this._getActiveModelSubviewID(modelName, subviewID);
+        let activeModelID = this.getActiveModelSubviewID(modelName, subviewID);
         return this.getSubviewIDsLinkedWithMaster(activeModelID, modelName);
     }
 
@@ -53799,20 +55672,20 @@ class ModelSyncManager {
 
         let allIDs = getAllCellIDs();
         for (let cellID of allIDs) {
-            if (this._getActiveModelSubviewID(modelName, cellID) === masterSubviewID)
+            if (this.getActiveModelSubviewID(modelName, cellID) === masterSubviewID)
                 subviewIDs.push(cellID);
         }
 
         return subviewIDs;
     }
 
-    _getActiveModelSubviewID(modelName, subviewID) {
-        return this.pointsToGlobal[modelName] ?
+    getActiveModelSubviewID(modelName, subviewID) {
+        return (this.pointsToGlobal[modelName]  || subviewID === 'GLOBAL') ?
             'GLOBAL' : this.linkedModels[modelName][subviewID];
     }
 
     getActiveModel(modelName, subviewID) {
-        let activeModelSubviewID = this._getActiveModelSubviewID(modelName, subviewID);
+        let activeModelSubviewID = this.getActiveModelSubviewID(modelName, subviewID);
         return this.defaultModels[modelName][activeModelSubviewID];
     }
 
@@ -53856,10 +55729,10 @@ class ModelSyncManager {
             this.defaultModels[modelName][subviewID] = new this.classes[modelName](this.gl, this.viewManager, subviewID);
 
             // link to itself initially
-            if (modelName === 'TRANSFER_FUNCTION')
+            /*if (modelName === 'TRANSFER_FUNCTION')
                 this.linkedModels[modelName][subviewID] = 'GLOBAL';
-            else
-                this.linkedModels[modelName][subviewID] = subviewID;
+            else*/
+            this.linkedModels[modelName][subviewID] = subviewID;
         }
     }
 
@@ -53916,19 +55789,19 @@ class ModelSyncManager {
         let subviewIDs = getAllCellIDs();
 
         for (let modelKey in this.defaultModels)
-            for (let subviewID of subviewIDs) // Skip virtual subviews
-                if (!(this.isVirtual(subviewID)))
+            for (let subviewID of subviewIDs)
                     this.linkedModels[modelKey][subviewID] = getMasterCellIDForModel(modelKey, subviewID);
 
     }
 
-    call(model, method, args) {
+    call(model, fun, args) {
         let allSubviewIDs = getAllCellIDs();
 
-        for(let subviewID of allSubviewIDs) {
+        for (let subviewID of allSubviewIDs) {
             let theModel = this.defaultModels[model][subviewID];
 
-            theModel[method].bind(theModel,args);
+            let theFunc = theModel[fun].bind(theModel);
+            theFunc(args); // invoke
         }
     }
 
@@ -53942,6 +55815,10 @@ class ModelSyncManager {
 
     getModel(modelName, subviewID) {
         return this.defaultModels[modelName][subviewID];
+    }
+
+    getAllDefaultModels(modelName) {
+        return this.defaultModels[modelName];
     }
 
     _getModels(subviewID) {
@@ -53960,10 +55837,13 @@ class ModelSyncManager {
 
 module.exports = ModelSyncManager;
 
-},{"../../widgets/split-view/view-splitter-master-controller":76,"../linkable-models":41,"underscore":22}],55:[function(require,module,exports){
+},{"../../widgets/split-view/view-splitter-master-controller":94,"../all-models":43,"underscore":22}],71:[function(require,module,exports){
 let displayFramebuffer = () => {
 
 }
+
+let displayFBImage = require('../debug-fb-to-canvas').displayFBImage;
+/*
 
 let displayFBImage = (image, w, h, target) => {
     let canvas = document.getElementById(target);
@@ -53978,6 +55858,7 @@ let displayFBImage = (image, w, h, target) => {
     let imagedata = new ImageData(new Uint8ClampedArray(image), w, h);
     ctx.putImageData(imagedata, 0, 0);
 }
+*/
 
 let displayFBImagePixelByPixel = (pixelReader) => {
 
@@ -54089,7 +55970,131 @@ class PickingBufferManager {
 
 module.exports = PickingBufferManager;
 
-},{}],56:[function(require,module,exports){
+},{"../debug-fb-to-canvas":44}],72:[function(require,module,exports){
+let _ = require('underscore');
+
+class SelectionManager {
+    constructor(viewManager) {
+        this.viewManager = viewManager;
+
+        this.isRaySelectionActive = false;
+        this.selectedRay = {
+            start: [0.0, 0.0, 0.0],
+            direction: [1.0, 1.0, 1.0],
+            radius: 0.05
+        };
+
+        this.unselectRay();
+
+        this.MAX_POINTS = 10;
+        this.NUM_POINTS = 0;
+
+        this.selectedPoints = [
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0]
+        ];
+
+        this.pointRadius = 0.0;
+
+        this.nonSelectedOpacityMultiplier = 1.0; // default
+    }
+
+    getNonSelectedOpacity() {
+        return this.nonSelectedOpacityMultiplier;
+    }
+
+    setNonSelectedOpacity(newOpacity) {
+        this.nonSelectedOpacityMultiplier = newOpacity;
+    }
+
+    getSelectedPoints() {
+        return _.flatten(this.selectedPoints);
+    }
+
+    getPointDisplayMode() {
+        return this.pointDisplayMode;
+    }
+
+    setPointDisplayMode(modeInt) {
+        this.pointDisplayMode = modeInt;
+    }
+
+    selectPoint(point) {
+        if (this.NUM_POINTS >= this.MAX_POINTS)
+            return;
+
+        this.selectedPoints[this.NUM_POINTS++] = point;
+    }
+
+    selectRay(rayInfo) {
+        for (let key in rayInfo)
+            this.selectedRay[key] = rayInfo[key];
+
+        this.isRaySelectionActive = true;
+    }
+
+    unselectRay() {
+        this.selectedRay.start = [-100.0, -100.0, -100.0];
+        this.selectedRay.direction = [1.0, 0.0, 0.0];
+        this.isRaySelectionActive = false;
+    }
+
+    setRayRadius(newRadius) {
+        this.selectedRay.radius = this.viewManager.mm2Float(newRadius);
+    }
+
+    setPointRadius(newRadius) {
+        this.pointRadius = this.viewManager.mm2Float(newRadius);
+    }
+
+    getRaySelection() {
+        return this.selectedRay;
+    }
+
+    getPointRadius() {
+        return this.pointRadius;
+    }
+
+    getNumPoints() {
+        return this.NUM_POINTS;
+    }
+
+    isRaySelected() {
+        return this.isRaySelectionActive;
+    }
+
+    unselectPoints() {
+        // Do not clear points, just overwrite them and shit when adding points
+        this.NUM_POINTS = 0;
+
+        this.selectedPoints = [
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0],
+            [-3.0, -3.0, -3.0]
+        ];
+    }
+
+
+}
+
+module.exports = SelectionManager;
+
+},{"underscore":22}],73:[function(require,module,exports){
 let glsl = require('glslify');
 let twgl = require('twgl.js');
 
@@ -54104,6 +56109,7 @@ let twgl = require('twgl.js');
 
 let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
+    BasicVolume_PrecomputedGMag: 'BasicVolume_PrecomputedGMag',
     PositionToRGB: 'PositionToRGB',
     DebugCube: 'DebugCube',
     DebugVolume: 'DebugVolume',
@@ -54113,7 +56119,14 @@ let BUILTIN_PROGRAMS = {
     SlicerPicking: 'SlicerPicking',
     Texture2Quad: 'Texture2Quad',
     VolImage2Quad: 'VolImage2Quad',
-    SlicerImage2Quad: 'SlicerImage2Quad'
+    SlicerImage2Quad: 'SlicerImage2Quad',
+    Volume3DPicking: 'Volume3DPicking',
+    RayProjection: 'RayProjection',
+    VolumeRayRender: 'VolumeRayRender',
+    BasicVolumeSelectionOnly: 'BasicVolumeSelectionOnly',
+    BasicVolumeHighlightSelection: 'BasicVolumeHighlightSelection',
+    PointProjection: 'PointProjection',
+    VolumePoints: 'VolumePoints'
 };
 
 
@@ -54142,11 +56155,16 @@ class ShaderManager {
         // file contents as strings, prior to running browserify
         // itself.
         // TLDR: Cannot use glslify dynamically.
-        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
-        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvoid main() {\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n\n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        isovalue = getNormalizedIsovalue(currentPos);\n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;      \n            continue; // Skip isovalue because threshold!\n        }\n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        color = isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n        accumulatedAlpha += alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    if(accumulatedAlpha == 0.0)\n        discard;\n    \n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+        this.vertexShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolume'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform vec3 u_GradientDelta;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_GMagWeighting;\nuniform float u_OverallOpacity;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\nuniform vec3 u_RayOrigin_M; // [0,1]\nuniform vec3 u_RayDirection_M; // [0,1]\nuniform float u_RayRadius_M; // [0,1]\nuniform bool u_DoRenderRay;\n\nuniform float u_NonSelectedVisibilityMultiplier;\n\n//float u_kA = 0.1;\n//float u_kD = 0.2;\n//float u_kS = 0.8;\n//float u_n = 17.0;\n//float u_Il = 0.1;\n//vec3 u_lightDir = normalize(vec3(1.0, 1.0, 1.0));\n//float u_gradientMagnitudeLightingThreshold = 0.2;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\n/*bool isWithinRayRange(vec3 modelPosition) {\n    vec3 x0 = modelPosition;\n    vec3 x1 = u_RayOrigin_M;\n    vec3 x2 = x1 + u_RayDirection_M;\n    \n    vec3 x2x1 = x2 - x1;\n    float len_x2x1 = length(x2x1);\n    \n    float dist = length( cross(x0 - x1, x0 - x2) ) / len_x2x1;\n    \n    return dist < u_RayRadius_M;\n}*/\n\nfloat isWithinRayRange(vec3 modelPosition) {\n    vec3 x0 = modelPosition;\n    vec3 x1 = u_RayOrigin_M;\n    vec3 x2 = x1 + u_RayDirection_M;\n    \n    vec3 x2x1 = x2 - x1;\n    float len_x2x1 = length(x2x1);\n    \n    float dist = length( cross(x0 - x1, x0 - x2) ) / len_x2x1;\n    \n    return u_RayRadius_M - dist;\n}\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalue(vec3(mPos.x - d.x, mPos.yz));\n    float right = getNormalizedIsovalue(vec3(mPos.x + d.x, mPos.yz));\n    \n    float top = getNormalizedIsovalue(vec3(mPos.x, mPos.y + d.y, mPos.z));\n    float bottom = getNormalizedIsovalue(vec3(mPos.x, mPos.y - d.y, mPos.z));\n    \n    float front = getNormalizedIsovalue(vec3(mPos.xy, mPos.z + d.z));\n    float back = getNormalizedIsovalue(vec3(mPos.xy, mPos.z - d.z));\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nvec2 calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(-gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * abs(dot(u_lightDir, gradientN));\n    float specular = u_Il * u_kS * pow(abs(dot(halfV,gradientN)), specularExponent);\n    \n    return vec2(ambient + diffuse, specular);\n}\n\nvoid main() {\n    // Why not have light direction be at a half angle\n    \n    \n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta; // gdelta is supposed to be the length of the gradient of a real world sampling grid\n    // So... delta is supposed to be one cell of movement in float\n    // I.e if grid is 200x300x400 one delta step will be (1/200, 1/300, 1/400) ignore spacing\n     \n    vec2 light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n    // GRADIENT STEP SIZE TEX\n    float alphaCorrection = 0.1;\n\n    // Hardcoded halo for the ray\n    vec3 halo = vec3(0.0);\n    float haloThreshold = 0.011;\n    float haloThresholdDistanceMultiplier = 25.0;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n/*        if(u_DoRenderRay && !isWithinRayRange(currentPos)) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue;\n        }*/\n         \n        \n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n//u_GMagWeighting\n//u_OverallOpacity\n    \n        //alpha = min(1.0, pow(1.0 + gmag,3.0) * pow(isoRGBA.a, u_AlphaCorrectionExponent));\n        \n        float magWeight = (u_OverallOpacity) * pow(gmag, u_GMagWeighting);\n    \n      /*  alpha = min(1.0, \n                    pow((u_OverallOpacity/100.0) + gmag,(u_GMagWeighting/100.0)) * pow(isoRGBA.a, u_AlphaCorrectionExponent));\n      */  \n        alpha = min(1.0, \n                    magWeight * pow(isoRGBA.a, u_AlphaCorrectionExponent));\n        \n        /*if(u_DoRenderRay) { // Dim the stuff outside ray by u_NonSelectedVisibilityMultiplier\n            if(isWithinRayRange(currentPos)) {\n                gradient = getGradientAt(currentPos, gDelta);\n                light = 2.0 * calculateLighting(gradient, gmag, halfV);\n            } else if(isWithinLightingRange(isovalue)) { // Outside ray but within range\n                gradient = getGradientAt(currentPos, gDelta);\n                light = 1.0 * calculateLighting(gradient, gmag, halfV);\n                alpha *= u_NonSelectedVisibilityMultiplier;\n            } else { // Outside ray and outside lighting range\n                alpha *= u_NonSelectedVisibilityMultiplier;\n            }\n        } else if(isWithinLightingRange(isovalue)) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            // Do nothing\n            light = 1.0;\n        }*/\n        \n        if(isWithinLightingRange(isovalue)) {\n            //gradient = getGradientAt(currentPos, gDelta);\n            gradient = getGradientAt(currentPos, u_GradientDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = vec2(0.1, 0.0);\n        }\n        \n        /*if(u_DoRenderRay) {// Distribute alpha only if ray render is enabled\n            if(!isWithinRayRange(currentPos)) {\n            /*    alpha *= 1.2;\n            } else {\n                alpha *= u_NonSelectedVisibilityMultiplier;\n            }   \n        }*/\n        \n        if(u_DoRenderRay) {// Distribute alpha only if ray render is enabled\n            float distFromRay = isWithinRayRange(currentPos);\n            \n            // Positive means within, outside means without\n            \n            //if(distFromRay >= haloThreshold) {// within range\n            if(distFromRay >= 0.0) {// within range\n                // do nothing\n            } else if(distFromRay < -(haloThreshold + 0.08))  { // Outside range\n                alpha *= u_NonSelectedVisibilityMultiplier;\n            } else if(distFromRay < -haloThreshold) {\n                alpha = 0.0; // Hide the stuff in the area around the ray\n            }\n            /*else { // Outer silhouette\n                //halo = vec3(haloThresholdDistanceMultiplier * (haloThreshold - abs(distFromRay))); \n                alpha *= u_NonSelectedVisibilityMultiplier;\n            }*/\n                \n           /* \n            if(!isWithinRayRange(currentPos)) {\n                alpha *= 1.2;\n            } else {\n                alpha *= u_NonSelectedVisibilityMultiplier;\n            }   */\n        }\n\n        color = min(vec3(1.0),light.x*isoRGBA.rgb + light.y + halo);\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    //if(accumulatedAlpha == 0.0)\n    //    discard;\n\n    outColor = vec4(\n        min(vec3(1.0), accumulatedColor * accumulatedAlpha), \n        min(1.0, accumulatedAlpha)\n    );\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['BasicVolume_PrecomputedGMag'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolume_PrecomputedGMag'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform float u_isovalueLightingRangeMIN;\nuniform float u_isovalueLightingRangeMAX;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\n//float u_kA = 0.1;\n//float u_kD = 0.2;\n//float u_kS = 0.8;\n//float u_n = 17.0;\n//float u_Il = 0.1;\n//vec3 u_lightDir = normalize(vec3(1.0, 1.0, 1.0));\n//float u_gradientMagnitudeLightingThreshold = 0.2;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.x - d.x, mPos.yz)).r;\n    float right = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.x + d.x, mPos.yz)).r;\n    \n    float top = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.x, mPos.y + d.y, mPos.z)).r;\n    float bottom = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.x, mPos.y - d.y, mPos.z)).r;\n    \n    float front = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.xy, mPos.z + d.z)).r;\n    float back = getNormalizedIsovalueAndGradientMagnitude(vec3(mPos.xy, mPos.z - d.z)).r;\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nfloat calculateLighting(vec3 gradient, float gMagnitude, vec3 halfV) {\n    vec3 gradientN = normalize(gradient);\n    \n    // 3. Get half-vector\n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * dot(u_lightDir, gradientN);\n    float specular = u_Il * u_kS * pow(dot(halfV, gradientN), specularExponent);\n    \n    return ambient + diffuse + specular;\n}\n\nvoid main() {\n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag; \n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;\n        gmag = isoAndGMag.g;\n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        \n        //if(gmag >= u_gradientMagnitudeLightingThreshold) {\n        if(gmag >= u_isovalueLightingRangeMAX) {\n//        if(isWithinLightingRange(gmag)) {\n            // Calculate lighting\n            vec3 gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = 1.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        }\n        \n        \n /*       if(length(gradient) < u_gradientMagnitudeLightingThreshold) {\n            light = 10.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        } else {\n            light = calculateLighting(gradient);\n        }*/\n        \n        color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    if(accumulatedAlpha == 0.0)\n        outColor = vec4(0.0, 0.0, 0.0, 0.0);\n    else\n        outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
 
         this.vertexShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_gridPosition; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    //projPos.x /= u_AspectRatio;\n\n    gl_Position = projPos;// vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['PositionToRGB'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_gridPosition;\nout vec4 outColor;\n\nvoid main() {\n    outColor = v_gridPosition;\n}\n"]);
+
 
         this.vertexShaders['DebugCube'] = glsl(["#version 300 es\n#define GLSLIFY 1\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_LightWorldPos;\nuniform mat4 u_World;\nuniform mat4 u_ViewInverse;\nuniform mat4 u_WorldInverseTranspose;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nin vec3 a_normal;\nin vec2 a_texcoord;\n\nout vec4 v_position;\nout vec2 v_texCoord;\nout vec3 v_normal;\nout vec3 v_surfaceToLight;\nout vec3 v_surfaceToView;\n\nvoid main() {\n    v_texCoord = a_texcoord;\n    v_position = (u_WorldViewProjection * a_position);\n    v_normal = (u_WorldInverseTranspose * vec4(a_normal, 0)).xyz;\n    v_surfaceToLight = u_LightWorldPos - (u_World * a_position).xyz;\n    v_surfaceToView = (u_ViewInverse[3] - (u_World * a_position)).xyz;\n    gl_Position = vec4(v_position.x/u_AspectRatio, v_position.y, v_position.z, v_position.w);\n}\n"]);
         this.fragmentShaders['DebugCube'] = glsl(["#version 300 es\n\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nin vec2 v_texCoord;\nin vec3 v_normal;\nin vec3 v_surfaceToLight;\nin vec3 v_surfaceToView;\n\nuniform vec4 u_LightColor;\nuniform vec4 u_Ambient;\nuniform sampler2D u_Diffuse;\nuniform vec4 u_Specular;\nuniform float u_Shininess;\nuniform float u_SpecularFactor;\n\nvec4 lit(float l ,float h, float m) {\nreturn vec4(1.0,\nmax(l, 0.0),\n(l > 0.0) ? pow(max(0.0, h), m) : 0.0,\n1.0);\n}\n\nout vec4 outColor;\n\nvoid main() {\n    vec4 diffuseColor = texture(u_Diffuse, v_texCoord);\n    vec3 a_normal = normalize(v_normal);\n    vec3 surfaceToLight = normalize(v_surfaceToLight);\n    vec3 surfaceToView = normalize(v_surfaceToView);\n    vec3 halfVector = normalize(surfaceToLight + surfaceToView);\n\n    vec4 litR = lit(dot(a_normal, surfaceToLight),\n                    dot(a_normal, halfVector), u_Shininess);\n\n    outColor = vec4((\n    u_LightColor * (diffuseColor * litR.y + diffuseColor * u_Ambient +\n    u_Specular * litR.z * u_SpecularFactor)).rgb,\n    diffuseColor.a);\n\n}\n"]);
@@ -54154,14 +56172,16 @@ class ShaderManager {
         this.vertexShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_position; // [0,1] position within the bounding box coords\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_position = vec4(gridCoord3D_0_to_1,1.0);\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    gl_Position = vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['DebugVolume'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nin vec4 v_position;\nout vec4 outColor;\n\nvoid main() {\n    outColor = vec4(0.7,0.1,0.9,1.0);//v_position;\n}\n"]);
 
+
         this.vertexShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec4 v_projPosition;\n\nvoid main() {\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_projPosition = projPos;\n\n    gl_Position = projPos;//vec4(projPos.x/u_AspectRatio, projPos.y, projPos.z, projPos.w);\n}\n"]);
         this.fragmentShaders['TextureToBBColor'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform sampler2D u_TexCoordToRayOrigin;\n\nin vec4 v_projPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec2 screenCoord = Proj2ScreenCoords_0_to_1_1540259130(v_projPosition);\n    //outColor = vec4(screenCoord, 0.5, 1.0);//\n    outColor = vec4(texture(u_TexCoordToRayOrigin, screenCoord).rgb, 1.0); //v_position;\n}\n"]);
 
         this.vertexShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AspectRatio;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * a_position);\n    projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n"]);
         this.fragmentShaders['TextureBackMinusFront'] = glsl(["#version 300 es\nprecision mediump float;\nprecision mediump sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nin vec3 v_gridPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nvoid main() {\n\n    vec3 backPosRGB = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2back = backPosRGB - v_gridPosition;\n\n    outColor = vec4(front2back, 1.0);\n}\n"]);
 
+
         this.vertexShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n/*\nconst int NONE = -1;\nconst int BB_FACE = 0;\nconst int RAIL = 1;\nconst int Slice = 2;\n\nconst int X_DIR = 0;\nconst int Y_DIR = 1;\nconst int Z_DIR = 2;\n*/\n\nuniform mat4 u_WorldViewProjection;\n\n// TODO make into uniforms\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.5, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = Slice\n*/\nuniform float u_Size;\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\n//uniform int u_SliceOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\n// If offset index is -1, means it is not in use at the moment\n// Slice id is from 0 to 5\n\nin vec4 a_position;\n//in int a_type;\nin int a_direction;\nin int a_id; // id of BB face / rail / Slice,\n//NOTE: max 6 Slices, id in range [0,5]\n\n//out int v_direction;\nflat out vec4 v_color; // calc color here! No interpolation needed (nor allowed in glsl es3)\nflat out int v_direction;\nflat out int v_id;\nflat out int v_discardMe;\nout vec3 v_position;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= a_id && a_id <= 11;\n}\n\n// Slice base position is always at the most negative coord allowed on respective axis\n/*\nmat4 displaceSlice() {\n    //int offsetIndex = u_SliceOffsetIndices[id];\n\n\n    // Assume start pos is [0,0,0]\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return mat4(\n            1.0, 0.0, 0.0, offset,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, offset,\n            0.0, 0.0, 1.0, 0.0,\n            0.0, 0.0, 0.0, 1.0\n        );\n    else // Z, XY plane, translate along Z axis\n        return mat4(\n            1.0, 0.0, 0.0, 0.0,\n            0.0, 1.0, 0.0, 0.0,\n            0.0, 0.0, 1.0, offset,\n            0.0, 0.0, 0.0, 1.0\n        );\n}\n*/\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_direction = a_direction;\n    v_id = a_id;\n    v_discardMe = 0; // default: do not discard the Slice\n\n    // 2. Set position\n    if(isSlice()) { // Slice, then displace by offset.\n\n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n/*\n            mat4 displaceByOffset = displaceSlice();\n*/\n            vec3 translateByOffset = translateSlice();\n\n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n\n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n\n            //gl_Position = u_WorldViewProjection * displaceByOffset * a_position;\n            //v_position = vec3(displaceByOffset * a_position);\n        }\n\n    } else if(isFace() && u_HighlightID != a_id) {\n        v_discardMe = 1; // hide faces\n/*\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n*/\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n}\n\n"]);
-        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(1.0, 0.0, 0.0),\n    vec3(0.0, 1.0, 0.0),\n    vec3(0.0, 0.0, 1.0)\n);\n\nconst vec3 u_SliceColors[6] = vec3[6](\n    vec3(1.0, 0.0, 0.0),\n    vec3(1.0, 1.0, 0.0),\n    vec3(0.5, 0.5, 1.0),\n    vec3(0.7, 0.4, 0.0),\n    vec3(0.9, 0.1, 4.0),\n    vec3(0.1, 0.5, 1.0)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\nuniform float u_Size;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\nuniform vec3 u_IntersectionPointDebug;\nuniform ivec2 u_DraggedSliceIndices;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nbool isSlice() {\n    return 0 <= v_id && v_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= v_id && v_id <= 11;\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    if(isFace()) {\n        myColor = u_SliceColors[v_id - 6];\n    }\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    if(isSlice()) {\n        myColor = u_SliceColors[v_id];\n        bool isDrag1 = (u_DraggedSliceIndices.x == v_id);\n        bool isDrag2 = (u_DraggedSliceIndices.y == v_id);\n        isHighlighted = isHighlighted || isDrag1;\n        isHighlighted = isHighlighted || isDrag2;\n    }\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    if(dist < 0.04)\n        outColor = vec4(0.1,1.0,0.6,1.0);\n}\n"]);
+        this.fragmentShaders['SlicerBasic'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\nconst vec3 u_DirectionColors[3] = vec3[3](\n    vec3(0.3, 0.4, 0.0),\n    vec3(0.0, 0.3, 0.4),\n    vec3(0.4, 0.0, 0.3)\n);\n\nconst vec3 u_SliceColors[6] = vec3[6](\n    vec3(0.3, 0.4, 0.0),\n    vec3(0.3, 0.4, 0.0),\n    vec3(0.0, 0.3, 0.4),\n    vec3(0.0, 0.3, 0.4),\n    vec3(0.4, 0.0, 0.3),\n    vec3(0.4, 0.0, 0.3)\n);\n\n//DISCARD!\n\nconst vec2 u_SelectionModeOpacities = vec2(0.1, 1.0); //[unselected, selected]\n\n/*\nuniform int u_HighlightedType; // -1, 0, 1 or 2\n// -1 = NONE\n// 0 = BB face\n// 1 = rail\n// 2 = quad\n*/\nuniform int u_HighlightID;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform int u_QuadOffsetIndices[6]; // [0,5] id(index) -> offset index [0,5]\nuniform float u_Size;\n\nuniform vec3 u_PickingRayOrigin;\nuniform vec3 u_RayDir;\nuniform vec3 u_IntersectionPointDebug;\nuniform ivec2 u_DraggedSliceIndices;\n\nflat in vec4 v_color;\n\nflat in int v_direction;\nflat in int v_id;\nflat in int v_discardMe;\n\nin vec3 v_position;\n\nout vec4 outColor;\n\nbool isSlice() {\n    return 0 <= v_id && v_id <= 5;\n}\n\nbool isFace() {\n    return 6 <= v_id && v_id <= 11;\n}\n\n/*vec2 calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(-gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * abs(dot(u_lightDir, gradientN));\n    float specular = u_Il * u_kS * pow(abs(dot(halfV,gradientN)), specularExponent);\n    \n    return vec2(ambient + diffuse, specular);\n}\n\nvec3 getNormal() {\n    // 0 = x, 1 = y, 2 = z\n    // Cross eye with direction vec to get an approx\n    if(v_direction == 0) {\n        \n    } else if(v_direction == 1) {\n        \n    } else {\n        \n    }\n    vec3 normal = normalize(cross())\n}*/\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    vec3 myColor = u_DirectionColors[v_direction];\n\n    if(isFace()) {\n        myColor = u_SliceColors[v_id - 6];\n    }\n\n    bool isHighlighted = v_id == u_HighlightID;\n\n    if(isSlice()) {\n        myColor = u_SliceColors[v_id];\n        bool isDrag1 = (u_DraggedSliceIndices.x == v_id);\n        bool isDrag2 = (u_DraggedSliceIndices.y == v_id);\n        isHighlighted = isHighlighted || isDrag1;\n        isHighlighted = isHighlighted || isDrag2;\n    }\n\n    int opacityIndex = isHighlighted ? 1 : 0;\n\n    float myOpacity = u_SelectionModeOpacities[opacityIndex];\n\n    // Debugging only\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n\n    outColor = vec4(myColor, myOpacity);\n\n    //if(dist < 0.04)\n    //    outColor = vec4(0.1,1.0,0.6,1.0);\n}\n"]);
 
         this.vertexShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform float u_SliceOffsets[6]; // [x1,x2,y1,y2,z1,z2]\nuniform float u_Size;\nuniform int u_ActiveDragRailID;\n\nin vec4 a_position;\nin int a_id;\nin int a_direction;\n\nout vec3 v_position01;\nout vec3 v_position;\n\nflat out int v_id;\nflat out int v_discardMe;\nflat out int v_direction;\n\nbool isSlice() {\n    return 0 <= a_id && a_id <= 5;\n}\n\nvec3 translateSlice() {\n    float offset01 = u_SliceOffsets[a_id]; // Start pos: [-size/2, -size/2, -size/2]\n    float offset = offset01 * u_Size; // [0,1] -> [-size/2, size/2]\n\n    if(a_id < 2) // X, YZ plane, i.e translate along X-axis\n        return vec3(offset, 0.0, 0.0);\n    else if(a_id < 4) // Y, XZ plane, translate along Y axis\n        return vec3(0.0, offset, 0.0);\n    else // Z, XY plane, translate along Z axis\n        return vec3(0.0, 0.0, offset);\n}\n\nvoid main() {\n    v_id = a_id;\n    v_direction = a_direction;\n    v_position01 = Model2NormalizedBBCoord_0_to_1_1540259130(a_position.xyz, vec3(u_Size));\n\n    if(u_ActiveDragRailID > 11 && u_ActiveDragRailID != a_id) {\n        v_discardMe = 1;\n    }\n\n    if(isSlice()) { // Slice, then displace by offset.\n\n        if(u_SliceOffsets[a_id] < 0.0) {\n            v_discardMe = 1;\n        } else {\n            vec3 translateByOffset = translateSlice();\n\n            vec4 tpos = a_position + vec4(translateByOffset, 0.0);\n\n            gl_Position = u_WorldViewProjection * tpos;\n            v_position = vec3(tpos);\n        }\n    }\n    else {\n        gl_Position = u_WorldViewProjection * a_position;\n        v_position = vec3(a_position);\n    }\n}\n\n"]);
         this.fragmentShaders['SlicerPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision mediump int;\n#define GLSLIFY 1\n\nconst float MAX_IDS = 255.0;\n\n//uniform vec3 u_PickingRayOrigin;\n//uniform vec3 u_RayDir;\n//uniform float u_Size;\n\nin vec3 v_position01;\nin vec3 v_position;\n\nflat in int v_id;\nflat in int v_discardMe;\nflat in int v_direction;\n\nout vec4 outColor;\n\nbool isRail() {\n    return v_id > 11;\n}\n\nfloat getRailOffset() {\n    return v_position01[v_direction];\n}\n\nvoid main() {\n    if(v_discardMe == 1)\n        discard;\n\n    float r = float(v_id + 1) / 255.0; // offset it by 1 to avoid having 0 be highlighted by default.\n    float g = 0.0;\n\n    if(isRail()) {\n        g = getRailOffset();\n    }\n\n/* // Debug only, will show mouse loc @ output\n    vec3 vpos01 = ((v_position / vec3(u_Size)) / 2.0) + vec3(0.5);\n\n    vec3 v01 = v_position - u_PickingRayOrigin;\n    vec3 v02 = v_position - (u_PickingRayOrigin + u_Size*u_RayDir);\n    vec3 v21 = (u_Size*u_RayDir);\n\n    float dist = length(cross(v01, v02))/length(v21);\n*/\n\n    // Encode ID into the red component\n    outColor = vec4(r,g,0.0,1.0);\n\n    // DEBUG ONLY!!!\n    //if(dist < 0.08)\n    //    outColor = vec4(0.5,1.0,1.0,1.0);\n\n}\n"]);
@@ -54175,6 +56195,26 @@ class ShaderManager {
         this.vertexShaders['SlicerImage2Quad'] = glsl(["#version 300 es\n\nprecision highp float;\n#define GLSLIFY 1\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nin vec4 a_position;\nout vec2 v_screenPosition;\n\nvoid main() {\n    v_screenPosition = Proj2ScreenCoords_0_to_1_1540259130(vec4(a_position.xyz, 1.0));\n\n    gl_Position = a_position;\n}\n\n"]);
         this.fragmentShaders['SlicerImage2Quad'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp sampler2D;\n#define GLSLIFY 1\n\nuniform sampler2D u_SlicerImageTexture;\n\nin vec2 v_screenPosition;\nout vec4 outColor;\n\nvoid main() {\n\n    vec4 texColor = texture(u_SlicerImageTexture, v_screenPosition);\n\n    outColor = vec4(texColor.xyz,1.0);\n}\n"]);
 
+        this.vertexShaders['Volume3DPicking'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['Volume3DPicking'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\n//float u_kA = 0.1;\n//float u_kD = 0.2;\n//float u_kS = 0.8;\n//float u_n = 17.0;\n//float u_Il = 0.1;\n//vec3 u_lightDir = normalize(vec3(1.0, 1.0, 1.0));\n//float u_gradientMagnitudeLightingThreshold = 0.2;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvoid main() {\n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        //if(isWithinLightingRange(gmag)) {\n        //    gradient = getGradientAt(currentPos, gDelta);\n        //    light = calculateLighting(gradient, gmag, halfV);\n        //} else {\n        //    light = 1.0;\n        //    alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        //}\n        //\n        //color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        \n       // accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        if(accumulatedAlpha > 0.01)\n            break;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    /*if(accumulatedAlpha == 0.0)\n        discard;*/\n\n    outColor = vec4(currentPos, isovalue);\n//    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['RayProjection'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n//out vec3 v_position;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n   // v_position = a_position;\n    \n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['RayProjection'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\n// World coordinates, unprojected cam coordinates\nuniform vec3 u_RayOrigin_M; // [0,1]\nuniform vec3 u_RayDirection_M; // [0,1]\nuniform float u_RayRadius_M; // [0,1]\nuniform vec3 u_Eye_M; // [0,1]\n\nuniform bool u_IsOrtho; \nuniform vec3 u_OrthoPlaneNormal; // If ortho this is the eye-direction\n\n// World camera coords\n\nin vec3 v_gridPosition; // [0,1] coords too\nin vec4 v_projPosition;\n//in vec4 v_position; // [-1,1] coords\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nfloat getDistanceV3() {\n    return 0.0;\n/*    vec3 a0 = u_RayOrigin_M;\n    vec3 a1 = u_RayOrigin_M + 1.4 * u_RayDirection_M;\n\n    vec3 backface = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    \n    vec3 b0 = v_gridPosition; \n    vec3 b1 = backface;\n    \n    // Do clamping on B, let A be infinite\n    vec3 A = normalize(a1 - a0);\n    vec3 B = normalize(b1 - b0);\n    \n    vec3 crossAB = cross(A, B);\n    float denom = pow(length(cross),2.0);\n        \n    // Clamp A0, B0, B1\n\n    // parallel\n    if(denom == 0.0) {\n        float d0 = dot(A, (b0 - a0));\n        float d1 = dot(A, (b1 - a0));\n        \n        if(\n            (d0 <= 0.0 && 0.0 >= d1) && \n            (abs(d0) < abs(d1))\n        ) {\n            return length(a0 - b0);\n        }\n        \n        return length(d0 * A + a0 - b0);\n    }\n    \n    vec3 t = b0 - a0;\n    \n    \n    return null;*/\n}\n\nfloat getDistanceV2() {\n    vec3 a0 = u_RayOrigin_M;\n    vec3 a1 = u_RayOrigin_M + 1.4 * u_RayDirection_M;\n\n    vec3 backface = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    \n    vec3 b0 = v_gridPosition;\n    vec3 b1 = backface;\n    \n    vec3 v1 = normalize(a1 - a0);\n    vec3 v2 = normalize(b1 - b0);\n    \n    vec3 v1xv2 = cross(v1, v2);\n    \n    float len = length(v1xv2);\n    \n    if(len == 0.0)\n        return length(b0 - a0); // Parallel, return dist between start points\n    \n    float v1xv2_dot_a0b0 = dot(v1xv2, (a0 - b0));\n    \n    if(v1xv2_dot_a0b0 == 0.0)\n        return 0.0;\n    \n    return v1xv2_dot_a0b0 / len;\n    \n}\n\nfloat getDistance() { // calculate it in projection space maybe?\n    // Then use only X and Y coords , and check distance between:\n    // \n    \n    vec3 origin1;\n    vec3 ray1;\n    \n    vec3 backface = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    \n    ray1 = normalize(backface - v_gridPosition);\n    origin1 = v_gridPosition;\n    \n    vec3 origin2 = u_RayOrigin_M;\n    vec3 ray2 = u_RayDirection_M;\n    \n    vec3 o1_minus_o2 = origin1 - origin2;\n    vec3 r1_cross_r2 = cross(ray1, ray2);\n    float len = length(r1_cross_r2);\n    \n    if(len == 0.0)\n        return 0.0;\n    \n    return dot(r1_cross_r2, o1_minus_o2)/len;\n}\n\nvoid main() {\n    \n    if(getDistanceV2() <= 0.05)//u_RayRadius_M)\n        outColor = vec4(0.2, 0.2, 0.8, 1.0);\n    else\n        outColor = vec4(0.0, 0.0, 0.0, 1.0);\n\n    /*\n    if(length(v_gridPosition - u_RayOrigin_M) < 0.5)\n        outColor = vec4(0.5,0.2,0.5,1.0);\n    else \n        outColor = vec4(0.1, 0.1, 1.0, 1.0);\n    \n    float dist = length((v_gridPosition - u_RayOrigin_M));\n    \n    if(dist < 0.1) {\n        outColor = vec4(0.2, 0.2, 0.8, 1.0);\n    } else {\n        outColor = vec4(0.0, 0.0, 0.0, 1.0);\n    }*/\n}\n"]);
+
+        this.vertexShaders['VolumeRayRender'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['VolumeRayRender'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\nout vec4 outColor;\n\nuniform sampler2D u_RayProjection; // [screen coord -> skip y/n]\nuniform vec3 u_RayOrigin_M; // Model space\nuniform vec3 u_RayDirection_M; // Model space\nuniform float u_RayRadius_M;  // Model space\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nconst int MAX_STEPS = 1000;\n\nfloat distanceFromRay(vec3 modelPos01) {\n    //Vector3.Cross(ray.direction, point - ray.origin).magnitude\n        \n    vec3 v = modelPos01 - u_RayOrigin_M;\n    vec3 dir_cross_v = cross(u_RayDirection_M, v);\n    \n    return length(dir_cross_v);\n}\n\nbool isWithinRay(vec3 modelPos01) {\n    return distanceFromRay(modelPos01) <= u_RayRadius_M;\n}\n\n// Only render pixels that are on the ray projection, faster... \nbool doRender() {\n    return texture(u_RayProjection, v_screenCoord).r > 0.0;\n}\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalue(vec3(mPos.x - d.x, mPos.yz));\n    float right = getNormalizedIsovalue(vec3(mPos.x + d.x, mPos.yz));\n    \n    float top = getNormalizedIsovalue(vec3(mPos.x, mPos.y + d.y, mPos.z));\n    float bottom = getNormalizedIsovalue(vec3(mPos.x, mPos.y - d.y, mPos.z));\n    \n    float front = getNormalizedIsovalue(vec3(mPos.xy, mPos.z + d.z));\n    float back = getNormalizedIsovalue(vec3(mPos.xy, mPos.z - d.z));\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nfloat calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * dot(u_lightDir, gradientN);\n    float specular = u_Il * u_kS * pow(dot(halfV,gradientN), specularExponent);\n    \n    return ambient + diffuse + specular;\n}\n\nvoid main() {\n    if(!doRender()) // Skip all outside ray projection\n        discard;\n    \n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        if(isWithinLightingRange(gmag)) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = 1.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        }\n        \n        if(isWithinRay(currentPos)) { // Apply some ray highlighting\n            alpha *= 2.0; // increase intensity\n        }\n        else {\n            alpha *= 0.5; // dim\n        }\n        \n        color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    if(accumulatedAlpha == 0.0)\n        discard;\n\n    //outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['BasicVolumeSelectionOnly'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolumeSelectionOnly'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\nuniform vec3 u_RayOrigin_M; // [0,1]\nuniform vec3 u_RayDirection_M; // [0,1]\nuniform float u_RayRadius_M; // [0,1]\nuniform bool u_DoRenderRay;\n\n//float u_kA = 0.1;\n//float u_kD = 0.2;\n//float u_kS = 0.8;\n//float u_n = 17.0;\n//float u_Il = 0.1;\n//vec3 u_lightDir = normalize(vec3(1.0, 1.0, 1.0));\n//float u_gradientMagnitudeLightingThreshold = 0.2;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinRayRange(vec3 modelPosition) {\n    vec3 x0 = modelPosition;\n    vec3 x1 = u_RayOrigin_M;\n    vec3 x2 = x1 + u_RayDirection_M;\n    \n    vec3 x2x1 = x2 - x1;\n    float len_x2x1 = length(x2x1);\n    \n    float dist = length( cross(x0 - x1, x0 - x2) ) / len_x2x1;\n    \n    return dist < u_RayRadius_M;\n}\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalue(vec3(mPos.x - d.x, mPos.yz));\n    float right = getNormalizedIsovalue(vec3(mPos.x + d.x, mPos.yz));\n    \n    float top = getNormalizedIsovalue(vec3(mPos.x, mPos.y + d.y, mPos.z));\n    float bottom = getNormalizedIsovalue(vec3(mPos.x, mPos.y - d.y, mPos.z));\n    \n    float front = getNormalizedIsovalue(vec3(mPos.xy, mPos.z + d.z));\n    float back = getNormalizedIsovalue(vec3(mPos.xy, mPos.z - d.z));\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nfloat calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * dot(u_lightDir, gradientN);\n    float specular = u_Il * u_kS * pow(dot(halfV,gradientN), specularExponent);\n    \n    return ambient + diffuse + specular;\n}\n\nvoid main() {\n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        if(u_DoRenderRay && !isWithinRayRange(currentPos)) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue;\n        }\n        \n        \n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n\n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        if(isWithinLightingRange(gmag) && isovalue != 0.0) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = 1.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        }\n        \n        color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    /*if(accumulatedAlpha == 0.0)\n        discard;*/\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['BasicVolumeHighlightSelection'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1604150559(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1540259130(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1604150559(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1540259130(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['BasicVolumeHighlightSelection'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\nuniform vec3 u_RayOrigin_M; // [0,1]\nuniform vec3 u_RayDirection_M; // [0,1]\nuniform float u_RayRadius_M; // [0,1]\nuniform bool u_DoRenderRay;\n\n//float u_kA = 0.1;\n//float u_kD = 0.2;\n//float u_kS = 0.8;\n//float u_n = 17.0;\n//float u_Il = 0.1;\n//vec3 u_lightDir = normalize(vec3(1.0, 1.0, 1.0));\n//float u_gradientMagnitudeLightingThreshold = 0.2;\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nconst int MAX_STEPS = 1000;\n\nbool isWithinRayRange(vec3 modelPosition) {\n    vec3 x0 = modelPosition;\n    vec3 x1 = u_RayOrigin_M;\n    vec3 x2 = x1 + u_RayDirection_M;\n    \n    vec3 x2x1 = x2 - x1;\n    float len_x2x1 = length(x2x1);\n    \n    float dist = length( cross(x0 - x1, x0 - x2) ) / len_x2x1;\n    \n    return dist < u_RayRadius_M;\n}\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalue(vec3(mPos.x - d.x, mPos.yz));\n    float right = getNormalizedIsovalue(vec3(mPos.x + d.x, mPos.yz));\n    \n    float top = getNormalizedIsovalue(vec3(mPos.x, mPos.y + d.y, mPos.z));\n    float bottom = getNormalizedIsovalue(vec3(mPos.x, mPos.y - d.y, mPos.z));\n    \n    float front = getNormalizedIsovalue(vec3(mPos.xy, mPos.z + d.z));\n    float back = getNormalizedIsovalue(vec3(mPos.xy, mPos.z - d.z));\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nfloat calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * dot(u_lightDir, gradientN);\n    float specular = u_Il * u_kS * pow(dot(halfV,gradientN), specularExponent);\n    \n    return ambient + diffuse + specular;\n}\n\nvoid main() {\n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        \n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        /*if(isWithinLightingRange(gmag) && isovalue != 0.0) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n            if(!(u_DoRenderRay && !isWithinRayRange(currentPos))) { // Within ray\n                alpha *= u_belowGMagLightThresholdOpacityMultiplier; // Treat as if normal\n            } else { // Outside, dim it some\n                alpha *= 0.3 * u_belowGMagLightThresholdOpacityMultiplier; // Downscale more\n            }\n        }*/\n        \n        if(!(u_DoRenderRay && !isWithinRayRange(currentPos))) { // Within ray, illuminate\n            gradient = getGradientAt(currentPos, gDelta);\n            light = 3.0 * calculateLighting(gradient, gmag, halfV);\n        } else if(isWithinLightingRange(gmag) && isovalue != 0.0) { \n            // Within lighting range but outside ray, dim a little bit\n            gradient = getGradientAt(currentPos, gDelta);\n            light = 0.5 * calculateLighting(gradient, gmag, halfV); \n        } else {\n            // No light, not within ray, dim it extra\n            alpha *= 0.5 * u_belowGMagLightThresholdOpacityMultiplier;\n        }\n        \n        /*if(isWithinLightingRange(gmag) && isovalue != 0.0 && \n          !(u_DoRenderRay && !isWithinRayRange(currentPos))\n          ) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = 1.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        }*/ \n        \n        color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    /*if(accumulatedAlpha == 0.0)\n        discard;*/\n\n    outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
+
+        this.vertexShaders['PointProjection'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n//out vec3 v_position;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n   // v_position = a_position;\n    \n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['PointProjection'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\n// World coordinates, unprojected cam coordinates\nuniform vec3 u_SelectedPoints[10]; // max 10 points !!!!\n// uniform int u_SelectedPointsDisplayMode; // do not need\nuniform float u_SelectedPointsRadius_M; // need\nuniform int u_NumSelectedPoints; // need\n\n// World camera coords\n\nin vec3 v_gridPosition; // [0,1] coords too\nin vec4 v_projPosition;\n//in vec4 v_position; // [-1,1] coords\nin vec2 v_screenCoord;\n\nout vec4 outColor;\n\nbool isWithinRayRange(vec3 point, vec3 frontface, vec3 backface) {\n    vec3 x0 = point;\n    vec3 x1 = frontface;\n    vec3 x2 = backface;\n    \n    vec3 x2x1 = x2 - x1;\n    float len_x2x1 = length(x2x1);\n    \n    float dist = length( cross(x0 - x1, x0 - x2) ) / len_x2x1;\n    \n    return dist <= u_SelectedPointsRadius_M;\n}\n\nvoid main() {\n    vec3 backface = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 ray = normalize(backface - v_gridPosition);\n    vec3 rayOrigin = v_gridPosition; \n    \n    float m = 0.25;\n    \n    bool hit = false;\n /*   for(int i = 0; i < 10; i++) {\n        hit = isWithinRayRange(u_SelectedPoints[i], rayOrigin, ray);\n        if(hit)\n            break;\n    }*/ \n    \n    hit = isWithinRayRange(u_SelectedPoints[0], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[1], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[2], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[3], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[4], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[5], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[6], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[7], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[8], rayOrigin, backface);\n    hit = hit || isWithinRayRange(u_SelectedPoints[9], rayOrigin, backface);\n    \n    hit = isWithinRayRange(vec3(0.5), rayOrigin, backface);\n    \n    if(hit)\n        outColor = vec4(1.0, 0.0, 0.0, 1.0);\n    else\n        outColor = vec4(0.0, 1.0, 0.0, 1.0);\n    \n   // outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(u_SelectedPoints[u_NumSelectedPoints - 1],1.0);\n    //outColor = vec4(float(u_NumSelectedPoints)/10.0);\n    \n    //outColor = vec4(0.4,0.5,0.5,1.0);\n}\n"]);
+
+        this.vertexShaders['VolumePoints'] = glsl(["#version 300 es\nprecision highp float;\n#define GLSLIFY 1\n\n// world coords -> bounding box coords -> tex coords\n// [-1,1]       -> [-0.5,0.5]          -> [0,1]\nvec3 Model2NormalizedBBCoord_0_to_1_1540259130(vec3 modelPosition, vec3 boundingBox) {\n    return (modelPosition / boundingBox) + vec3(0.5);//\n}\n\nvec2 Proj2ScreenCoords_0_to_1_1604150559(vec4 projectedPosition) {\n    vec2 texCoord = projectedPosition.xy / projectedPosition.w;\n    texCoord.x = 0.5 * texCoord.x + 0.5;\n    texCoord.y = 0.5 * texCoord.y + 0.5;\n    return texCoord;\n}\n\nuniform mat4 u_WorldViewProjection;\nuniform vec3 u_BoundingBoxNormalized;\n//uniform float u_AspectRatio;\n\nuniform vec2 u_SliceX;\nuniform vec2 u_SliceY;\nuniform vec2 u_SliceZ;\n\nin vec4 a_position;\nout vec3 v_gridPosition; // [0,1] position within the bounding box coords\nout vec2 v_screenCoord;\n\nvoid main() {\n    // [0,1] turn into [-1,1] of BB coords]\n\n    vec3 sliceMin = vec3(u_SliceX.x, u_SliceY.x, u_SliceZ.x);\n    vec3 sliceMax = vec3(u_SliceX.y, u_SliceY.y, u_SliceZ.y);\n\n    // [0,1] -> [-1,1]\n    sliceMin *= 2.0;\n    sliceMax *= 2.0;\n\n    sliceMin -= vec3(1.0);\n    sliceMax -= vec3(1.0);\n\n    sliceMin *= u_BoundingBoxNormalized;\n    sliceMax *= u_BoundingBoxNormalized;\n\n    vec3 slicedPos = clamp(a_position.xyz, sliceMin, sliceMax);\n\n//    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1(a_position.xyz, u_BoundingBoxNormalized);\n    vec3 gridCoord3D_0_to_1 = Model2NormalizedBBCoord_0_to_1_1540259130(slicedPos, u_BoundingBoxNormalized);\n\n    v_gridPosition = gridCoord3D_0_to_1;\n\n    vec4 projPos = (u_WorldViewProjection * vec4(slicedPos,1.0));\n    //projPos.x /= u_AspectRatio;\n\n    v_screenCoord = Proj2ScreenCoords_0_to_1_1604150559(projPos);\n\n    gl_Position = projPos;\n}\n\n// w/h = w0/h0 = ar => w = h*ar\n"]);
+        this.fragmentShaders['VolumePoints'] = glsl(["#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\nprecision highp isampler3D;\n#define GLSLIFY 1\n // Ints\n\n//uniform sampler2D u_TexCoordToRayOrigin;\nuniform sampler2D u_TexCoordToRayEndPoint;\n\nuniform isampler3D u_ModelXYZToIsoValue; // Texcoords -> (x,y,z) coords, start point of rays\nuniform sampler2D u_IsoValueToColorOpacity;\n\nuniform vec3 u_BoundingBoxNormalized;\nuniform float u_AlphaCorrectionExponent; // Calculate it @ CPU\nuniform float u_SamplingRate;\nuniform ivec2 u_IsoMinMax;\n//uniform vec3 u_ViewDir;\n\nuniform float u_kA;  // Ambient\nuniform float u_kD; // Diffuse\nuniform float u_kS; // Specular\nuniform float u_n; // Specular exponent\nuniform float u_Il; // light intensity\nuniform vec3 u_lightDir; // direction\n\nuniform float u_gradientMagnitudeLightingThreshold;\nuniform vec2 u_isovalueLightingRange;\n\nuniform vec3 u_viewDir;\nuniform float u_belowGMagLightThresholdOpacityMultiplier;\n\nout vec4 outColor;\n\nuniform sampler2D u_RayProjection; // [screen coord -> skip y/n]\nuniform vec3 u_RayOrigin_M; // Model space\nuniform vec3 u_RayDirection_M; // Model space\nuniform float u_RayRadius_M;  // Model space\n\nin vec3 v_gridPosition; // Same as ray start position\nin vec4 v_projPosition;\nin vec2 v_screenCoord;\n\nconst int MAX_STEPS = 1000;\n\nfloat distanceFromRay(vec3 modelPos01) {\n    //Vector3.Cross(ray.direction, point - ray.origin).magnitude\n        \n    vec3 v = modelPos01 - u_RayOrigin_M;\n    vec3 dir_cross_v = cross(u_RayDirection_M, v);\n    \n    return length(dir_cross_v);\n}\n\nbool isWithinRay(vec3 modelPos01) {\n    return distanceFromRay(modelPos01) <= u_RayRadius_M;\n}\n\n// Only render pixels that are on the ray projection, faster... \nbool doRender() {\n    return texture(u_RayProjection, v_screenCoord).r > 0.0;\n}\n\nbool isWithinLightingRange(float gmag) {\n    //return true;\n    bool aboveMin = u_isovalueLightingRange.x <= gmag;\n    bool belowMax = gmag <= u_isovalueLightingRange.y;\n    //bool aboveMin = u_isovalueLightingRangeMIN <= gmag;\n    //bool belowMax = gmag <= u_isovalueLightingRangeMAX;\n    return aboveMin && belowMax;\n}\n\nbool isWithinMinMax(int isovalue) {\n    return u_IsoMinMax.x <= isovalue && isovalue <= u_IsoMinMax.y;\n}\n\nfloat getNormalizedIsovalue(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);\n\n    if(isWithinMinMax(iso))\n        return float(iso) / 32736.0;\n    else\n        return -1.0;\n}\n\nvec2 getNormalizedIsovalueAndGradientMagnitude(vec3 modelPosition) {\n    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);\n    ivec2 isoAndGMag = texture(u_ModelXYZToIsoValue, modelPosition).rg;\n    int iso = isoAndGMag.r;\n    int gmag = isoAndGMag.g;\n    \n    float isoN = -1.0;\n    float gmagN = 0.0;\n\n    if(!isWithinMinMax(iso))\n        return vec2(isoN, gmag);\n    \n    isoN = float(iso) / 32736.0;\n    gmagN = float(gmag) / 32736.0;\n    \n    return vec2(isoN, gmagN);\n}\n\nvec3 getGradientAt(vec3 mPos, vec3 d) {\n    float left = getNormalizedIsovalue(vec3(mPos.x - d.x, mPos.yz));\n    float right = getNormalizedIsovalue(vec3(mPos.x + d.x, mPos.yz));\n    \n    float top = getNormalizedIsovalue(vec3(mPos.x, mPos.y + d.y, mPos.z));\n    float bottom = getNormalizedIsovalue(vec3(mPos.x, mPos.y - d.y, mPos.z));\n    \n    float front = getNormalizedIsovalue(vec3(mPos.xy, mPos.z + d.z));\n    float back = getNormalizedIsovalue(vec3(mPos.xy, mPos.z - d.z));\n    \n    vec3 gradient = vec3(right - left, top - bottom, front - back);\n    return gradient;\n}\n\nfloat calculateLighting(vec3 gradient, float gmag, vec3 halfV) {\n    // 1. check if gradient magnitude is below threshold\n    \n    // 2. If yes, get normal, if no just return 1\n    vec3 gradientN = normalize(gradient);\n    \n    // 3. Get half-vector    \n    float specularExponent = u_n;\n    \n    float ambient = u_kA;\n    float diffuse = u_Il * u_kD * dot(u_lightDir, gradientN);\n    float specular = u_Il * u_kS * pow(dot(halfV,gradientN), specularExponent);\n    \n    return ambient + diffuse + specular;\n}\n\nvoid main() {\n    if(!doRender()) // Skip all outside ray projection\n        discard;\n    \n    vec3 halfV = normalize(u_viewDir + u_lightDir); \n    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;\n    vec3 front2Back = (backfaceGridPos - v_gridPosition);\n\n    float rayLength = length(front2Back);\n    vec3 ray = normalize(front2Back);\n\n    float delta = u_SamplingRate;\n    vec3 deltaRay = delta * ray;\n    \n    vec3 currentPos = v_gridPosition;\n\n    float accumulatedAlpha = 0.0;\n    vec3 accumulatedColor = vec3(0.0);\n    float accumulatedLength = 0.0;\n\n    float isovalue; // normalized\n    float gmag;\n    \n    vec3 gradient;\n    vec3 gDelta = u_BoundingBoxNormalized*delta;\n     \n    float light;\n    vec3 color;\n    highp float alpha;\n    highp float alphaIn;\n    vec4 isoRGBA;\n\n    float alphaCorrection = 0.1;\n\n//    for(int i = 0; i < u_Steps; i++) {\n    for(int i = 0; i < MAX_STEPS; i++) {\n        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n        vec2 isoAndGMag = getNormalizedIsovalueAndGradientMagnitude(currentPos);\n        \n        isovalue = isoAndGMag.r;//getNormalizedIsovalue(currentPos);\n        gmag = isoAndGMag.g;//getGradientAt(currentPos,gDelta);\n        \n        \n        if(isovalue == -1.0) {\n            currentPos += deltaRay;\n            accumulatedLength += delta;\n            continue; // Skip isovalue because threshold!\n        }\n        \n        \n        //gradientMagnitude = isoAndGradientMag.g;\n\n        // find color&Opacity via TF\n        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n\n        alpha = isoRGBA.a * alphaCorrection;\n        \n        if(isWithinLightingRange(gmag)) {\n            gradient = getGradientAt(currentPos, gDelta);\n            light = calculateLighting(gradient, gmag, halfV);\n        } else {\n            light = 1.0;\n            alpha *= u_belowGMagLightThresholdOpacityMultiplier;\n        }\n        \n        if(isWithinRay(currentPos)) { // Apply some ray highlighting\n            alpha *= 2.0; // increase intensity\n        }\n        else {\n            alpha *= 0.5; // dim\n        }\n        \n        color = light*isoRGBA.rgb;\n\n        // Accumulate color and opacity\n        accumulatedAlpha += alpha;\n        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;\n\n        //alphaIn = isoRGBA.a;\n        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);\n\n        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;\n        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;\n\n        // Increment step & accumulated length\n        currentPos += deltaRay;\n        accumulatedLength += delta;\n\n        // Stop if opacity reached\n        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)\n            break;\n    }\n\n    //vec3 isovalueLookup = currentPos - vec3(0.5);\n    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);\n    ////isovalue = isoAndGradientMag.r;\n    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));\n    //vec3 colorTestRGB = colorTest.rgb;\n    //float colorTestA = colorTest.a;\n\n    ///isovalue = getNormalizedIsovalue(v_gridPosition);\n    /////float alph = iso2RGBA.a;\n    ///\n    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;\n    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));\n    ///\n    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));\n///\n    if(accumulatedAlpha == 0.0)\n        discard;\n\n    //outColor = vec4(accumulatedColor, accumulatedAlpha);\n    //outColor = vec4(v_gridPosition, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n//    outColor = vec4(ray, 1.0);\n    //outColor = iso2RGBA;\n    //outColor = vec4(vec3(alph),1.0);\n    //outColor = vec4(vec3(isovalue/2.0),1.0);\n    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);\n    //outColor = vec4(backfaceGridPos, 1.0);\n\n    //outColor = theDirection;\n    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = normalize(theDirection);\n    //outColor = backface;\n\n    //outColor = colorTest;\n    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!\n    //outColor = isohalfRGBA;\n    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!\n    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);\n    //outColor = vec4(1,1,1,1);\n    //outColor = vec4(0.3,0.4,0.2,1);\n    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);\n    //outColor = isovalue;\n    //outColor = vec4(colorTestRGB, 1);\n    //outColor = vec4(rayDirectionNormalized,1);\n}\n"]);
 
         this._initBuiltinPrograms();
     }
@@ -54197,16 +56237,32 @@ class ShaderManager {
      *
      */
     createProgramFromShaders(detail) {
+        let gl = this.gl;
+
         let shaders = [
                 this.vertexShaders[detail.vShaderName],
                 this.fragmentShaders[detail.fShaderName]
             ];
 
-        this.programs[detail.name] = twgl.createProgramInfo(
-            this.gl, [
+        let program = twgl.createProgramInfo(
+            gl, [
                 this.vertexShaders[detail.vShaderName],
                 this.fragmentShaders[detail.fShaderName]
             ]);
+
+        let blockSpecs = program.uniformBlockSpec.blockSpecs;
+
+        for (let blockName in blockSpecs) {
+            if (!program.blockInfos)
+                program.blockInfos = {};
+
+            program.blockInfos[blockName] = twgl.createUniformBlockInfo(gl, program, "name");
+        }
+
+        // Create uniform block infos too...
+
+
+        this.programs[detail.name] = program;
     }
 
     getProgramInfo(name) {
@@ -54234,7 +56290,7 @@ module.exports = ShaderManager;
  * @memberof module:Core/Renderer
  **/
 
-},{"glslify":14,"twgl.js":21}],57:[function(require,module,exports){
+},{"glslify":14,"twgl.js":21}],74:[function(require,module,exports){
 /**
  * Manages uniforms, maintains getter functions for all
  * uniforms, both private and shared (subview-wise)
@@ -54342,7 +56398,19 @@ class UniformManager {
 
 module.exports = UniformManager;
 
-},{}],58:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
+let Presets = {
+    'Basic': require('./presets/Basic'),
+    'X-Ray': require('./presets/X-Ray'),
+    'Sinuses&Lungs':  require('./presets/Sinuses&Lungs'),
+    'Brain': require('./presets/Brain'),
+    'Skeleton':  require('./presets/Skeleton'),
+    'Blank':  require('./presets/Blank')
+}
+
+module.exports = Presets;
+
+},{"./presets/Basic":60,"./presets/Blank":61,"./presets/Brain":62,"./presets/Sinuses&Lungs":63,"./presets/Skeleton":64,"./presets/X-Ray":65}],76:[function(require,module,exports){
 let d3 = require('d3');
 let SplitViewIconSet = require('../widgets/split-view/icon-set');
 /** @module Settings */
@@ -54432,23 +56500,23 @@ let SETTINGS = {
         TransferFunction: {
             Editor: {
                 Resolution: {
-                    width: 400,
-                    height: 200
+                    width: 600,
+                    height: 300
                 },
                 Layout: {
                     leftAxisWidthPercentage: 0.07,
                     bottomAxisHeightPercentage: 0.25,
-                    isoValueAxisHeightPercentage: 0.110,
+                    isoValueAxisHeightPercentage: 0.16,
                     contentTopPaddingPercentage: 0.2,
                     texturePreviewHeightPercentage: 0.2
                 },
                 TransferFunctionDisplay: {
                     curve: d3.curveLinear,
-                    circleRadius: 6
+                    circleRadius: 4.5
                 },
                 ColorGradientDisplay: {
-                    triangleSize: 45,
-                    crossSize: 45,
+                    triangleSize: 95,
+                    crossSize: 85,
                     trianglesGroupTranslateY: -10,
                     crossTranslateY: 17
                 }
@@ -54470,10 +56538,21 @@ let SETTINGS = {
             showIconsOnAddRemoveView: true,
             showIconsOnSelectView: true,
             icons: new SplitViewIconSet({
-                Icons: {
+                /*Icons: {
                     'Surface View': '../client/images/icons/skull-icon.png',
                     'Slice View': '../client/images/icons/icon-slicer.png',
                     '3D Volume': '../client/images/icons/3d-icon-skull.png'
+
+
+                },*/
+                Icons: {
+                    'Blank': '../client/images/preset-icons/Blank.png',
+                    'Basic': '../client/images/preset-icons/Basic.png',
+                    'X-Ray': '../client/images/preset-icons/X-Ray.png',
+                    'Brain': '../client/images/preset-icons/Brain.png',
+                    'Sinuses&Lungs': '../client/images/preset-icons/Sinuses&Lungs.png',
+                    'Skeleton': '../client/images/preset-icons/Skeleton.png',
+
                 },
                 defaultIcon: '3D Volume'
             })
@@ -54483,9 +56562,11 @@ let SETTINGS = {
         Timeouts: {
             getDatasetList: 10000,
             getDatasetHeader: 10000,
-            getDatasetIsovalues: 100000
+            getDatasetIsovalues: 200000
         },
-        loadAutomaticallyByDefault: false
+        loadAutomaticallyByDefault: false,
+        get: 'isovaluesAndGradientMagnitudes',
+        //get: 'isovalues'
     },
     Views: {
         ViewManager: {
@@ -54498,14 +56579,25 @@ let SETTINGS = {
                     changeLayoutThresholdMultiplier: 2.2,
                     standardSizeMultiplier: 0.7
                 }
+            },
+            DefaultViewConfig: {
+                Volume: 'Basic',
+                Volume3DPicking: 'Default',
+                Slicer: 'Basic',
+                SlicerPicking: 'Basic',
+                SlicerPickingSlices: 'Default',
+                SlicerPickingRails: 'Default',
+                SlicerPickingCubeFaces: 'Default',
+                VolumeRayRender: 'Default',
+                VolumePointRenderer: 'Default'
             }
         },
         Slicer: {
-            SelectSliceSnapThreshold: 0.25,
-            RailRadiusDisplayMode: 0.05,
-            RailRadiusPickingBufferMode: 0.11,
+            SelectSliceSnapThreshold: 0.19,
+            RailRadiusDisplayMode: 0.02,
             RailRadialSubdivisions: 7,
-            RailVerticalSubdivisions: 5,
+            RailVerticalSubdivisions: 3,
+            RailRadiusPickingBufferMode: 0.08,
             RailOutwardsFactorPickingBuffer: 1.0 // 1.0 means none, 2 means way too far out
         },
         ContextMenus: {
@@ -54513,7 +56605,9 @@ let SETTINGS = {
                 'Rotate': '../client/images/icons/rotate.png',
                 'Move': '../client/images/icons/move.png',
                 'Zoom': '../client/images/icons/zoom.png',
-                'Measure': '../client/images/icons/ruler.png'
+                //'Measure': '../client/images/icons/ruler.png',
+                //'Select Point': '../client/images/icons/ruler.png',
+                'Select Ray': '../client/images/icons/ruler.png'
             },
             Slicer: {
                 'Rotate': '../client/images/icons/rotate.png',
@@ -54523,13 +56617,34 @@ let SETTINGS = {
                 'Move Slice': '../client/images/icons/move-slice.png',
             }
         }
+    },
+    Lights: {
+        MaxValues: {
+            ambient: 2.0,
+            diffuse: 2.0,
+            specular: 5.0,
+            intensity: 3.0,
+            specularExponent: 1.5, // Inverted, i.e put 5 and the max exponent will be -5
+            isovalueThreshold: 0.59,
+            gradientMagBelowThresholdOpacityMultiplier: 1.0
+        },
+        Defaults: {
+            ambient: 0.2,
+            diffuse: 0.5,
+            specular: 0.9,
+            intensity: 0.2,
+            specularExponent: 0.8,
+            isovalueThresholdMIN: 0.00,
+            gradientMagBelowThresholdOpacityMultiplier: 0.8,
+            direction: [1 / Math.sqrt(3), 1 / Math.sqrt(3), 1 / Math.sqrt(3)]
+        }
     }
 }
 
 
 module.exports = SETTINGS;
 
-},{"../widgets/split-view/icon-set":69,"d3":3}],59:[function(require,module,exports){
+},{"../widgets/split-view/icon-set":87,"d3":3}],77:[function(require,module,exports){
 let ContextMenus = require('../settings').Views.ContextMenus;
 
 let menus = {};
@@ -54573,7 +56688,7 @@ for (let ContextMenu in ContextMenus) {
 
 module.exports = bundle;
 
-},{"../settings":58}],60:[function(require,module,exports){
+},{"../settings":76}],78:[function(require,module,exports){
 let ConfigurableRenderer = require('../rendering/configurable-renderer');
 
 /**
@@ -54626,13 +56741,17 @@ class Subview {
             SlicerPickingSlices: new ConfigurableRenderer(this.gl),
             SlicerPickingRails: new ConfigurableRenderer(this.gl),
             SlicerPickingCubeFaces: new ConfigurableRenderer(this.gl),
+            Volume3DPicking: new ConfigurableRenderer(this.gl),
+            VolumeRayRender: new ConfigurableRenderer(this.gl),
+            VolumePointRenderer: new ConfigurableRenderer(this.gl),
             Sphere: null
         };
 
         this.viewports = {
             Volume: null, // pointer to volume viewport obj
             Slicer: null, // pointer to slicer viewport obj
-            Sphere: null // pointer to sphere viewport obj
+            Sphere: null, // pointer to sphere viewport obj
+            VolumeRayRender: null
         };
     }
 
@@ -54644,8 +56763,8 @@ class Subview {
             return 1; // default fallback
     }
 
-    renderSpecific(name, configTweak) {
-        this.renderers[name].render(configTweak);
+    renderSpecific(name, full) {
+        this.renderers[name].render(full  || true); //shitty design but w/E! might be a json later to render a certain set of steps and so on.
     }
 
     notifyNeedsUpdate(name, fullUpdate) {
@@ -54662,19 +56781,24 @@ class Subview {
             this.needsUpdate.Volume = false;
             this.needsFullUpdate.Volume = false;
             this.needsUpdate.Slicer = false;
-        }
-
-        if (this.needsUpdate.Slicer) {
+        } else if (this.needsUpdate.Slicer) {
             this.renderers.Volume.render(false);
             this.renderers.Slicer.render(true);
             this.needsUpdate.Slicer = false;
-        }
-        if (this.needsUpdate.SlicerPicking) {
+        } else if (this.needsUpdate.SlicerPicking) {
             //this.renderers.SlicerPicking.render();
             this.needsUpdate.SlicerPicking = false;
         }
+    }
 
+    fullRender() {
+        this.renderers.Volume.render(true);
+        this.renderers.Slicer.render(true);
+    }
 
+    lastStepRender() {
+        this.renderers.Volume.render(false);
+        this.renderers.Slicer.render(false);
     }
 
     /**
@@ -54722,19 +56846,22 @@ class Subview {
                 this.renderers[vp.name].setViewport(vp);
             this.viewports[vp.name] = vp;
         }
+
+        this.renderers.VolumeRayRender.setViewport(this.viewports.Volume);
+        this.renderers.VolumePointRenderer.setViewport(this.viewports.Volume);
     }
 }
 
 module.exports = Subview;
 
-},{"../rendering/configurable-renderer":50}],61:[function(require,module,exports){
+},{"../rendering/configurable-renderer":66}],79:[function(require,module,exports){
 let d3 = require('d3');
 
 let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
 let SubcellLayout = require('../../widgets/split-view/subcell-layout');
 
-let Models = require('../linkable-models').Models;
+let Models = require('../all-models').Models;
 
 let ConfigurationManager = require('../resource-managers/configuration-manager');
 let ShaderManager = require('../resource-managers/shader-manager');
@@ -54743,17 +56870,17 @@ let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
 let PickingBufferManager = require('../resource-managers/picking-buffer-manager');
+let SelectionManager = require('../resource-managers/selection-manager');
 let VolumeEventHandlerDelegate = require('./volume-event-handler-delegate');
 
 let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
-
-
 
 let Settings = require('../settings').Views.ViewManager,
     OverlaySettings = Settings.WindowsOverlay;
 
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
+let v3 = twgl.v3;
 
 let glsl = require('glslify');
 let InteractionModeManager = require('../interaction-modes-v2');
@@ -54764,6 +56891,9 @@ let OverlayCellEventToModel = {
     'Slicer': 'Slicer'
 };
 
+let DatasetGet = require('../settings').WSClient.get;
+
+let PRESETS = require('../settings-presets');
 /** @module Core/View */
 
 /**
@@ -54784,7 +56914,7 @@ class ViewManager {
             depth: true
         });
 
-        this.masterContext.clearColor(0.2, 0.2, 0.2, 1.0);
+        this.masterContext.clearColor(0.0, 0.0, 0.0, 0.0);
 
         this.masterContext.getExtension('EXT_color_buffer_float');
         this.masterContext.getExtension('OES_texture_float')
@@ -54802,6 +56932,8 @@ class ViewManager {
         this.shaderManager = new ShaderManager(this.masterContext);
         this.FBAndTextureManager = new FBAndTextureManager(this.masterContext, environmentRef);
 
+        this.selectionManager = new SelectionManager(this);
+
         this.uniformManagerVolume = new UniformManager();
         this.uniformManagerSlicer = new UniformManager();
         this.uniformManagerUnitQuad = new UniformManager();
@@ -54812,6 +56944,9 @@ class ViewManager {
                 this.boundingBoxBuffer = null; // Dependent on dataset
                 this.slicerBuffer = null; // TEMP
         */
+
+        this.selectedPoint = null;
+        this.selectedRay = null;
 
         //twgl.bindFramebufferInfo(this.masterContext);
 
@@ -54883,8 +57018,31 @@ class ViewManager {
         setTimeout(() => {
             //this._init();
         }, 1000);
+
+        this.mm2Float = (mm) => {
+            return mm / 1000.0;
+        }
     }
 
+    getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey) {
+        let subviewID = tfEditorKey === 'GLOBAL' ? 'GLOBAL' : this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, this.localControllerSelectedSubviewID);
+
+        return subviewID;
+    }
+
+    getTransferFunctionForTFEditor(tfEditorKey) {
+        let subviewID = this.getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey);
+        return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
+    }
+
+    getModelObjectForEditor(model, editorKey) {
+        let subviewID = this._getSubviewIDForModelAndEditor(model, editorKey);
+        return this.modelSyncManager.getActiveModel(model.name, subviewID);
+    }
+
+    _getSubviewIDForModelAndEditor(model, editorKey) {
+        return editorKey === 'GLOBAL' ? 'GLOBAL' : this.modelSyncManager.getActiveModelSubviewID(model.name, this.localControllerSelectedSubviewID);
+    }
 
     /**
      * Initializes frame buffers, textures, shader programs and binds uniform managers
@@ -54904,20 +57062,39 @@ class ViewManager {
         this._genPickingBuffers();
         this._bindUniformManagers();
 
+        // gen millimeter to float scale too
+
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        if (dataset) {
+            let h = dataset.header;
+
+            // Normalized bb:
+            // w, h, d
+            //
+
+            this.mm2Float = (mm) => {
+                return mm * (h.normalizedBB.depth / (h.slices * h.spacing.z));
+            }
+        }
+
         this.addNewView(0);
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
         //this.refresh();
+        this.env.notifyViewmanagerInitialized();
         this.requestAnimationFrame();
     }
 
+    _printSettingsForSubviewWithID(id) {
+        let activeModels = this.modelSyncManager.getActiveModels(id);
+        console.log("ACTIVE MODELS ... " + activeModels);
+    }
 
     notifySlicesDidChange(id) {
         this.uniformManagerSlicer.updateAll();
         this.uniformManagerVolume.updateAll();
         this.notifyNeedsUpdateForModel(Models.SLICER.name, id, ['Volume', 'Slicer']);
-        //this._setNeedsUpdateForAllSubviews(['Volume', 'Slicer']);
         this.requestAnimationFrame();
     }
 
@@ -54927,6 +57104,7 @@ class ViewManager {
         this.requestAnimationFrame();
     }
 
+
     notifyIsoThresholdDidChange(editorName, newMin, newMax) {
         let subviewID = editorName === 'GLOBAL' ? 'GLOBAL' : this.localControllerSelectedSubviewID;
 
@@ -54934,7 +57112,7 @@ class ViewManager {
         // TODO change to active when local controls are implemented!
 
         thresholds.setMinMax(newMin, newMax);
-        this.notifyNeedsUpdateForModel(Models.THRESHOLDS.name, 0, ['Volume']);
+        this.notifyNeedsUpdateForModel(Models.THRESHOLDS.name, subviewID, ['Volume']);
         this.requestAnimationFrame();
     }
 
@@ -54945,13 +57123,32 @@ class ViewManager {
 
         let h = dataset.header;
 
-        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
-            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
-            cols: h.cols,
-            rows: h.rows,
-            slices: h.slices,
-            isovalues: dataset.isovalues
-        });
+        if (DatasetGet === 'isovalues') {
+            this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+                name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+                cols: h.cols,
+                rows: h.rows,
+                slices: h.slices,
+                isovalues: dataset.isovalues
+            });
+        } else {
+            this.FBAndTextureManager.createGridPos2IsovalueGMag3DTexture({
+                name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+                cols: h.cols,
+                rows: h.rows,
+                slices: h.slices,
+                isovalues: dataset.isovalues
+            });
+        }
+
+        //this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+        /* this.FBAndTextureManager.createGridPos2IsovalueGMag3DTexture({
+             name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+             cols: h.cols,
+             rows: h.rows,
+             slices: h.slices,
+             isovalues: dataset.isovalues
+         });*/
 
         this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
     }
@@ -54963,6 +57160,30 @@ class ViewManager {
 
         this.FBAndTextureManager.create2DTextureFB({
             name: 'BackFace'
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'RayProjectionTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'RayRenderTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'PointProjectionTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'PointRenderTexture',
+            width: 512,
+            height: 512
         });
 
         /*this.FBAndTextureManager.create2DTextureFB({
@@ -55019,6 +57240,42 @@ class ViewManager {
             format: SlicerPBFormat,
             fbInfo: SlicesPB
         });
+
+        let VolumePBWidth = 512,
+            VolumePBHeight = 512,
+            VolumePBFormat = gl.RGBA;
+
+        // Volume PB layout: .. WHY NOT USE FRONT FACE
+        // R -> X [0,1]
+        // G -> Y [0,1]
+        // B -> Z [0,1]
+        // A -> ???? maybe ISO ... [0,1]
+
+        let VolumePB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'VolumePicking',
+            width: VolumePBWidth,
+            height: VolumePBHeight
+        });
+
+        let VolumeBackfacePB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'VolumeBackfacePicking',
+            width: VolumePBWidth,
+            height: VolumePBHeight
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'Volume',
+            width: VolumePBWidth,
+            height: VolumePBHeight,
+            fbInfo: VolumePB
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'VolumeBackface',
+            width: VolumePBWidth,
+            height: VolumePBHeight,
+            fbInfo: VolumeBackfacePB
+        })
     }
 
     _genVolumeBoundingBoxBuffer() {
@@ -55033,9 +57290,11 @@ class ViewManager {
 
     _genBuffers() {
         let dataset = this.env.getActiveDataset('GLOBAL');
-        let bb = dataset.header.normalizedBB;
-        let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
-        this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+        if (dataset) {
+            let bb = dataset.header.normalizedBB;
+            let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
+            this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+        }
 
         this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
 
@@ -55068,6 +57327,9 @@ class ViewManager {
 
         if (modelName === Models.SLICER.name || modelName === Models.CAMERA.name)
             this._syncSlicerAndVolumeCameras();
+
+        this.notifySubviewsNeedFullUpdate();
+        this.requestAnimationFrame();
     }
 
     getPickingBufferInfo(name, id) {
@@ -55103,6 +57365,16 @@ class ViewManager {
         this.subviews[id].renderSpecific('SlicerPickingSlices');
         this.subviews[id].renderSpecific('SlicerPickingRails');
     }
+
+    renderVolumePickingBuffer(id) {
+        if (id === 'GLOBAL')
+            id = Object.keys(this.subviews)[0];
+
+        this.uniformManagerVolume.updateAll();
+
+        this.subviews[id].renderSpecific('Volume3DPicking');
+    }
+
     renderSlicerPickingBuffersV2(id, bufferNames) {
         if (id === 'GLOBAL')
             id = Object.keys(this.subviews)[0];
@@ -55111,6 +57383,32 @@ class ViewManager {
 
         for (let bufferName in bufferNames)
             this.subviews[id].renderSpecific(bufferName);
+    }
+
+    renderSelectedPoints() {
+        // 1. Get all subviews displaying points
+        // 2. call
+        let toRender = this._getAllSubviewsShowingPoints();
+
+        for (let subviewID of toRender) {
+            this.subviews[subviewID].renderSpecific('VolumePointRenderer', true);
+        }
+        //this._notifySubviewsNeedUpdate('VolumePointRenderer', toRender, true);
+        //this.requestAnimationFrame();
+    }
+
+    renderVolumeRay(subviewID) {
+        //this.uniformManagerVolume.updateAll();
+        //for (let subviewID in this.subviews) {
+        //    this.viewManager.notifyNeedsUpdateForModel(Models.CAMERA.name, this.localControllerSelectedSubviewID, ['Volume']);
+        //    //this._renderVolumeRayForSubview(subviewID);
+        //}
+        this.notifyShowRayDidChange(true, subviewID);
+        //this.requestAnimationFrame();
+    }
+
+    _renderVolumeRayForSubview(subviewID) {
+        this.subviews[subviewID].renderSpecific('VolumeRayRender', true);
     }
 
     _renderPickingBuffer(name, id) {
@@ -55123,36 +57421,6 @@ class ViewManager {
         }
         this.uniformManagerSlicer.updateAll();
         this.subviews[id].renderSpecific(name);
-    }
-
-    _generateDebugConfigurationForSubview(subviewID) {
-        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
-
-        let DebugConfig = {
-            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: buffer,
-                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'FRONT'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: buffer,
-                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-            ]
-        };
-
-        return DebugConfig;
     }
 
     _bindUniformManagerDebug() {
@@ -55222,15 +57490,23 @@ class ViewManager {
         });
     }
 
-    viewTypeChanged(subviewID, newType) {
-        // Now configure the renderer of the subview to use the
-        // shader corresponding to the view type!
+    notifyCameraSettingsDidChangeAtEditor(key, args) {
+        console.log("notifyCameraSettingsDidChangeAtEditor");
+        console.log(key);
+        console.log(args);
+        // 1. Get active model
+        // 2. Apply the changes
 
+        let activeModel = this.modelSyncManager.getActiveModel(Models.CAMERA.name, this.localControllerSelectedSubviewID);
+        activeModel.changeState(args);
+
+        this.notifyNeedsUpdateForModel(Models.CAMERA.name, this.localControllerSelectedSubviewID, ['Volume', 'Slicer']);
+        this.requestAnimationFrame();
     }
 
-    datasetDidChange() {
+    notifyDatasetDidChange() {
         this._init();
-        Environment.notifyDatasetWasRead();
+        this.env.notifyDatasetWasRead();
     }
 
     transferFunctionDidChange(tfKey) {
@@ -55362,14 +57638,15 @@ class ViewManager {
         });
         this.uniformManagerVolume.addUnique('u_IsoValueToColorOpacity', (subviewID) => {
             // 1. Get the active model (in case linked)
-            let activeModel = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
+            let activeModelID = this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, subviewID);
+
 
             // 2. Get the texture associated to the active model
-            return this.FBAndTextureManager.getTransferFunction2DTexture(activeModel);
+            return this.FBAndTextureManager.getTransferFunction2DTexture(activeModelID);
         });
         this.uniformManagerVolume.addUnique('u_IsoMinMax', (subviewID) => {
-//            return this.modelSyncManager.getActiveModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16(); // TEMP, change to local
-            return this.modelSyncManager.getModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16();
+            return this.modelSyncManager.getActiveModel(Models.THRESHOLDS.name, subviewID).getMinMaxInt16(); // TEMP, change to local
+            //return this.modelSyncManager.getModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16();
         });
 
         this.uniformManagerVolume.addUnique('u_SliceX', (subviewID) => {
@@ -55384,15 +57661,130 @@ class ViewManager {
         this.uniformManagerVolume.addUnique('u_VolumeImageTexture', (subviewID) => {
             return this.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
         });
+        this.uniformManagerVolume.addUnique('u_DirectionalLight', (subviewID) => {
+            return {
+                kA: 0.1,
+                kD: 0.2,
+                kS: 0.8,
+                specExp: 17.0,
+                I: 0.1,
+                dir: [1.0, 1.0, 1.0]
+            };
+        });
+        this.uniformManagerVolume.addUnique('u_kA', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).ambient;
+        });
+        this.uniformManagerVolume.addUnique('u_kD', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).diffuse;
+        });
+        this.uniformManagerVolume.addUnique('u_kS', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).specular;
+        });
+        this.uniformManagerVolume.addUnique('u_n', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).specularExponent;
+        });
+        this.uniformManagerVolume.addUnique('u_Il', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).intensity;
+        });
+        this.uniformManagerVolume.addUnique('u_lightDir', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).direction;
+        });
+        this.uniformManagerVolume.addUnique('u_isovalueLightingRange', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).getGradientMagnitudeLightingRange();
+
+        });
+        this.uniformManagerVolume.addUnique('u_belowGMagLightThresholdOpacityMultiplier', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).gradientMagBelowThresholdOpacityMultiplier;
+        });
+        this.uniformManagerVolume.addUnique('u_viewDir', (subviewID) => {
+            let camera = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
+            return camera.eye;
+        });
+
+
+
+
+        this.uniformManagerVolume.addShared('u_RayOrigin_M', () => {
+            return this.selectionManager.getRaySelection().start;
+        });
+        this.uniformManagerVolume.addShared('u_RayDirection_M', () => {
+            return this.selectionManager.getRaySelection().direction;
+        });
+        this.uniformManagerVolume.addShared('u_RayRadius_M', () => {
+            return this.selectionManager.getRaySelection().radius;
+        });
+        this.uniformManagerVolume.addShared('u_NonSelectedVisibilityMultiplier', () => {
+            return this.selectionManager.getNonSelectedOpacity();
+        });
+        this.uniformManagerVolume.addUnique('u_Eye_M', (subviewID) => {
+            let eye = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getEyePosition();
+
+            // Transform to model space
+            let nbb = this.uniformManagerVolume._getSharedUniform('u_BoundingBoxNormalized');
+
+            let eyeModelSpace = v3.add(v3.divide(eye, nbb), v3.create(0.5, 0.5, 0.5));
+            //            return eyeModelSpace;
+            return eyeModelSpace;
+        });
+        this.uniformManagerVolume.addUnique('u_DoRenderRay', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.SELECTION_DISPLAY.name, subviewID).displayRay;
+        });
+
+        this.uniformManagerVolume.addShared('u_SelectedPoints', () => {
+            return this.selectionManager.getSelectedPoints();
+        });
+        /*this.uniformManagerVolume.addShared('u_SelectedPointsDisplayMode', () => {
+            return this.selectionManager.getPointDisplayMode();
+        });*/
+        this.uniformManagerVolume.addShared('u_SelectedPointsRadius', () => {
+            return this.selectionManager.getPointRadius();
+        });
+        this.uniformManagerVolume.addShared('u_NumSelectedPoints', () => {
+            return this.selectionManager.getNumPoints();
+        });
+
+        this.uniformManagerVolume.addShared('u_GradientDelta', () => {
+            let h = this.env.getActiveDataset('GLOBAL').header;
+
+            return [
+                h.spacing.x / h.cols,
+                h.spacing.y / h.rows,
+                h.spacing.z / h.slices
+            ];
+
+            return this.selectionManager.getNumPoints();
+        });
+
+        this.uniformManagerVolume.addUnique('u_GMagWeighting', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID).gradientMagnitudeWeighting;
+        });
+
+        this.uniformManagerVolume.addUnique('u_OverallOpacity', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID).overallOpacity;
+        });
+    }
+
+    setConfigurationModeForSubview(category, mode, subviewID) {
+        this.configurationManager.configureSubview(subviewID, {
+            [category]: mode
+        });
     }
 
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
 
-        if (modelKey === Models.CAMERA.name) { // Repoint slicer cameras!
-            this._syncSlicerAndVolumeCameras()
+        if (modelKey === Models.CAMERA.name  ||  modelKey === Models.SLICER.name) { // Repoint slicer cameras!
+            this._syncSlicerAndVolumeCameras();
         }
+
+        // re-render all subviews
+
+        this.notifySubviewsNeedFullUpdate();
+        this.requestAnimationFrame();
     }
 
     _syncSlicerAndVolumeCameras() {
@@ -55407,170 +57799,6 @@ class ViewManager {
         }
     }
 
-    _generateBasicSlicerConfigForSubview(subviewID) {
-        let gl = this.masterContext;
-
-        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
-        let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
-        uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
-
-        let BasicSlicerConfig = {
-            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null,
-                    //frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
-                    //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        clear: [gl.DEPTH_BUFFER_BIT],
-                        disable: [gl.CULL_FACE],
-                        enable: [gl.BLEND],
-                        blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
-                    }
-                },
-                /*{ // Render the picking buffer into a subview..
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-//                        depthFunc: [gl.LESS],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND],
-                        //clear: [gl.COLOR_BUFFER_BIT]
-
-                    }
-                },*/
-               /* {
-                    programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
-                    glSettings: {
-                        clear: [gl.COLOR_BUFFER_BIT],
-                        enable: [gl.CULL_FACE],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND]
-                    }
-                },*/
-
-            ]
-        };
-
-
-
-        return BasicSlicerConfig;
-    }
-
-    _generateSlicerPickingBufferConfigForSubview(subviewID) {
-        let gl = this.masterContext;
-        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
-
-        let PickingConfig = {
-            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        cullFace: [gl.BACK],
-                        depthFunc: [gl.LESS],
-                        disable: [gl.BLEND, gl.CULL_FACE],
-                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
-                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    glSettings: { // Same as before...
-                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
-                        clear: [gl.DEPTH_BUFFER_BIT],
-                        cullFace: [gl.BACK],
-                        depthFunc: [gl.LESS],
-                        disable: [gl.BLEND],
-                    }
-                },
-                /*{
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-//                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    glSettings: { // Same as before...
-                        enable: [gl.DEPTH_TEST],
-                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
-                        disable: [gl.CULL_FACE,gl.BLEND],
-                        //enable: [gl.BLEND],
-                        //blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                    }
-                }*/
-            ]
-        };
-
-        return PickingConfig;
-    }
-
-    _generateBasicVolumeConfigForSubview(subviewID) {
-        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
-        let BasicVolumeConfig = {
-            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'FRONT'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, // Render to screen
-                    bufferInfo: buffer, // The bounding box!
-                    /*NEEDED UNIFORMS:
-                    u_WorldViewProjection,    <- Depends on camera for model
-                    u_BoundingBoxNormalized   <- In dataset header
-                    u_TexCoordToRayOrigin     <- In texture belonging to FB
-                    u_TexCoordToRayEndPoint   <- In texture belonging to FB
-                    u_ModelXYZToIsoValue      <- Get from texture (shared for all)
-                    u_IsoValueToColorOpacity  <- Texture for TF obj the model is pointing to
-                    u_AlphaCorrectionExponent <- Precalculated float
-                    u_SamplingRate            <- 1 voxel per step, i.e 1/max(w,h,d)
-                    */
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-            ]
-        };
-
-        return BasicVolumeConfig;
-    }
-
     updateUniformsForModel(subviewID, modelName) {
 
     }
@@ -55578,7 +57806,6 @@ class ViewManager {
     uniformsDidChangeForSubview(subviewID) {
 
     }
-
 
     addNewView(id, initialConfigurations) {
         // One texture to hold the output of each of these
@@ -55596,40 +57823,39 @@ class ViewManager {
         this.uniformManagerVolume.addSubview(id);
         this.uniformManagerSlicer.addSubview(id);
 
-
-        this.configurationManager.configureSubview(id, initialConfigurations || {
-            Volume: 'Basic',
-            Slicer: 'Basic',
-            SlicerPicking: 'Basic',
-            SlicerPickingSlices: 'Default',
-            SlicerPickingRails: 'Default',
-            SlicerPickingCubeFaces: 'Default'
-        });
-
-        /* let config = this._generateBasicVolumeConfigForSubview(id);
-        let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
-            slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
-        let volumeConfig = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('Volume', slicerConfig);
-*/
-        /*
-                let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
-
-
-                this.subviews[id].configureRenderer('Slicer', slicerConfig);
-                this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);*/
+        this.configurationManager.configureSubview(id, initialConfigurations);
 
         this.syncWithLayout();
         this._syncSlicerAndVolumeCameras();
 
+        this._notifySubviewsNeedUpdate('Volume', Object.keys(this.subviews), true);
+
+        this.requestAnimationFrame();
     }
 
+
+    /**
+     * Removes a subview
+     *
+     * @param {number} id
+     * @returns {bool} wasSelected whether or not the removed subview was selected locally.
+     */
     removeView(id) {
         delete this.subviews[id];
         this.modelSyncManager.removeSubview(id);
         this.uniformManagerVolume.removeSubview(id);
+        this.uniformManagerSlicer.removeSubview(id);
 
         this.syncWithLayout();
+        this._syncSlicerAndVolumeCameras();
+        this.requestAnimationFrame();
+
+
+        if (this.localControllerSelectedSubviewID === id) {
+            this.localControllerSelectedSubviewID = Object.keys(this.subviews)[0];
+            return true;
+        }
+        return false;
     }
 
 
@@ -55658,12 +57884,13 @@ class ViewManager {
         for (let subviewID in this.subviews) {
             this.subviews[subviewID].setViewports(canvasViewports[subviewID]);
         }
+
+        this.refreshLastStep();
     }
 
     _resize() {
         this.syncWithLayout();
     }
-
 
     _debugRotateCube(subviewID) {
         let cam = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
@@ -55686,6 +57913,32 @@ class ViewManager {
             args[2] * gl.canvas.width,
             args[3] * gl.canvas.height
         );
+    }
+
+    refreshLastStep() {
+        this.uniformManagerSlicer.updateAll();
+        this.uniformManagerVolume.updateAll();
+
+        for (let subviewID in this.subviews) {
+
+            //this._updateTextures(subviewID);
+            let view = this.subviews[subviewID];
+            //this._debugRotateCube(subviewID);
+
+            if (!view)
+                continue;
+
+            view.lastStepRender();
+        }
+
+    }
+
+    notifySubviewsNeedFullUpdate() {
+        for (let subviewID in this.subviews) {
+            let view = this.subviews[subviewID];
+            view.notifyNeedsUpdate('Volume', true);
+            view.notifyNeedsUpdate('Slicer', true);
+        }
     }
 
     refresh() {
@@ -55718,29 +57971,6 @@ class ViewManager {
 
 
 
-    transferFunctionDidChangeForSubviewID(tfEditorKey) {
-        if (Object.keys(this.subviews).length === 0)
-            return;
-
-        console.log("Updating TF tex... src: " + tfEditorKey);
-        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey);
-        this.uniformManagerVolume.updateAll();
-
-        let needsUpdateSubviewIDs = [];
-        if (tfEditorKey === 'GLOBAL') {
-            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWithMaster('GLOBAL', Models.TRANSFER_FUNCTION.name);
-        } else {
-            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(this.localControllerSelectedSubviewID, Models.TRANSFER_FUNCTION.name);
-        }
-
-        this._notifySubviewsNeedUpdate('Volume', needsUpdateSubviewIDs, true);
-        //        for (let subviewID of needsUpdateSubviewIDs) {
-        //            this.subviews[subviewID].notifyNeedsUpdate('Volume', true);
-        //        }
-
-        if (needsUpdateSubviewIDs.length > 0)
-            this.requestAnimationFrame(['Volume']);
-    }
 
     _notifySubviewNeedsFullUpdate(subviewID, renderers) {
         for (let renderer of renderers) {
@@ -55757,6 +57987,7 @@ class ViewManager {
             this.subviews[subviewID].notifyNeedsUpdate(rendererName);
         }
     }
+
 
     notifyNeedsUpdateForModel(model, sourceSubview, toUpdate) {
         if (Object.keys(this.subviews).length === 0)
@@ -55778,6 +58009,205 @@ class ViewManager {
         //    this.requestAnimationFrame();
     }
 
+    notifyLightSettingsDidChangeAtEditor(editorKey, args) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.LIGHTS.name, toUpdateSubviewID).update(args);
+
+        this.notifyNeedsUpdateForModel(Models.LIGHTS.name, toUpdateSubviewID, ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyGradientMagnitudeWeightingChanged(editorKey, newValue) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID).gradientMagnitudeWeighting = newValue;
+        this.notifyNeedsUpdateForModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID,   ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyOverallOpacityChanged(editorKey, newValue) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID).overallOpacity = newValue;
+        this.notifyNeedsUpdateForModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID,   ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyTransferFunctionDidChangeAtEditor(tfEditorKey) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        console.log("Updating TF tex... src: " + tfEditorKey);
+
+        // Edits go to the master TF not necessarily the local TF itself.
+        // Depends on links
+        let masterSubviewKey = this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, this.localControllerSelectedSubviewID);
+
+        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey, masterSubviewKey);
+
+        this.uniformManagerVolume.updateAll();
+
+        let needsUpdateSubviewIDs = [];
+        if (tfEditorKey === 'GLOBAL') {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWithMaster('GLOBAL', Models.TRANSFER_FUNCTION.name);
+        } else {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(this.localControllerSelectedSubviewID, Models.TRANSFER_FUNCTION.name);
+        }
+
+        this._notifySubviewsNeedUpdate('Volume', needsUpdateSubviewIDs, true);
+        //        for (let subviewID of needsUpdateSubviewIDs) {
+        //            this.subviews[subviewID].notifyNeedsUpdate('Volume', true);
+        //        }
+
+        if (needsUpdateSubviewIDs.length > 0)
+            this.requestAnimationFrame(['Volume']);
+    }
+
+    notifyLocalControllerSelectionDidChange(newSubview) {
+        this.localControllerSelectedSubviewID = newSubview;
+    }
+
+    notifyShowRayDidChange(showRay, subviewID) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        let model = this.modelSyncManager.getModel(Models.SELECTION_DISPLAY.name, subviewID || this.localControllerSelectedSubviewID);
+        model.displayRay = showRay;
+        //this._updateAndRefreshVolumeViewForSubviewID(subviewID || this.localControllerSelectedSubviewID);
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    _updateAndRefreshVolumeViewForLocalSubviewID() {
+        this._updateAndRefreshVolumeViewForSubviewID(this.localControllerSelectedSubviewID);
+    }
+
+    _updateAndRefreshVolumeViewForSubviewID(subviewID) {
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', [subviewID], true);
+        this.requestAnimationFrame();
+    }
+
+    notifyShowPointsDidChange(showPoints) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        let model = this.modelSyncManager.getModel(Models.SELECTION_DISPLAY.name, this.localControllerSelectedSubviewID);
+
+        model.displayPoints = showPoints;
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForLocalSubviewID();
+    }
+
+    notifyClearRay(editorKey) {
+        // temp just let it be global by default, ignore editor key
+        this.selectionManager.unselectRay();
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    notifyClearPoints(editorKey) {
+        this.selectionManager.unselectPoints();
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPoints();
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingRay() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayRay)
+                toUpdate.push(subviewID);
+        }
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingPoints() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = this._getAllSubviewsShowingPoints();
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    _getAllSubviewsShowingPoints() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let showingPoints = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayPoints)
+                showingPoints.push(subviewID);
+        }
+
+        return showingPoints;
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingPointsOrRay() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayPoints || models[subviewID].displayRay)
+                toUpdate.push(subviewID);
+        }
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    notifyRayRadiusDidChange(editorKey, newRadius) {
+        this.selectionManager.setRayRadius(newRadius);
+        this.uniformManagerVolume.updateAll();
+        //this._updateAndRefreshVolumeViewForLocalSubviewID();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    notifyPointRadiusDidChange(editorKey, newRadius) {
+        this.selectionManager.setPointRadius(newRadius);
+        this.uniformManagerVolume.updateAll();
+        //this._updateAndRefreshVolumeViewForLocalSubviewID();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPoints();
+    }
+
+    notifyNonSelectedOpacityDidChange(editorKey, value01) {
+        // Let it be global for now ...
+        this.selectionManager.setNonSelectedOpacity(value01);
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPointsOrRay();
+    }
+
+    notifyViewTypeChanged(subviewID, newType) {
+        //TODO change shader config upon change
+        let presets = PRESETS[newType];
+        this.modelSyncManager.applyPresetsToSubview(presets, subviewID);
+        this._notifySubviewsNeedUpdate('Volume', Object.keys(this.subviews), true);
+        this.requestAnimationFrame();
+    }
+
     _notifyNeedsUpdate(name, subviewID) {
         for (let theSubviewID in this.subviews) {
             this.subviews[theSubviewID].notifyNeedsUpdate(name);
@@ -55790,7 +58220,7 @@ class ViewManager {
 
 
 
-    _updateTextures(subviewID) {
+    /*_updateTextures(subviewID) {
         let TFModelID = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
 
         let check = Environment.TransferFunctionManager.checkNeedsUpdate(TFModelID);
@@ -55798,7 +58228,7 @@ class ViewManager {
 
             this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
         }
-    }
+    }*/
 
     __DEBUGRefreshView0() {
         console.log("__DEBUGRefreshView0()");
@@ -55809,10 +58239,16 @@ class ViewManager {
 
 module.exports = ViewManager;
 
-},{"../../geometry/box":66,"../../widgets/split-view/miniature-split-view-overlay":71,"../../widgets/split-view/subcell-layout":74,"../interaction-modes-v2":39,"../linkable-models":41,"../models/slicer-model-buffers":44,"../resource-managers/buffer-manager":51,"../resource-managers/configuration-manager":52,"../resource-managers/frame-buffer-and-texture-manager":53,"../resource-managers/model-sync-manager":54,"../resource-managers/picking-buffer-manager":55,"../resource-managers/shader-manager":56,"../resource-managers/uniform-manager":57,"../settings":58,"./subview":60,"./volume-event-handler-delegate":62,"d3":3,"glslify":14,"twgl.js":21}],62:[function(require,module,exports){
+},{"../../geometry/box":84,"../../widgets/split-view/miniature-split-view-overlay":89,"../../widgets/split-view/subcell-layout":92,"../all-models":43,"../interaction-modes-v2":46,"../models/slicer-model-buffers":53,"../resource-managers/buffer-manager":67,"../resource-managers/configuration-manager":68,"../resource-managers/frame-buffer-and-texture-manager":69,"../resource-managers/model-sync-manager":70,"../resource-managers/picking-buffer-manager":71,"../resource-managers/selection-manager":72,"../resource-managers/shader-manager":73,"../resource-managers/uniform-manager":74,"../settings":76,"../settings-presets":75,"./subview":78,"./volume-event-handler-delegate":80,"d3":3,"glslify":14,"twgl.js":21}],80:[function(require,module,exports){
 let MouseHandler = require('../mouse-handler');
-let Models = require('../linkable-models').Models;
+let Models = require('../all-models').Models;
 let GetInteractionMode = require('../interaction-modes-v2').getInteractionModeGetterForCategory('Volume');
+
+let twgl = require('twgl.js');
+let v3 = twgl.v3;
+
+let displayFBImageFromFramebuffer = require('../debug-fb-to-canvas').displayFBImageFromFramebuffer;
+
 
 class VolumeEventHandlerDelegate {
     constructor(viewManager) {
@@ -55825,14 +58261,86 @@ class VolumeEventHandlerDelegate {
 
         this._bindMouseHandler();
         this.activeSubviewID = 0;
+
+        this.pickingbufferNeedsUpdate = false;
+
+        this.refreshPB = () => {
+            this.viewManager.renderVolumePickingBuffer(this.activeSubviewID);
+            this.viewManager.pickingBufferManager.refreshBuffer('Volume', 'debugcanvas1');
+            this.viewManager.pickingBufferManager.refreshBuffer('VolumeBackface', 'debugcanvas2');
+        }
+
+        this.getModelXYZFromMouse = (mx, my) => {
+            let rgba = this.viewManager.pickingBufferManager.readPixel('Volume', mx, my);
+
+            return [
+                rgba[0] / 255.0,
+                rgba[1] / 255.0,
+                rgba[2] / 255.0
+            ];
+        }
+
+        this.getModelBackfaceXYZFromMouse = (mx, my) => {
+            let rgba = this.viewManager.pickingBufferManager.readPixel('VolumeBackface', mx, my);
+
+            return [
+                rgba[0] / 255.0,
+                rgba[1] / 255.0,
+                rgba[2] / 255.0
+            ];
+        }
+
+        this.getRayInfoFromMouse = (mx, my) => {
+            // 1. Get camera eye position, is in world coords
+         /*   let eye = this.viewManager.modelSyncManager.getActiveModel(Models.CAMERA.name, this.activeSubviewID).getEyePosition();
+            */
+
+            let start = this.getModelXYZFromMouse(mx, my),
+                end = this.getModelBackfaceXYZFromMouse(mx, my);/*
+
+            // 2. Get XYZ position of mouse click, is in model coords (0,1)
+            let xyz = this.getModelXYZFromMouse(mx, my);
+
+            // 3. Transform eye pos into model coord space
+            // World2model: [-1,1] to [0,1]
+            // Divide by BB, and add 0.5
+            let nbb = this.viewManager.uniformManagerVolume._getSharedUniform('u_BoundingBoxNormalized');
+
+            let eyeModelCoords = v3.add(v3.divide(eye, nbb), v3.create(0.5, 0.5, 0.5));
+*/
+            // 3. Shoot from first-hit
+            //let rayDirN = v3.normalize(v3.subtract(xyz, eyeModelCoords));
+
+            let rayDir = v3.normalize(v3.subtract(end, start));
+
+
+            return {
+                start: start,
+                direction: rayDir
+            };
+
+        }
+
     }
 
     // Events to bind...
     // Left drag ONLY
     // Mouse enter ->
     _bindMouseHandler() {
+
+         let getCamera = () => {
+            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, this.activeSubviewID);
+        }
+
+        let update = () => {
+
+            this.viewManager.notifyNeedsUpdateForModel(Models.CAMERA.name, this.activeSubviewID, ['Volume', 'Slicer']);
+            this.viewManager.requestAnimationFrame();
+        }
+
         this.mouseHandler.on('mouseenter', null, (state) => {
             // Render picking buffer for given subviewID
+            this.refreshPB();
         });
 
         this.mouseHandler.on('mouseout', null, (state) => {
@@ -55844,8 +58352,26 @@ class VolumeEventHandlerDelegate {
 
             switch (interactionMode) {
                 case 'select-point':
+                    let point = this.getModelXYZFromMouse(state.x, state.y);
+                    this.viewManager.selectionManager.selectPoint(point);
+                    this.viewManager.renderSelectedPoints();
+                    displayFBImageFromFramebuffer(
+                        this.viewManager.masterContext, this.viewManager.FBAndTextureManager.getFrameBuffer('PointProjectionTexture'),
+                        512, 512,
+                        'debugcanvas2'
+                    );
                     break;
                 case 'select-ray':
+                    let ray = this.getRayInfoFromMouse(state.x, state.y);
+                    this.viewManager.selectionManager.selectRay(ray);
+                    this.viewManager.renderVolumeRay(this.activeSubviewID);
+                    /*displayFBImageFromFramebuffer(
+                        this.viewManager.masterContext,
+                        this.viewManager.FBAndTextureManager.getFrameBuffer('RayProjectionTexture'),
+                        512, 512,
+                        'debugcanvas2'
+                    );*/
+
                     break;
                 default:
                     break;
@@ -55865,16 +58391,6 @@ class VolumeEventHandlerDelegate {
             }
         });
 
-        let getCamera = () => {
-            return this.modelSyncManager.getActiveModel(Models.CAMERA.name, this.activeSubviewID);
-        }
-
-        let update = () => {
-
-            this.viewManager.notifyNeedsUpdateForModel(Models.CAMERA.name, this.activeSubviewID, ['Volume', 'Slicer']);
-            this.viewManager.requestAnimationFrame();
-        }
-
         this.mouseHandler.on('drag', 'left', (state) => {
             let interactionMode = GetInteractionMode();
 
@@ -55889,7 +58405,7 @@ class VolumeEventHandlerDelegate {
                     break;
                 case 'rotate':
                     console.log("Rotate!");
-                    getCamera().rotate(state.dx, state.dy);
+                    getCamera().rotate(state.dx, state.dy, state.x, state.y);
                     update();
                     break;
 
@@ -55911,6 +58427,8 @@ class VolumeEventHandlerDelegate {
                 default:
                     break;
             }
+
+            this.refreshPB();
         });
 
         this.mouseHandler.on('mousemove', 'left', (state) => {
@@ -55928,7 +58446,7 @@ class VolumeEventHandlerDelegate {
 
 module.exports = VolumeEventHandlerDelegate;
 
-},{"../interaction-modes-v2":39,"../linkable-models":41,"../mouse-handler":49}],63:[function(require,module,exports){
+},{"../all-models":43,"../debug-fb-to-canvas":44,"../interaction-modes-v2":46,"../mouse-handler":59,"twgl.js":21}],81:[function(require,module,exports){
 let VolumeDataset = require('./volume-dataset');
 let SelectionManager = require('./selection');
 
@@ -55965,7 +58483,7 @@ class DatasetManager {
 
     clearDataset() {
         for(let key in this.datasets) {
-            delete this.datasets[key];
+            this.datasets[key].clear();
         }
     }
 
@@ -56004,7 +58522,7 @@ class DatasetManager {
      */
     addDataset(args) {
         this.cellID2Dataset['GLOBAL'] = args.name;
-        this.datasets[args.name] = new VolumeDataset(args.header, args.isovalues);
+        this.datasets[args.name] = new VolumeDataset(args);
         console.log("Added dataset to dataset manager");
         console.log(this.datasets[args.name]);
         console.log(this.datasets);
@@ -56059,7 +58577,7 @@ class DatasetManager {
 
 module.exports = DatasetManager;
 
-},{"./selection":64,"./volume-dataset":65}],64:[function(require,module,exports){
+},{"./selection":82,"./volume-dataset":83}],82:[function(require,module,exports){
 
 
 /**
@@ -56120,7 +58638,7 @@ class SelectionManager {
 
 module.exports = SelectionManager;
 
-},{}],65:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 let d3 = require('d3');
 
 /**
@@ -56137,16 +58655,18 @@ class VolumeDataset {
      * @param {Int16Array} isovalues the isovalues, scaled from the range [0, 4095] to [0, 2^15]
      * @constructor
      */
-    constructor(header, isovalues) {
-        this.header = header;
+    constructor(args) {
+        this.header = args.header;
 
 
-        this.isovalues = isovalues
-        this.histogram = [];
+        this.isovalues = args.isovalues  ||  [];
+        this.histogram = args.histogram ||  [];
 
-        this.gradient = [];
-        this.gradientMagnitudes = [];
-        this.isovaluesAndGradientMagnitudes = [];
+        this.gradient = args.gradient || [];
+        this.gradientMagnitudes = args.gradientMagnitudes  ||  [];
+        this.isovaluesAndGradientMagnitudes = args.isovaluesAndGradientMagnitudes || [];
+
+        this.mode = args.mode; // ['Iso', 'IsoGMag']
 
         this.calculateHistogram();
     }
@@ -56157,6 +58677,13 @@ class VolumeDataset {
     setIsoValues(isovalues) {
         this.isovalues = isovalues;
         this.calculateHistogram();
+    }
+
+    clear() {
+        delete this.isovalues;
+        delete this.gradient;
+        delete this.gradientMagnitudes;
+        delete this.isovaluesAndGradientMagnitudes;
     }
 
     setHeader(header) {
@@ -56194,20 +58721,33 @@ class VolumeDataset {
      * count value will be 2^15, so each value is divided by 8
      */
     calculateHistogram() {
-        let max = d3.max(this.isovalues);
         this.histogram = new Uint16Array(4096);
         let iso = -1;
         let i = -1;
-        for (i = 0; i < this.isovalues.length; i++) {
-            let isoValue = this.isovalues[i]/8;
-            ++this.histogram[isoValue];
+
+        switch (this.mode) {
+            case 'Iso':
+                for (i = 0; i < this.isovalues.length; i++) {
+                    let isoValue = this.isovalues[i] / 8;
+                    ++this.histogram[isoValue];
+                }
+                break;
+            case 'IsoGMag':
+                for (i = 0; i < this.isovaluesAndGradientMagnitudes.length; i+=2) {
+                    let isoValue = this.isovaluesAndGradientMagnitudes[i] / 8;
+                    ++this.histogram[isoValue];
+                }
+                break;
+            default:
+                break;
         }
+        //        let max = d3.max(this.isovalues);
     }
 }
 
 module.exports = VolumeDataset;
 
-},{"d3":3}],66:[function(require,module,exports){
+},{"d3":3}],84:[function(require,module,exports){
   /**
    * Array of the indices of corners of each face of a cube.
    * @type {Array.<number[]>}
@@ -56344,7 +58884,7 @@ function createCuboidVertices(width, height, depth) {
 
 module.exports = createCuboidVertices;
 
-},{}],67:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 
 
 
@@ -56363,7 +58903,7 @@ module.exports = {
 
 // TODO move elsewhere, semantic ui init stuff.
 
-},{"./angular-assets/main-controller":23,"./client2server/websocket-client":37,"./core/environment":38}],68:[function(require,module,exports){
+},{"./angular-assets/main-controller":23,"./client2server/websocket-client":42,"./core/environment":45}],86:[function(require,module,exports){
 let Icons = require('../../core/settings').Widgets.LinkerAndSplitterView.icons.icons;
 
 let menu = [];
@@ -56428,7 +58968,7 @@ module.exports = {
     }
 };
 
-},{"../../core/settings":58}],69:[function(require,module,exports){
+},{"../../core/settings":76}],87:[function(require,module,exports){
 class SplitViewIconSet {
     constructor(args) {
 
@@ -56470,7 +59010,7 @@ class SplitViewIconSet {
 
 module.exports = SplitViewIconSet;
 
-},{}],70:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -56607,7 +59147,7 @@ class LinkGrouper {
 
 module.exports = LinkGrouper;
 
-},{"./unique-index-bag":75,"underscore":22}],71:[function(require,module,exports){
+},{"./unique-index-bag":93,"underscore":22}],89:[function(require,module,exports){
 let d3 = require('d3');
 /*let menuInfos = {
     Volume: require('../../core/views/context-menu-config-volume'),
@@ -56878,7 +59418,7 @@ class MiniatureSplitViewOverlay {
 
 module.exports = MiniatureSplitViewOverlay;
 
-},{"../../core/interaction-modes-v2":39,"../../core/views/context-menu-configs":59,"d3":3}],72:[function(require,module,exports){
+},{"../../core/interaction-modes-v2":46,"../../core/views/context-menu-configs":77,"d3":3}],90:[function(require,module,exports){
 let menuInfo = require('./context-menu-config');
 const _ = require('underscore');
 const SplitBox = require('./splitbox');
@@ -57000,11 +59540,15 @@ class MiniatureSplitView {
         if (args.canSelect) // Select only
             this.changeState('SELECT');
 
-        this.selected = -1; // Highlight if selected
+        this.selected = args.initiallySelected || -1; // Highlight if selected
     }
 
     setViewTypeChangedCallback(handle) {
         this.viewTypeChangedCallback = handle;
+    }
+
+    setSubviewSelectionChangedCallback(handle) {
+        this.subviewSelectionChangedCallback = handle;
     }
 
     setSplitbox(splitbox) {
@@ -57239,6 +59783,9 @@ class MiniatureSplitView {
         if (newType !== this.icons.getIconName(cellID)) {
             this.icons.setIcon(cellID, newType);
 
+            this.dispatcher('unlinkCellID', [cellID]);
+            // Order is v important unlinking must happen before
+            // notifying environment
             this.viewTypeChangedCallback(cellID, newType);
 
             this.dispatcher("refresh", []);
@@ -57354,6 +59901,7 @@ class MiniatureSplitView {
 
     setSelected(id) { // Highlight until a new cell is selected
         this.selected = id;
+        this.subviewSelectionChangedCallback(id);
         this.refresh();
     }
 
@@ -57514,7 +60062,7 @@ class MiniatureSplitView {
 
 module.exports = MiniatureSplitView;
 
-},{"./context-menu-config":68,"./icon-set":69,"./link-group":70,"./splitbox":73,"d3":3,"underscore":22}],73:[function(require,module,exports){
+},{"./context-menu-config":86,"./icon-set":87,"./link-group":88,"./splitbox":91,"d3":3,"underscore":22}],91:[function(require,module,exports){
 let _ = require('underscore');
 let UniqueIndexBag = require('./unique-index-bag');
 
@@ -57889,7 +60437,7 @@ class SplitBox {
 
 module.exports = SplitBox;
 
-},{"./unique-index-bag":75,"underscore":22}],74:[function(require,module,exports){
+},{"./unique-index-bag":93,"underscore":22}],92:[function(require,module,exports){
 /**
  * Represents a subcell, only reason this is a class is for
  * having a method to convert offset it by the parent coordinates conveniently.
@@ -58048,14 +60596,14 @@ class SubcellLayout {
             let subcellHeight = cellHeight / 2;
             let offsetX = cellWidth - subcellHeight;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: offsetX,
                 y0: 0,
                 width: subcellHeight,
                 height: subcellHeight,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',
@@ -58072,14 +60620,14 @@ class SubcellLayout {
             let subcellWidth = cellWidth / 2;
             let offsetY = cellHeight - subcellWidth;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: 0,
                 y0: offsetY,
                 width: subcellWidth,
                 height: subcellWidth,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',
@@ -58098,14 +60646,14 @@ class SubcellLayout {
             let offsetX = cellWidth - subcellWH;
             let offsetY = cellHeight - 2 * subcellWH;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: offsetX,
                 y0: offsetY,
                 width: subcellWH,
                 height: subcellWH,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',
@@ -58127,7 +60675,7 @@ class SubcellLayout {
 
 module.exports = SubcellLayout;
 
-},{}],75:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 let _ = require('underscore');
 
 class UniqueIndexBag {
@@ -58169,19 +60717,20 @@ class UniqueIndexBag {
 
 module.exports = UniqueIndexBag;
 
-},{"underscore":22}],76:[function(require,module,exports){
+},{"underscore":22}],94:[function(require,module,exports){
 let _ = require('underscore');
 let MiniatureSplitView = require('./miniature-split-view');
-let LinkableModels = require('../../core/linkable-models').Models;
+let LinkableModels = require('../../core/all-models').ActiveLinkableModels;
 let BaseSettings = require('../../core/settings').Widgets.LinkerAndSplitterView;
 
 let divIDs = {
     ADD: 'lvw-add-view',
     linkers: {
         [LinkableModels.TRANSFER_FUNCTION.name]: 'lvw-link-view-1',
-        [LinkableModels.CAMERA.name]: 'lvw-link-view-2',
-        [LinkableModels.SLICER.name]: 'lvw-link-view-3',
-        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-4'
+        [LinkableModels.SLICER.name]: 'lvw-link-view-2',
+        [LinkableModels.CAMERA.name]: 'lvw-link-view-3',
+        [LinkableModels.LIGHTS.name]: 'lvw-link-view-4',
+        [LinkableModels.THRESHOLDS.name]: 'lvw-link-view-5'
     },
     SELECT: 'lvw-select-view'
 };
@@ -58315,6 +60864,7 @@ let init = (callbacks) => {
     views.SELECT = genSelectView(divIDs.SELECT, viewSettings);
     views.SELECT.layout = splitbox;
     views.SELECT.setViewTypeChangedCallback(callbacks.viewTypeChanged);
+    views.SELECT.setSubviewSelectionChangedCallback(callbacks.subviewSelectionChanged);
     views.SELECT.render();
 
     console.log("Dispatch refresh");
@@ -58337,7 +60887,19 @@ let getAllCellIDs = () => {
 }
 
 let getMasterCellIDForModel = (key, cellID) => {
-    return views.linkers[key].linkGrouper.getMasterCellID(cellID);
+    if (views.linkers[key])
+        return views.linkers[key].linkGrouper.getMasterCellID(cellID);
+    else // It has no link group, so it links to itself
+        return cellID;
+}
+
+let Select = (subviewID) => {
+    //views.ADD.selectCellID(subviewID);
+    views.SELECT.setSelected(subviewID);
+}
+
+let SetViewType = (viewType, subviewID) => {
+    views.SELECT.notifyViewTypeChanged(viewType, subviewID);
 }
 
 let read = () => {
@@ -58354,8 +60916,18 @@ let read = () => {
     }
 }
 
+let write = () => {
+    return {
+        Select: Select,
+        SetViewType: SetViewType
+    }
+}
+
 let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, otherwise they are autonomous.
     if (event === 'selectCellID') { // Special, highlight it briefly in other cells
+
+        // args = [cellID] -> Notify environment of this
+
         views.ADD[event].apply(views.ADD, args);
         for (let view in views.linkers) {
             let theView = views.linkers[view];
@@ -58365,7 +60937,16 @@ let dispatch = (event, args) => { // only dispatch to linkers, ADD/REMOVE, other
         }
 
         views.SELECT.setSelected(args[0]);
-    } else {
+    }
+    /*else if (event === 'unlinkCellID') {
+           for (let view in views.linkers) {
+               let theView = views.linkers[view];
+               //        console.log(theView);
+               let fn = theView[event];
+               fn.apply(theView, args);
+           }
+       }*/
+    else {
         views.ADD[event].apply(views.ADD, args);
         views.SELECT[event].apply(views.SELECT, args);
         for (let view in views.linkers) {
@@ -58438,6 +61019,7 @@ let genAddRemoveView = (divID, settings) => {
 let genSelectView = (divID, settings) => {
     let customSettings = _.clone(settings);
     customSettings.divID = divID;
+    customSettings.initiallySelected = 0;
     customSettings.canLink = false;
     customSettings.canAddRemove = false;
     customSettings.canSelect = true;
@@ -58449,156 +61031,27 @@ let genSelectView = (divID, settings) => {
 module.exports = {
     init: init,
     read: read,
+    write: write,
     getAddRemoveView: getAddRemoveView
 };
-// Environment needs READ ACCESS only, the ng-controller needs write access to bind
-// DOM events to change the state of the object.
 
-},{"../../core/linkable-models":41,"../../core/settings":58,"./miniature-split-view":72,"underscore":22}],77:[function(require,module,exports){
-let tinycolor = require('tinycolor2');
-/** Represents a color gradient consisting of control points
- * @class
- * @memberof module:Widgets/TransferFunction
- */
-class ColorGradient {
-
-
-    /**
-     * Constructs a new color gradient with given initial control points.
-     *
-     *
-     * @param {module:Widgets/TransferFunction.CGControlPoint[]} Array of control points, may be empty
-     * @constructor
-     * @memberof module:Widgets/TransferFunction
-
-     */
-    constructor(controlPoints) {
-        //this.gradient = []; // Format: [{offset: n, color: color}], offset is between 0 and 100
-        this.gradient = [];
-    }
-
-
-
-
-    /**
-     * Represents one control point.
-     * @typedef {Object} CGControlPoint
-     * @property {string} color - Color of the control points, as HEX
-     * @property {number} offset - offset of the control point, must be in range [0,100].
-     * @memberof module:Widgets/TransferFunction
-     */
-
-
-    /**
-     * Adds a control point and returns the array index
-     *
-     * @param {module:Widgets/TransferFunction.CGControlPoint} Point - The control point
-     * @returns {number} The index of the control point
-     *
-     */
-    addControlPoint(point) {
-        let index = this._findInsertionIndexForOffset(point.offset);
-        this.gradient.splice(index, 0, {
-            color: point.color,
-            offset: point.offset
-        });
-
-        return index;
-    }
-
-    /**
-     * Removes a control point, given offset
-     *
-     * @param {number} offset - the offset, must be [0,100] and existing
-     * @returns {bool} true if offset was deleted
-     */
-    removeControlPoint(offset) {
-        let deletionPoint = this._findInsertionIndexForOffset(offset);
-
-        if (deletionPoint !== -1) {
-            this.removeControlPointAtIndex(deletionPoint);
-            return true;
-        }
-
-        return false;
-    }
-
-
-    /**
-     *
-     * @param {number} index - Index of the control point
-     */
-    removeControlPointAtIndex(index) {
-        this.gradient.splice(index, 1);
-    }
-
-    /**
-     * Changes the color for control point at given index
-     *
-     * @param {number} index
-     * @param {string} newColor - the color
-     */
-    setColorAt(index, newColor) {
-        if (index < 0)
-            return;
-        this.gradient[index].color = newColor;
-    }
-
-    /**
-     * Moves the control point at given index to the
-     * new offset
-     *
-     * @param {number} index - the current index of the control point
-     * @param {number} newOffset - the offset to move it to
-     * @returns {number} the new index of this control point
-     */
-    moveControlPoint(index, newOffset) {
-        if (index < 0)
-            return;
-
-        let elem = this.gradient[index];
-        this.gradient.splice(index, 1);
-
-        return this.addControlPoint({
-            color: elem.color,
-            offset: newOffset
-        });
-    }
-
-    _findFirstIndexBiggerThan(offset) {
-        let index = -1;
-        for (let i = 0; i < this.gradient.length; i++) {
-            if (this.gradient[i].offset >= offset) {
-                index = i;
-                break;
-            }
-        }
-
-        return index;
-    }
-
-    _findInsertionIndexForOffset(offset) {
-        if (this.gradient.length === 0)
-            return 0;
-
-        for (let i = 0; i < this.gradient.length; i++) {
-            if (this.gradient[i].offset > offset)
-                return i;
-        }
-        return this.gradient.length;
-    }
-}
-
-module.exports = ColorGradient;
-
-},{"tinycolor2":20}],78:[function(require,module,exports){
+},{"../../core/all-models":43,"../../core/settings":76,"./miniature-split-view":90,"underscore":22}],95:[function(require,module,exports){
 let d3 = require('d3');
 let VolumeDataset = require('../../core/environment').VolumeDataset;
 let $ = require('jquery');
-let ColorGradient = require('./color-gradient');
+//let ColorGradient = require('./color-gradient');
 let Environment = require('../../core/environment');
 
 let TFEditorSettings = require('../../core/settings').Widgets.TransferFunction.Editor;
+
+// D3 drag nad double click don't work well together, drag seems to override
+// dblclick...
+let TIME = Date.now(); // Used for timing mouse events etc
+let dblClickWait = 300;
+let mouseupmousedowntimeout = 300;
+let clickTimeout = null;
+let awaitingClick = false;
+let awaitingDoubleClick = false;
 
 /**
  * Represents the front-end of the transfer function editor.
@@ -58658,9 +61111,9 @@ class TransferFunctionEditor {
             this._updateTFModel();
         }
 
-        Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyTFModelDidChange);
+        //Environment.listen('TFModelDidChange', EnvironmentTFKey, this.notifyTFModelDidChange);
 
-        Environment.listen('DatasetDidChange', EnvironmentTFKey, this.notifyDatasetDidChange);
+        //Environment.listen('DatasetDidChange', EnvironmentTFKey, this.notifyDatasetDidChange);
 
 
 
@@ -58758,6 +61211,11 @@ class TransferFunctionEditor {
 
         this.displayOptions = displayOptions;
 
+        this.isothreshold = {
+            min: 0,
+            max: 4095
+        }
+
         /*------------------------------------------------*/
         /*------------------------------------------------*/
         /*------------------------------------------------*/
@@ -58824,6 +61282,15 @@ class TransferFunctionEditor {
         return Environment.getHistogramForTFEditor(this.EnvironmentTFKey);
     };
 
+    setHistogram(histogramOBJ) {
+        let numEntries = Object.keys(histogramOBJ).length;
+
+        this.histogram = new Uint8Array(numEntries);
+
+        for (let i = 0; i < numEntries; i++)
+            this.histogram[i] = histogramOBJ[i];
+    }
+
     _getHistogramSelections() {
         Environment.getHistogramSelectionsForTFEditor(this.EnvironmentTFKey)
     }
@@ -58832,16 +61299,26 @@ class TransferFunctionEditor {
         Environment.get3DViewSelectionsHistogramForTFEditor(this.EnvironmentTFKey)
     }
 
+    setTFModel(model) {
+        this.tfModel = model;
+        this.colorGradientObject = model.colorGradient;
+        this.controlPoints = model.controlPoints;
+        this._refreshColorGradient();
+        this.render();
+    }
+
     _updateTFModel() {
         this.tfModel = this._getModel();
         this.colorGradientObject = this.tfModel.colorGradient;
         this.controlPoints = this.tfModel.controlPoints;
+        this._refreshColorGradient();
+        this.render();
     }
 
     _updateDatasetModel() {
-        this.histogram = this._getHistogram();
-        this.histogramSelection = this._getHistogramSelections();
-        this.viewSelectionHistogram = this._get3DViewSelectionHistogram();
+        //this.histogram = this._getHistogram();
+        //this.histogramSelection = this._getHistogramSelections();
+        //this.viewSelectionHistogram = this._get3DViewSelectionHistogram();
     }
 
     notifyModelDidChange() {
@@ -58857,8 +61334,6 @@ class TransferFunctionEditor {
             .attr('class', 'tf-editor-background-canvas ng-id' + this.$scope$id)
             .attr('width', 400)
             .attr('height', 400); // 400x400 pixels to render on
-
-        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID(this.EnvironmentTFKey, this.$scope$id);
 
         this.svgMain = d3.select(this.container)
             .append('svg')
@@ -58888,15 +61363,15 @@ class TransferFunctionEditor {
         this.eventListenerRect = this.svgMain.append('rect')
             .attr('class', 'tf-editor-event-listener-rect')
             .on('mousedown', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mousedown();
             })
             .on('mouseup', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mouseup();
             })
             .on('mousemove', () => {
-            d3.event.stopPropagation();
+                d3.event.stopPropagation();
                 this._mousemove();
             });
 
@@ -59169,6 +61644,8 @@ class TransferFunctionEditor {
         this._clearHistogramSelection();
         this._clearHistogram();
         this._clearTransferFunction();
+        this._clearColorGradient();
+        this._renderColorGradient(this._getSizes());
         // Empty the contents of all
 
         // TODO!
@@ -59269,6 +61746,14 @@ class TransferFunctionEditor {
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
 
+        if(this.displayOptions.applyThreshold) {
+            let yThresholded = new Uint8Array(histogram.length);
+            for(let i = this.isothreshold.min; i < this.isothreshold.max; i++)
+                yThresholded[i] = histogram[i];
+
+            yDomain = d3.extent(yThresholded);
+        }
+
         let xDomain = [0, histogram.length - 1],
             xRange = [0, this.originalSize.content.width];
 
@@ -59307,16 +61792,36 @@ class TransferFunctionEditor {
             .attr('class', 'tf-editor-3d-selection-histogram-area');
     }
 
+    updateIsoThreshold(min, max) {
+        this.isothreshold = {
+            min: min,
+            max: max
+        }
+
+        this._refreshHistogram();
+        this._refreshHistogramSelection();
+    };
+
     _renderHistogram(sizes) {
         if (!this.displayOptions.showHistogram)
             return;
 
-        let histogram = this._getHistogram();
+        let histogram = this.histogram;
         if (!histogram || histogram.length === 0)
             return;
 
         let yDomain = d3.extent(histogram),
             yRange = [this.originalSize.content.height, 0];
+
+
+        if(this.displayOptions.applyThreshold) {
+            let yThresholded = new Uint8Array(histogram.length);
+            for(let i = this.isothreshold.min; i < this.isothreshold.max; i++)
+                yThresholded[i] = histogram[i];
+
+            histogram = yThresholded;
+            yDomain = d3.extent(yThresholded);
+        }
 
         // Displace to make it work as log-scale
         yDomain[0] += 1;
@@ -59373,7 +61878,7 @@ class TransferFunctionEditor {
         if (!this.displayOptions.showTransferFunction)
             return;
 
-        if (this.controlPoints === null || this.controlPoints.length === 0)
+        if (this.controlPoints === null) // || this.controlPoints.length === 0)
             return;
 
         this._renderControlPointSplines();
@@ -59409,18 +61914,61 @@ class TransferFunctionEditor {
         let self = this;
         let circleRadius = TFEditorSettings.TransferFunctionDisplay.circleRadius;
 
+        var dragCircle = d3.drag()
+            .on('start', function (d) {
+                d3.event.sourceEvent.stopPropagation();
+                //d3.event.sourceEvent.preventDefault();
+                self.selected = self.dragged = d;
+            })
+            .on('drag', () => {
+                this._mousemove();
+            })
+            .on('end', () => {
+                this._mouseup();
+            });
+
+
+
+
+        let click = () => {
+            console.log("Click!");
+            if (Date.now() - TIME < dblClickWait && awaitingDoubleClick) { // dblclick!
+                clearTimeout(clickTimeout); // Stop normal click event
+                //                alert("Dblclick!");
+                this._removeSelectedControlPoint();
+                awaitingDoubleClick = false;
+            } else {
+                TIME = Date.now();
+                awaitingDoubleClick = true;
+                clickTimeout = setTimeout(() => {
+                    awaitingDoubleClick = false;
+                    //                    alert("Click!");
+                    this._moveSelectedControlPointToBottom();
+                }, dblClickWait);
+
+                awaitingClick = false;
+            }
+        }
+
         circles.enter().append("circle")
             .attr("r", circleRadius)
             .attr('class', 'tf-editor-control-point')
-            .on("mousedown", (d) => {
-                this.selected = this.dragged = d;
-                this._mousedown();
+            .on("mousedown", function (d) {
+                self.selected = self.dragged = d;
+                self._mousedown();
+                TIME = Date.now();
+                awaitingClick = true;
             })
             .on("mouseup", () => {
                 this._mouseup();
+                if (awaitingDoubleClick || Date.now() - TIME < mouseupmousedowntimeout) {
+                    click();
+                }
+                awaitingClick = false;
             })
             .on('mouseenter', function () {
                 d3.select(this).classed('selected', true);
+                awaitingClick = false;
             })
             .on('mouseout', function (d) {
                 d3.select(this).classed('selected', self.selected === d);
@@ -59429,6 +61977,22 @@ class TransferFunctionEditor {
                     self._renderTransferFunction();
                 }
             })
+            .on("mousemove", () => {
+                this._mousemove();
+                awaitingClick = false;
+            })
+            /*.on('click', () => {
+                console.log("Click!");
+                if (Date.now() - TIME < clickWait) { // dblclick!
+                    clearTimeout(clickTimeout); // Stop normal click event
+                    alert("Dblclick!");
+                } else {
+                    TIME = Date.now();
+                    clickTimeout = setTimeout(() => {
+                        alert("Click!");
+                    }, clickWait);
+                }
+            })*/
             .attr("cx", (d) => {
                 return this.scales.content.x(d[0]);
             })
@@ -59438,7 +62002,10 @@ class TransferFunctionEditor {
             .classed("selected", (d) => {
                 return d === this.selected;
             })
-            .attr("r", circleRadius);
+            .attr("r", circleRadius)
+        //.call(dragCircle);
+
+
 
         circles
 
@@ -59452,12 +62019,9 @@ class TransferFunctionEditor {
         circles.exit().remove();
     }
 
-    _renderColorOpacityBitmap() {
-
-    }
 
     _renderColorGradient(sizes) {
-        if (!this.colorGradientObject || this.colorGradientObject.gradient.length === 0)
+        if (!this.colorGradientObject) // || this.colorGradientObject.gradient.length === 0)
             return;
 
         this._renderColorGradientRect();
@@ -59691,7 +62255,7 @@ class TransferFunctionEditor {
         context.putImageData(new ImageData(data2, width, height), 0, 0);
 
         // CALL POSSIBLY OBSOLETE...
-        Environment.TransferFunctionManager.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
+        Environment.notifyDiscreteTFDidChange(this.EnvironmentTFKey, this.getTextureBounds());
 
         this._notifyTFDidChange();
     }
@@ -59794,8 +62358,6 @@ class TransferFunctionEditor {
         context.putImageData(newImageData, 0, offsetY, 0, 0, canvasNode.width, cHeight);
 
     }
-
-
 
     _renderColorGradientControlPoints(sizes) {
         let triangle = d3.symbol()
@@ -60021,7 +62583,13 @@ class TransferFunctionEditor {
 
                 let mouseNormalized = [mouseXNormalized, mouseYNormalized];
 
-                this.controlPoints.push(this.selected = this.dragged = mouseNormalized);
+                this.controlPoints.insert(this.selected = this.dragged = mouseNormalized);
+                /*
+                this.dragged = mouseNormalized;
+                this.selected = this.dragged;
+
+
+                this.controlPoints.push(this.selected = this.dragged = mouseNormalized);*/
                 this._refreshTransferFunction();
                 break;
             default:
@@ -60041,6 +62609,7 @@ class TransferFunctionEditor {
             case 'TF':
                 if (!this.dragged) return;
                 this.dragged = null;
+                this.controlPoints.sortPreserve(0);
                 this._refreshTransferFunction();
             default:
                 break;
@@ -60071,7 +62640,7 @@ class TransferFunctionEditor {
                 let m = d3.mouse(this.transferFunctionGroup.node());
                 this.dragged[0] = clamp01(this.scales.content.x.invert(m[0]));
                 this.dragged[1] = clamp01(this.scales.content.y.invert(m[1]));
-
+                this.controlPoints.sortPreserve(0);
                 this._refreshTransferFunction();
                 break;
             default:
@@ -60100,217 +62669,16 @@ class TransferFunctionEditor {
         this._refreshTransferFunction();
     }
 
+    _moveSelectedControlPointToBottom() {
+        let i = this.controlPoints.indexOf(this.selected);
+        this.controlPoints.toBottom(i);
+        this.selected = this.controlPoints.length ? this.controlPoints[i > 0 ? i - 1 : 0] : null;
+        this._refreshTransferFunction();
+    }
+
 }
 
 
 module.exports = TransferFunctionEditor;
 
-},{"../../core/environment":38,"../../core/settings":58,"./color-gradient":77,"d3":3,"jquery":18}],79:[function(require,module,exports){
-let TransferFunction = require('./transfer-function');
-/* Manages multiple transfer functions. It handles...
-    - Linking and unlinking of TFs across views
-    - Creating and destroying new TFs as views are created
-    - Keeping track of multiple discrete TFs, serving them
-      when needed
-*/
-
-/** @module Widgets/TransferFunction */
-
-
-/**
- * Manages multiple transfer function objects.
- */
-class TransferFunctionManager {
-
-
-    /**
-     * Constructs a new TF manager
-     * @param {module:Environment~Environment} environment - A reference to the environment for 2-way communication
-     * @constructor
-     */
-    constructor(environment) {
-        this.env = environment;
-
-        this.tfs = {
-            GLOBAL: new TransferFunction(),
-            0: new TransferFunction(), // Default inital settings
-            1: null,
-            2: null
-        };
-
-        this.needsUpdate = {
-            'GLOBAL': false
-        };
-
-        this.textureBounds = {
-            'GLOBAL': null
-        };
-
-        this.canvasPointers = {
-
-        };
-
-        this.activeEditorTFs = {
-            'GLOBAL': 'GLOBAL',
-            'LOCAL': 0 // default
-        };
-
-        this.globalOverrideLocal = false; // write from control panel
-    }
-
-    /**
-     * Gets the cell ID referenced by the TF editor
-     *
-     * @param {string} tfEditorKey - 'GLOBAL' or 'LOCAL'
-     * @returns {string|number} - if 'GLOBAL', will simply return 'GLOBAL'
-     * since the global TF editor is always editing its own TF, otherwise
-     * it'll return an actual cell
-     */
-    getReferencedCellIDForTFKey(tfEditorKey) {
-        return this.activeEditorTFs[tfEditorKey];
-    }
-
-
-    /**
-     * Check if a TF texture needs to be for given cell.
-     * @param {number} cellID - the ID of the cell
-     *
-     * Note: Only functions being actively edited can trigger changes,
-     * hence the cellID will only be updated if its TF was recently
-     * edited in the TF editor.
-     */
-    checkNeedsUpdateCellID(cellID) {
-        if (this.globalOverrideLocal)
-            return this._checkNeedsUpdateEditorKey('GLOBAL');
-        else if (this.activeEditorTFs['LOCAL'] === cellID)
-            return this._checkNeedsUpdateEditorKey('LOCAL');
-        return false;
-    }
-
-    _checkNeedsUpdateEditorKey(key) {
-        if (this.needsUpdate[key]) {
-            this.needsUpdate[key] = false;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Notify the TF manager that the transfer function did change.
-     * Will be called from the TF editor any time the texture does change
-     *
-     * @param {string} key - the transfer function key, 'LOCAL' or 'GLOBAL'
-     * @param {module:Widgets/TransferFunction.TextureBounds} textureBounds - The texture bounds, passed in as a convenience. Will be returned when views get the texture bound via {@link getCanvasForTFKey}
-     */
-    notifyDiscreteTFDidChange(key, textureBounds) {
-        this.needsUpdate[key] = true;
-        this.textureBounds[key] = textureBounds;
-    }
-
-    /**
-     * Adds a transfer function
-     *
-     * @param {string|number} key - The cell ID, can be a number between [0, numCells - 1] OR 'GLOBAL' which is the global transfer function.
-     *
-     */
-    addTransferFunction(id) {
-        this.tfs[id] = new TransferFunction();
-    }
-
-
-    /**
-    * Deletes the given TF from memory. PS do not ever delete the GLOBAL
-    * one, shouldn't ever happen.
-    *
-    * @param {number} id - the cell ID
-    */
-    removeTransferFunction(id) {
-        delete this.tfs[id];
-    }
-
-    test() {
-        console.log("Hi!");
-    }
-
-    /**
-     * Gets the transfer function given the key
-     *
-     * @param {string} key - the TF, 'LOCAL' or 'GLOBAL'
-     * @param {d3.curve} (optional) Sets the d3 curve style
-     */
-    getTransferFunctionForTFEditorKey(tfEditorKey, splines) {
-        let active = this.activeEditorTFs[tfEditorKey];
-
-        let tf = this.tfs[active];
-
-        if (splines)
-            tf.splines = splines;
-
-        return this.tfs[active];
-    }
-
-
-    /**
-     * Gets the canvas and the texture bounds, used to fetch
-     * the canvas and load it into the GPU as a texture.
-     *
-     * @param {Object} key - the TF key - 'LOCAL' or 'GLOBAL'
-     */
-    getCanvasForTFKey(key) {
-        return {
-            canvas: this.canvasPointers[key],
-            textureBounds: this.textureBounds[key]
-        };
-    }
-
-
-    /**
-     * Called each time a TF editor is created. Called after
-     * the TF editor is done compiling, will link the canvas
-     * to the TF ID.
-     *
-     * @param {string} key - the TF key, 'LOCAL' or 'GLOBAL'
-     * @param {number} ngid - the angular $scope$id of the view, used to identify it
-     */
-    notifyTFPointsToCanvasWithID(key, ngid) {
-        console.log("Bind!");
-        if (!this.canvasPointers[key])
-            this.canvasPointers[key] = document.querySelector('.tf-editor-background-canvas.ng-id' + ngid);
-    }
-
-}
-
-module.exports = TransferFunctionManager;
-
-},{"./transfer-function":80}],80:[function(require,module,exports){
-let d3 = require('d3');
-
-let ColorGradient = require('./color-gradient');
-
-
-/**
- * Represents a transfer function, holding a color gradient
- * and an opacity gradient. Note: Interpolation happens in the editor
- * and WebGL reads the texture directly from the canvas.
- * @class TransferFunction
- * @memberof module:Widgets/TransferFunction
- */
-class TransferFunction {
-    constructor() {
-        //        this.options = new TransferFunctionOptions();
-        // 1D color gradient axis
-        this.controlPoints = [];
-        this.colorGradient = new ColorGradient();
-
-        this.opacityAxis = null;
-
-        // REMEMBER TO BIND THIS WHEN ACCESSING IT FROM A TF-EDITOR.
-        this.splines = null; // d3.line with curve, used for interpolation
-
-        this.curve = d3.curveLinear();
-    }
-}
-
-module.exports = TransferFunction;
-
-},{"./color-gradient":77,"d3":3}]},{},[67]);
+},{"../../core/environment":45,"../../core/settings":76,"d3":3,"jquery":18}]},{},[85]);

@@ -11,10 +11,6 @@ let directive = function ($timeout) {
             $timeout(function () {
                 console.log("attrs");
                 console.log(attrs);
-
-                // Initialize the transfer function obj in the environment with name
-                Environment.TransferFunctionManager.addTransferFunction(scope.name);
-
                 scope.DOMReady(); // Call code AFTER shit is loaded
                 // avoid executing code on DOM before it is initialized!
             }, 0); //Calling a scoped method

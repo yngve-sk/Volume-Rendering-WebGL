@@ -60,8 +60,8 @@ class SlicerModel {
                 zFar: 18.0
             },
 
-            ROT_SPEED_X: 3.5,
-            ROT_SPEED_Y: 3.5
+            ROT_SPEED_X: 2.1,
+            ROT_SPEED_Y: 2.1
         });
 
 
@@ -521,7 +521,7 @@ class SlicerModel {
 
             switch (interactionMode) {
                 case 'rotate':
-                    this.camera.rotate(state.dx, state.dy);
+                    this.camera.rotate(state.dx, state.dy, state.x, state.y);
                     this._refreshUniforms();
                     refreshSlicer();
                     break;

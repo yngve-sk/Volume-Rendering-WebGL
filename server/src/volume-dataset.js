@@ -10,9 +10,9 @@ class VolumeDataset {
         let config = ini.parse(fs.readFileSync(filepath + '.ini', 'utf-8'));
 
         this.header = {
-            rows: bufferMain.readUInt16LE(0),
-            cols: bufferMain.readUInt16LE(2),
-            slices: bufferMain.readUInt16LE(4),
+            cols: bufferMain.readUInt16LE(0), // Width
+            rows: bufferMain.readUInt16LE(2), // height
+            slices: bufferMain.readUInt16LE(4), // depth
             info: {},
             spacing: {
                 x: parseInt(config.DatFile['oldDat Spacing X']),
@@ -68,7 +68,7 @@ class VolumeDataset {
         console.log(this.header);
 
         this.isovalues = isovalues;
-        //this.isovaluesAndGradientMagnitudes = [];
+        this.isovaluesAndGradientMagnitudes = [];
         this.histogram = [];
 
         this.gradient = [];
@@ -85,6 +85,7 @@ class VolumeDataset {
         };
 
         this.calculateHistogram();
+        this.header.histogram = this.histogram;
 
         this.calculateGradient();
         console.log("Done calculating gradient");
@@ -97,15 +98,25 @@ class VolumeDataset {
 
         console.log("max isovalue = " + this.isovalueMax);
         console.log("max gradient = " + this.gradientMax);
-        //this.generateMerged();
+        this.generateMerged();
         console.log("generated merged");
     }
 
     calculateHistogram() {
         this.histogram = new Uint8Array(4096);
+        let histogramCounter = new Int32Array(4096);
         for (let val of this.isovalues) {
-            this.histogram[(val/8)]++;
+            histogramCounter[(val/8)]++;
         }
+
+        let maxC = parseFloat(d3.max(histogramCounter));
+
+        let transformAndRoundToUI8 = (val) => {
+            return parseInt(Math.ceil(parseFloat(255*val) / maxC));
+        }
+
+        for(let i = 0; i < histogramCounter.length; i++)
+            this.histogram[i] = transformAndRoundToUI8(histogramCounter[i]);
     }
 
     getIsoValueAt(row, col, slice) {
@@ -159,7 +170,7 @@ class VolumeDataset {
         // MOVE Z = MOVE IN COL-DIRECTION, JUMP ROW
         let size = this.sizes.total * 3;
         this.gradient = new Uint16Array(size);
-        this.gradientMagnitude = new Float32Array(this.sizes.total);
+        this.gradientMagnitude = new Int16Array(this.sizes.total);
 
         for (let slice = 0; slice < this.header.slices - 1; slice++) {
             for (let row = 0; row < this.header.cols - 1; row++) {
@@ -177,7 +188,7 @@ class VolumeDataset {
 
                     let isoValueIndex = this._getIndex(row, col, slice);
 
-                    let gradientMagnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    let gradientMagnitude = Math.floor(Math.sqrt(dx * dx + dy * dy + dz * dz));
                     this.gradientMagnitude[isoValueIndex] = gradientMagnitude;
 
                     let offset = 3 * isoValueIndex;
@@ -198,11 +209,33 @@ class VolumeDataset {
 
     generateMerged() {
         let size = this.sizes.total * 2;
-        this.isovaluesAndGradientMagnitudes = new Float32Array(size);
+        this.isovaluesAndGradientMagnitudes = new Int16Array(size);
+
+        let scaleGradient = (g) => {
+            return (g / this.gradientMax) * 32767;
+        }
 
         for (let i = 0; i < size; i += 2) {
-            this.isovaluesAndGradientMagnitudes[i] = this.isovalues[i] / this.isovalueMax;
-            this.isovaluesAndGradientMagnitudes[i + 1] = this.gradient[i] / this.gradientMax;
+            let index = Math.floor(i/2);
+
+            this.isovaluesAndGradientMagnitudes[i] = this.isovalues[index];
+            this.isovaluesAndGradientMagnitudes[i + 1] = scaleGradient(this.gradientMagnitude[index]);
+        }
+
+        // DEBUG, verify that it is correct...
+        for(let i = 0; i < parseInt(Math.floor(this.sizes.total/10)); i++) {
+            let combinedIsoIndex = i * 2;
+            let combinedGMagIndex = combinedIsoIndex + 1;
+
+            let isoOK = this.isovalues[i] === this.isovaluesAndGradientMagnitudes[combinedIsoIndex];
+            let gradientOK = Math.floor(scaleGradient(this.gradientMagnitude[i])) === this.isovaluesAndGradientMagnitudes[combinedGMagIndex];
+
+            if(!isoOK)
+                console.error("Isovalue not ok");
+
+            if(!gradientOK)
+                console.error("Gradient mag not oK!, this.gradientMagnitude[i] = " + scaleGradient(this.gradientMagnitude[i]) + ", this.isovaluesAndGradientMagnitudes[combinedGMagIndex] = " + this.isovaluesAndGradientMagnitudes[combinedGMagIndex]);
+
         }
     }
 }

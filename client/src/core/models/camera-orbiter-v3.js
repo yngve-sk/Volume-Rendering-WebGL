@@ -12,10 +12,14 @@ console.log(Quat);
 class Camera {
     constructor(args) {
         this.radius = args.radius || 5.2;
+        this.refRadius = this.radius;
+
+        this.zoomFactor = 1.0;
 
         this.theta = args.theta  ||  Math.PI / 3.0;
         this.phi = args.phi || Math.PI / 3.0;
 
+        this.eye = null; // Will be cached
         this.target = args.target || v3.create(0, 0, 0);
 
         this.projectionSettings = args.projectionSettings || {
@@ -52,12 +56,10 @@ class Camera {
         };
 
         this.upDir = 1;
-
-        this.rotate(0.000001, 0.000001); // Init...
+        this.mode = "perspective";
 
         this._updateViewMatrix();
         this.setPerspective({});
-
     }
 
     linkTo(master, properties, callback) {
@@ -78,6 +80,8 @@ class Camera {
                 for (let slaveInfo of this.slaves[property]) {
                     slaveInfo.slave.theta = this.theta;
                     slaveInfo.slave.phi = this.phi;
+                    slaveInfo.slave.mode = this.mode;
+                    slaveInfo.slave.upDir = this.upDir;
                     slaveInfo.slave._updateViewMatrix();
                     slaveInfo.callback();
                 }
@@ -99,7 +103,12 @@ class Camera {
         this.slaves.radius = [];
     }
 
-    rotate(dx, dy) {
+    rotate(dTheta, dPhi) {
+
+        // After every rotation, adjust UP so that it is 90 degrees to the current eye pos
+
+        let dtheta = this.ROT_SPEED_X * dTheta;
+
         if (this.upDir > 0) {
             this.theta += this.ROT_SPEED_X * dTheta;
         } else {
@@ -117,10 +126,8 @@ class Camera {
 
         if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
             this.upDir = 1;
-            this.up = v3.create(0, 1, 0);
         } else {
             this.upDir = -1;
-            this.up = v3.create(0, -1, 0);
         }
 
         this._updateViewMatrix();
@@ -129,9 +136,22 @@ class Camera {
 
     zoom(dist) {
         console.log("ZOOM " + dist);
-        this.radius -= dist * this.ZOOM_SPEED;
+        //this.radius -= dist * this.ZOOM_SPEED;
+
+        this.zoomFactor += dist * this.ZOOM_SPEED;
+        this._updateZoom();
+
         this._updateViewMatrix();
+
+        if(this.mode === 'ortho')
+            this.setOrtho();
+
         this._notifySlaves('radius');
+    }
+
+    _updateZoom() {
+        // perspective zoom
+        this.radius = this.zoomFactor * this.refRadius;
     }
 
     pan(dx, dy) {
@@ -144,29 +164,28 @@ class Camera {
     }
 
     getEyePosition() {
-/*
-        let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
-        let y = this.radius * Math.cos(this.phi);
-        let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
-*/
+        /*
+                let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
+                let y = this.radius * Math.cos(this.phi);
+                let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+        */
 
         let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
         let y = this.radius * Math.cos(this.phi);
         let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
 
-        return v3.create(x, y, z);
+        this.eye = v3.create(x, y, z);
+        return this.eye;
     }
 
     toCartesian() {
         let eye = this.getEyePosition();
         let look = v3.normalize(eye);
 
-        let worldUp = this.up;
+        let worldUp = v3.create(0.0, this.upDir, 0.0);
 
         let right = v3.normalize(v3.cross(look, worldUp));
         let up = v3.normalize(v3.cross(look, right));
-
-        this.up = up;
 
         return {
             eye: eye,
@@ -177,6 +196,11 @@ class Camera {
     }
 
     setPerspective(args) {
+        if(!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
         this.projection = m4.perspective(
             args.fieldOfViewRadians || this.projectionSettings.fieldOfViewRadians,
             args.aspectRatio || this.projectionSettings.aspectRatio,
@@ -185,16 +209,126 @@ class Camera {
         );
     }
 
+    _updateProjectionSettings(args) {
+        for(let key in args) {
+            this.projectionSettings[key] = args[key];
+        }
+    }
+
+    setOrtho(args) {
+        // Use near plane
+
+        if(!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
+
+        let zNear = args.zNear ||  this.projectionSettings.zNear,
+            zFar = args.zFar ||  this.projectionSettings.zFar,
+            ar = args.aspectRatio || this.projectionSettings.aspectRatio,
+            fovy = args.fieldOfViewRadians  ||  this.projectionSettings.fieldOfViewRadians;
+
+
+        let zStep = (13 * this.zoomFactor / 50.0); // 1 = use zFar plane, 0 = use zNear
+
+        let near2Far = zFar - zNear,
+            orthoPlaneZ = zNear + zStep * near2Far;
+
+        // Use AR to get center2sidesX, ar = w/h => w = ar*h
+        let center2sidesY = orthoPlaneZ * Math.tan(fovy / 2),
+            center2sidesX = center2sidesY * ar;
+
+        let top = center2sidesY,
+            right = center2sidesX,
+            bottom = -center2sidesY,
+            left = -center2sidesX;
+
+        // use same zNear / far as perspective camera
+
+        this.projection = m4.ortho(left, right, top, bottom, zNear, zFar);
+    }
+
+    changeState(args) {
+        if(args.mode) {
+            if(args.mode === 'ortho') {
+                this.setOrtho();
+            } else if(args.mode === 'perspective') {
+                this.setPerspective();
+            } else {
+                console.error("Invalid mode " + args.mode);
+            }
+            this.mode = args.mode;
+        }
+
+        if(args.align) {
+            // TODO
+        }
+
+        if(args.zoom) {
+            //TODO!
+        }
+    }
+
     _updateViewMatrix() {
         let c = this.toCartesian();
-        this.view = m4.inverse(m4.lookAt(c.eye, c.target, c.up));
+
+        let rad2deg = (rad) => {
+            return rad * 180 / Math.PI;
+        }
+
+        console.log("zoom factor = " + this.zoomFactor);
+        console.log("PHI = " + rad2deg(this.phi));
+        console.log("THETA = " + rad2deg(this.theta));
+        console.log("POS = " + '(' +
+            c.eye[0] + ', ' + c.eye[1] + ', ' + c.eye[2] + ')');
+        console.log("UP = " + c.up[0] + ', ' + c.up[1] + ', ' + c.up[2] + ')');
+        console.log("-----------------");
+        console.log("-----------------");
+
+        let lookat = m4.lookAt(c.eye, c.target, c.up);
+
+        this.view = m4.inverse(lookat);
+        /*
+                let zaxis = v3.normalize(v3.subtract(c.eye, c.target)); // The "forward" vector.
+                let xaxis = v3.normalize(v3.cross(c.up, zaxis)); // The "right" vector.
+                let yaxis = v3.normalize(v3.cross(zaxis, xaxis)); // The "up" vector.
+
+                // Create a 4x4 orientation matrix from the right, up, and forward vectors
+                // This is transposed which is equivalent to performing an inverse
+                // if the matrix is orthonormalized (in this case, it is).
+                let orientation = [
+                    xaxis[0], yaxis[0], zaxis[0], 0,
+                    xaxis[1], yaxis[1], zaxis[1], 0,
+                    xaxis[2], yaxis[2], zaxis[2], 0,
+                    0, 0, 0, 1
+                ];
+
+                // Create a 4x4 translation matrix.
+                // The eye position is negated which is equivalent
+                // to the inverse of the translation matrix.
+                // T(v)^-1 == T(-v)
+                let translation = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    -c.eye[0], -c.eye[1], -c.eye[2], 1
+                ];
+
+                this.view = m4.multiply(orientation, translation);*/
     }
 
     getWorldViewProjectionMatrix(aspectRatio) {
         if (aspectRatio)
-            this.setPerspective({
-                aspectRatio: aspectRatio
-            });
+            if (this.mode === "perspective")
+                this.setPerspective({
+                    aspectRatio: aspectRatio
+                });
+            else {
+                this.setOrtho({
+                    aspectRatio: aspectRatio
+                })
+            }
 
         // no world matrix, not needed ATM.
 

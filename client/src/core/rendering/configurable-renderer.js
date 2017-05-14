@@ -119,6 +119,13 @@ class ConfigurableRenderer {
         //twgl.bindFramebufferInfo(gl, step.frameBufferInfo);
         gl.useProgram(programInfo.program);
 
+        let uniformBlockInfos = programInfo.blockInfos;
+
+        for(let uniformBlock in uniformBlockInfos) {
+            programInfo.blockInfos[uniformBlock].uniforms = this.uniforms[uniformBlock];
+            twgl.setUniformBlock(gl, programInfo, uniformBlockInfos[uniformBlock]);
+        }
+
         twgl.setBuffersAndAttributes(gl, programInfo, step.bufferInfo);
         twgl.setUniforms(programInfo, this.uniforms); // Same bundle for all
 

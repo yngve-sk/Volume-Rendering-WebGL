@@ -156,14 +156,14 @@ class SubcellLayout {
             let subcellHeight = cellHeight / 2;
             let offsetX = cellWidth - subcellHeight;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: offsetX,
                 y0: 0,
                 width: subcellHeight,
                 height: subcellHeight,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',
@@ -180,14 +180,14 @@ class SubcellLayout {
             let subcellWidth = cellWidth / 2;
             let offsetY = cellHeight - subcellWidth;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: 0,
                 y0: offsetY,
                 width: subcellWidth,
                 height: subcellWidth,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',
@@ -206,14 +206,14 @@ class SubcellLayout {
             let offsetX = cellWidth - subcellWH;
             let offsetY = cellHeight - 2 * subcellWH;
 
-            subcells.push(new Subcell({
+            /*subcells.push(new Subcell({
                 name: 'Sphere',
                 x0: offsetX,
                 y0: offsetY,
                 width: subcellWH,
                 height: subcellWH,
                 z: 2
-            }));
+            }));*/
 
             subcells.push(new Subcell({
                 name: 'Slicer',

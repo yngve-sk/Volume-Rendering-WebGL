@@ -1,11 +1,10 @@
 <div id="links-and-views-view" class="">
     <div class="ui celled grid">
-        <div class="five column row">
+        <div class="six column row">
             <div class="column view-splitter-cell">
                 <div class="ui left floated vertical buttons view-splitter-buttons-list">
                     <div class="ui grey label">
                         <i class="clone icon"></i>
-                        <i class="edit icon"></i>
                     </div>
                     <button class="ui button view-splitter-button id-0" ng-click='addView()' ng-class="{green : MainViewMode == 'ADD'}">
                                             <i class="large plus square outline icon"></i>
@@ -14,7 +13,7 @@
                     <button class="ui button view-splitter-button id-0" ng-click='removeView()' ng-class="{red : MainViewMode == 'REMOVE'}">
 
                                             <i class="large trash icon"></i>
-</button>
+                    </button>
                     <!--<button class="ui button view-splitter-button id-0" ng-click='changeView()' ng-class="{blue : MainViewMode == 'EDIT'}"><i class="large icon edit"></i></button>-->
                 </div>
                 <div id="lvw-add-view" class="split-view-widget"></div>
@@ -23,7 +22,6 @@
             <div class="column view-splitter-cell">
                 <div class="ui left floated vertical buttons view-splitter-buttons-list">
                     <div class="ui grey label">
-                        <i class="linkify icon"></i>
                         <i class="area chart icon"></i>
                     </div>
 
@@ -35,11 +33,7 @@
                         <i class="large unlinkify icon"></i>
                     </button>
 
-                    <button class="ui button view-splitter-button id-1 set-global" ng-click="toggleGlobal(1)" ng-class="{blue: isGlobal[1]}"
-                            data-tooltip="Use global (Note: This will NOT erase local settings)"
-                            data-position="left below"
-
-                            >
+                    <button class="ui button view-splitter-button id-1 set-global" ng-click="toggleGlobal(1)" ng-class="{blue: isGlobal[1]}" data-tooltip="Use global (Note: This will NOT erase local settings)" data-position="left below">
                         <i class="large world icon"></i>
                     </button>
 
@@ -51,8 +45,7 @@
             <div class="column view-splitter-cell">
                 <div class="ui left floated vertical buttons view-splitter-buttons-list">
                     <div class="ui grey label">
-                        <i class="linkify icon"></i>
-                        <i class="photo icon"></i>
+                        <i class="cube icon"></i>
                     </div>
                     <button ng-class="{green : isActiveLinker(2)}" class="ui button view-splitter-button id-2-on" ng-click="setLinkerState(2, 'LINK-ADD')">
                     <i class="large linkify icon"></i>
@@ -60,9 +53,7 @@
                     <button class="ui button view-splitter-button id-2-off" ng-click="setLinkerState(2, 'LINK-REMOVE')" ng-class="{red : !isActiveLinker(2)}">
                             <i class="large unlinkify icon"></i>
                     </button>
-                    <button class="ui button view-splitter-button id-2 set-global" ng-click="toggleGlobal(2)" ng-class="{blue: isGlobal[2]}"
-                            data-tooltip="Use global (Note: This will NOT erase local settings)"
-                            data-position="left below">
+                    <button class="ui button view-splitter-button id-2 set-global" ng-click="toggleGlobal(2)" ng-class="{blue: isGlobal[2]}" data-tooltip="Use global (Note: This will NOT erase local settings)" data-position="left below">
                         <i class="large world icon"></i>
                     </button>
                 </div>
@@ -72,18 +63,15 @@
             <div class="column view-splitter-cell">
                 <div class="ui left floated vertical buttons view-splitter-buttons-list">
                     <div class="ui grey label">
-                        <i class="linkify icon"></i>
-                        <i class="cube icon"></i>
+                        <i class="photo icon"></i>
                     </div>
                     <button ng-class="{green : isActiveLinker(3)}" class="ui button view-splitter-button id-3-on" ng-click="setLinkerState(3, 'LINK-ADD')">
                     <i class="large linkify icon"></i>
                     </button>
-                    <button class="ui button view-splitter-button id-3-off" ng-click="setLinkerState(3, 'LINK-REMOVE')"ng-class="{red : !isActiveLinker(3)}">
+                    <button class="ui button view-splitter-button id-3-off" ng-click="setLinkerState(3, 'LINK-REMOVE')" ng-class="{red : !isActiveLinker(3)}">
                                                 <i class="large unlinkify icon"></i>
                     </button>
-                                        <button class="ui button view-splitter-button id-3 set-global" ng-click="toggleGlobal(3)" ng-class="{blue: isGlobal[3]}"
-                                                data-tooltip="Use global (Note: This will NOT erase local settings)"
-                            data-position="left below">
+                    <button class="ui button view-splitter-button id-3 set-global" ng-click="toggleGlobal(3)" ng-class="{blue: isGlobal[3]}" data-tooltip="Use global (Note: This will NOT erase local settings)" data-position="left below">
                         <i class="large world icon"></i>
                     </button>
 
@@ -95,26 +83,37 @@
             <div class="column view-splitter-cell">
                 <div class="ui left floated vertical buttons view-splitter-buttons-list">
                     <div class="ui grey label">
-                        <i class="linkify icon"></i>
-                        <i class="options icon"></i>
+                        <i class="yellow certificate icon"></i>
                     </div>
-                    <button class="ui button view-splitter-button id-4-on" ng-click="setLinkerState(4, 'LINK-ADD')"
-                            ng-class="{green : isActiveLinker(4)}"
-                            >
+                    <button class="ui button view-splitter-button id-4-on" ng-click="setLinkerState(4, 'LINK-ADD')" ng-class="{green : isActiveLinker(4)}">
                     <i class="large linkify icon"></i>
                     </button>
-                    <button class="ui button view-splitter-button id-4-off" ng-click="setLinkerState(4, 'LINK-REMOVE')"
-                            ng-class="{red : !isActiveLinker(4)}"
-                            >                        <i class="large unlinkify icon"></i>
-</button>
-                    <button class="ui button view-splitter-button id-4 set-global" ng-click="toggleGlobal(4)" ng-class="{blue: isGlobal[4]}"
-                            data-tooltip="Use global (Note: This will NOT erase local settings)"
-                            data-position="left below">
+                    <button class="ui button view-splitter-button id-4-off" ng-click="setLinkerState(4, 'LINK-REMOVE')" ng-class="{red : !isActiveLinker(4)}">                        <i class="large unlinkify icon"></i>
+                    </button>
+                    <button class="ui button view-splitter-button id-4 set-global" ng-click="toggleGlobal(4)" ng-class="{blue: isGlobal[4]}" data-tooltip="Use global (Note: This will NOT erase local settings)" data-position="left below">
                         <i class="large world icon"></i>
                     </button>
 
                 </div>
                 <div id="lvw-link-view-4" class="split-view-widget"></div>
+            </div>
+
+            <div class="column view-splitter-cell">
+                <div class="ui left floated vertical buttons view-splitter-buttons-list">
+                    <div class="ui grey label">
+                        <i class="options icon"></i>
+                    </div>
+                    <button class="ui button view-splitter-button id-4-on" ng-click="setLinkerState(5, 'LINK-ADD')" ng-class="{green : isActiveLinker(5)}">
+                    <i class="large linkify icon"></i>
+                    </button>
+                    <button class="ui button view-splitter-button id-5-off" ng-click="setLinkerState(5, 'LINK-REMOVE')" ng-class="{red : !isActiveLinker(5)}">                        <i class="large unlinkify icon"></i>
+                    </button>
+                    <button class="ui button view-splitter-button id-5 set-global" ng-click="toggleGlobal(5)" ng-class="{blue: isGlobal[5]}" data-tooltip="Use global (Note: This will NOT erase local settings)" data-position="left below">
+                        <i class="large world icon"></i>
+                    </button>
+
+                </div>
+                <div id="lvw-link-view-5" class="split-view-widget"></div>
             </div>
 
             <!-- <div class="column view-splitter-cell">

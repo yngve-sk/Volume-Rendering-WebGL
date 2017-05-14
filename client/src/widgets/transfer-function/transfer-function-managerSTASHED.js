@@ -30,6 +30,11 @@ class TransferFunctionManager {
             2: null
         };
 
+        this.editors = {
+            'GLOBAL': null,
+            'LOCAL': null
+        };
+
         this.needsUpdate = {
             'GLOBAL': false
         };
@@ -62,22 +67,34 @@ class TransferFunctionManager {
         return this.activeEditorTFs[tfEditorKey];
     }
 
-
     /**
-     * Check if a TF texture needs to be for given cell.
-     * @param {number} cellID - the ID of the cell
+     * Initializes the editor, called from Environment after TF editor is ready with its DOM and all that.
      *
-     * Note: Only functions being actively edited can trigger changes,
-     * hence the cellID will only be updated if its TF was recently
-     * edited in the TF editor.
+     * @param {Object} detail {name: <TF Editor Name>, editor: <TF Editor>}
      */
-    checkNeedsUpdateCellID(cellID) {
-        if (this.globalOverrideLocal)
-            return this._checkNeedsUpdateEditorKey('GLOBAL');
-        else if (this.activeEditorTFs['LOCAL'] === cellID)
-            return this._checkNeedsUpdateEditorKey('LOCAL');
-        return false;
+    setEditor(detail) {
+        this.editors[detail.name] = detail.editor;
     }
+
+    setLocalEditorActiveSubview(newSubviewID) {
+        this.activeEditorTFs['LOCAL'] = newSubviewID;
+    }
+
+    /*    *
+         * Check if a TF texture needs to be for given cell.
+         * @param {number} cellID - the ID of the cell
+         *
+         * Note: Only functions being actively edited can trigger changes,
+         * hence the cellID will only be updated if its TF was recently
+         * edited in the TF editor.
+
+        checkNeedsUpdateCellID(cellID) {
+            if (this.globalOverrideLocal)
+                return this._checkNeedsUpdateEditorKey('GLOBAL');
+            else if (this.activeEditorTFs['LOCAL'] === cellID)
+                return this._checkNeedsUpdateEditorKey('LOCAL');
+            return false;
+        }*/
 
     _checkNeedsUpdateEditorKey(key) {
         if (this.needsUpdate[key]) {
@@ -111,11 +128,11 @@ class TransferFunctionManager {
 
 
     /**
-    * Deletes the given TF from memory. PS do not ever delete the GLOBAL
-    * one, shouldn't ever happen.
-    *
-    * @param {number} id - the cell ID
-    */
+     * Deletes the given TF from memory. PS do not ever delete the GLOBAL
+     * one, shouldn't ever happen.
+     *
+     * @param {number} id - the cell ID
+     */
     removeTransferFunction(id) {
         delete this.tfs[id];
     }

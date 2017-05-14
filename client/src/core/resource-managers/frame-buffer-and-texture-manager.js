@@ -115,6 +115,10 @@ class FrameBufferAndTextureManager {
      * @param {module:Core/Renderer.FramebufferDetail} detail
      */
     create2DTextureFB(detail) {
+
+        if (this.textures[detail.name] && this.framebuffers[detail.name])
+            return; // Already created
+
         let gl = this.gl;
         this.textures[detail.name] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
@@ -204,16 +208,48 @@ class FrameBufferAndTextureManager {
             });
     }
 
-    createTransferFunction2DTexture(tfEditorKey) {
+    /**
+     * @typedef {Object} GridPos2Isovalue3DTextureDetail
+     * @property {string} name name of the texture (used when fetching it)
+     * @property {number} cols number of cols
+     * @property {number} rows number of rows
+     * @property {number} slices number of slices
+     * @property {Int16Array} isovalues the isovalue array
+     *
+     * @memberof module:Core/Renderer
+     **/
+
+    /**
+     * Creates a 3D texture from an isovalue array
+     *
+     * @param {module:Core/Renderer.GridPos2Isovalue3DTextureDetail} detail
+     */
+    createGridPos2IsovalueGMag3DTexture(detail) {
+        let gl = this.gl;
+        this.textures[detail.name] =
+            twgl.createTexture(gl, {
+                target: gl.TEXTURE_3D,
+                width: detail.cols,
+                height: detail.rows,
+                depth: detail.slices,
+                internalFormat: gl.RG16I, // format when sampling from shader
+                format: gl.RG_INTEGER, // format of data
+                type: gl.SHORT, // type of data
+                src: detail.isovalues,
+                wrapS: gl.CLAMP_TO_EDGE,
+                wrapT: gl.CLAMP_TO_EDGE,
+                wrapR: gl.CLAMP_TO_EDGE,
+                premultiplyAlpha: false
+            });
+    }
+
+    createTransferFunction2DTexture(tfEditorKey, localSubviewMasterCellID) {
         let gl = this.gl;
 
         let TFEditor = tfEditorKey; // LOCAL or GLOBAL
 
-        // 1. Find out which subview the TF editor is currently pointing to
-        let subviewID = this.env.TransferFunctionManager.getReferencedCellIDForTFKey(tfEditorKey);
-
         // 2. Get the canvas of the editor, so it can be loaded into a tex
-        let info = this.env.TransferFunctionManager.getCanvasForTFKey(tfEditorKey);
+        let info = this.env.getTFEditorInfo(tfEditorKey);
         let isoToColorData = info.canvas,
             bounds = info.textureBounds;
 
@@ -221,8 +257,10 @@ class FrameBufferAndTextureManager {
         let imgdata = isoToColorData.getContext('2d').getImageData(bounds.x, bounds.y, bounds.width, 1);
         let buffer = imgdata.data; // UInt8ClampedArray, i.e all values [0,255]
 
+        let key = tfEditorKey === 'GLOBAL' ? 'GLOBAL' : localSubviewMasterCellID;
+
         // 4. Create the texture bound to the given subviewID
-        this.transferFunctionTextures[subviewID] = twgl.createTexture(gl, {
+        this.transferFunctionTextures[key] = twgl.createTexture(gl, {
             target: gl.TEXTURE_2D,
             internalFormat: gl.RGBA,
             width: bounds.width,

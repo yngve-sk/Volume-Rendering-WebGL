@@ -12,6 +12,7 @@ let twgl = require('twgl.js');
 
 let BUILTIN_PROGRAMS = {
     BasicVolume: 'BasicVolume',
+    BasicVolume_PrecomputedGMag: 'BasicVolume_PrecomputedGMag',
     PositionToRGB: 'PositionToRGB',
     DebugCube: 'DebugCube',
     DebugVolume: 'DebugVolume',
@@ -21,7 +22,14 @@ let BUILTIN_PROGRAMS = {
     SlicerPicking: 'SlicerPicking',
     Texture2Quad: 'Texture2Quad',
     VolImage2Quad: 'VolImage2Quad',
-    SlicerImage2Quad: 'SlicerImage2Quad'
+    SlicerImage2Quad: 'SlicerImage2Quad',
+    Volume3DPicking: 'Volume3DPicking',
+    RayProjection: 'RayProjection',
+    VolumeRayRender: 'VolumeRayRender',
+    BasicVolumeSelectionOnly: 'BasicVolumeSelectionOnly',
+    BasicVolumeHighlightSelection: 'BasicVolumeHighlightSelection',
+    PointProjection: 'PointProjection',
+    VolumePoints: 'VolumePoints'
 };
 
 
@@ -53,8 +61,13 @@ class ShaderManager {
         this.vertexShaders['BasicVolume'] = glsl.file('../rendering/shaders/Volume/BasicVolume/shader.v.glsl');
         this.fragmentShaders['BasicVolume'] = glsl.file('../rendering/shaders/Volume/BasicVolume/shader.f.glsl');
 
+        this.vertexShaders['BasicVolume_PrecomputedGMag'] = glsl.file('../rendering/shaders/Volume/BasicVolume_PrecomputedGMag/shader.v.glsl');
+        this.fragmentShaders['BasicVolume_PrecomputedGMag'] = glsl.file('../rendering/shaders/Volume/BasicVolume_PrecomputedGMag/shader.f.glsl');
+
+
         this.vertexShaders['PositionToRGB'] = glsl.file('../rendering/shaders/Volume/PositionToRGB/shader.v.glsl');
         this.fragmentShaders['PositionToRGB'] = glsl.file('../rendering/shaders/Volume/PositionToRGB/shader.f.glsl');
+
 
         this.vertexShaders['DebugCube'] = glsl.file('../rendering/shaders/Debug/shader.cube.v.glsl');
         this.fragmentShaders['DebugCube'] = glsl.file('../rendering/shaders/Debug/shader.cube.f.glsl');
@@ -62,11 +75,13 @@ class ShaderManager {
         this.vertexShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.v.glsl');
         this.fragmentShaders['DebugVolume'] = glsl.file('../rendering/shaders/Debug/shader.f.glsl');
 
+
         this.vertexShaders['TextureToBBColor'] = glsl.file('../rendering/shaders/Volume/TextureToBBColor/shader.v.glsl');
         this.fragmentShaders['TextureToBBColor'] = glsl.file('../rendering/shaders/Volume/TextureToBBColor/shader.f.glsl');
 
         this.vertexShaders['TextureBackMinusFront'] = glsl.file('../rendering/shaders/Volume/TextureBackMinusFront/shader.v.glsl');
         this.fragmentShaders['TextureBackMinusFront'] = glsl.file('../rendering/shaders/Volume/TextureBackMinusFront/shader.f.glsl');
+
 
         this.vertexShaders['SlicerBasic'] = glsl.file('../rendering/shaders/Slicer/Basic/shader.v.glsl');
         this.fragmentShaders['SlicerBasic'] = glsl.file('../rendering/shaders/Slicer/Basic/shader.f.glsl');
@@ -83,6 +98,26 @@ class ShaderManager {
         this.vertexShaders['SlicerImage2Quad'] = glsl.file('../rendering/shaders/Slicer/Image2Quad/shader.v.glsl');
         this.fragmentShaders['SlicerImage2Quad'] = glsl.file('../rendering/shaders/Slicer/Image2Quad/shader.f.glsl');
 
+        this.vertexShaders['Volume3DPicking'] = glsl.file('../rendering/shaders/Volume/3DPicking/shader.v.glsl');
+        this.fragmentShaders['Volume3DPicking'] = glsl.file('../rendering/shaders/Volume/3DPicking/shader.f.glsl');
+
+        this.vertexShaders['RayProjection'] = glsl.file('../rendering/shaders/Volume/RayProjection/shader.v.glsl');
+        this.fragmentShaders['RayProjection'] = glsl.file('../rendering/shaders/Volume/RayProjection/shader.f.glsl');
+
+        this.vertexShaders['VolumeRayRender'] = glsl.file('../rendering/shaders/Volume/RayRender/shader.v.glsl');
+        this.fragmentShaders['VolumeRayRender'] = glsl.file('../rendering/shaders/Volume/RayRender/shader.f.glsl');
+
+        this.vertexShaders['BasicVolumeSelectionOnly'] = glsl.file('../rendering/shaders/Volume/BasicVolumeSelectionOnly/shader.v.glsl');
+        this.fragmentShaders['BasicVolumeSelectionOnly'] = glsl.file('../rendering/shaders/Volume/BasicVolumeSelectionOnly/shader.f.glsl');
+
+        this.vertexShaders['BasicVolumeHighlightSelection'] = glsl.file('../rendering/shaders/Volume/BasicVolumeHighlightSelection/shader.v.glsl');
+        this.fragmentShaders['BasicVolumeHighlightSelection'] = glsl.file('../rendering/shaders/Volume/BasicVolumeHighlightSelection/shader.f.glsl');
+
+        this.vertexShaders['PointProjection'] = glsl.file('../rendering/shaders/Volume/PointProjection/shader.v.glsl');
+        this.fragmentShaders['PointProjection'] = glsl.file('../rendering/shaders/Volume/PointProjection/shader.f.glsl');
+
+        this.vertexShaders['VolumePoints'] = glsl.file('../rendering/shaders/Volume/VolumePoints/shader.v.glsl');
+        this.fragmentShaders['VolumePoints'] = glsl.file('../rendering/shaders/Volume/VolumePoints/shader.f.glsl');
 
         this._initBuiltinPrograms();
     }
@@ -105,16 +140,32 @@ class ShaderManager {
      *
      */
     createProgramFromShaders(detail) {
+        let gl = this.gl;
+
         let shaders = [
                 this.vertexShaders[detail.vShaderName],
                 this.fragmentShaders[detail.fShaderName]
             ];
 
-        this.programs[detail.name] = twgl.createProgramInfo(
-            this.gl, [
+        let program = twgl.createProgramInfo(
+            gl, [
                 this.vertexShaders[detail.vShaderName],
                 this.fragmentShaders[detail.fShaderName]
             ]);
+
+        let blockSpecs = program.uniformBlockSpec.blockSpecs;
+
+        for (let blockName in blockSpecs) {
+            if (!program.blockInfos)
+                program.blockInfos = {};
+
+            program.blockInfos[blockName] = twgl.createUniformBlockInfo(gl, program, "name");
+        }
+
+        // Create uniform block infos too...
+
+
+        this.programs[detail.name] = program;
     }
 
     getProgramInfo(name) {

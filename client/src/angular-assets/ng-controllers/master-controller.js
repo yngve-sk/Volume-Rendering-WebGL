@@ -25,7 +25,7 @@ module.exports = function ($scope) {
     $('.panel-left').resizable({
         handleSelector: '.splitter',
         resizeHeight: false,
-        onDrag: () => {
+        onDragEnd: () => {
             window.dispatchEvent(new Event('resize'));
             console.log("Dispatched resize!");
         }

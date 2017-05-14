@@ -34,7 +34,7 @@ class DatasetManager {
 
     clearDataset() {
         for(let key in this.datasets) {
-            delete this.datasets[key];
+            this.datasets[key].clear();
         }
     }
 
@@ -73,7 +73,7 @@ class DatasetManager {
      */
     addDataset(args) {
         this.cellID2Dataset['GLOBAL'] = args.name;
-        this.datasets[args.name] = new VolumeDataset(args.header, args.isovalues);
+        this.datasets[args.name] = new VolumeDataset(args);
         console.log("Added dataset to dataset manager");
         console.log(this.datasets[args.name]);
         console.log(this.datasets);

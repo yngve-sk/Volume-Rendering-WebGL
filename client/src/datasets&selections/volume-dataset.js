@@ -14,16 +14,18 @@ class VolumeDataset {
      * @param {Int16Array} isovalues the isovalues, scaled from the range [0, 4095] to [0, 2^15]
      * @constructor
      */
-    constructor(header, isovalues) {
-        this.header = header;
+    constructor(args) {
+        this.header = args.header;
 
 
-        this.isovalues = isovalues
-        this.histogram = [];
+        this.isovalues = args.isovalues  ||  [];
+        this.histogram = args.histogram ||  [];
 
-        this.gradient = [];
-        this.gradientMagnitudes = [];
-        this.isovaluesAndGradientMagnitudes = [];
+        this.gradient = args.gradient || [];
+        this.gradientMagnitudes = args.gradientMagnitudes  ||  [];
+        this.isovaluesAndGradientMagnitudes = args.isovaluesAndGradientMagnitudes || [];
+
+        this.mode = args.mode; // ['Iso', 'IsoGMag']
 
         this.calculateHistogram();
     }
@@ -34,6 +36,13 @@ class VolumeDataset {
     setIsoValues(isovalues) {
         this.isovalues = isovalues;
         this.calculateHistogram();
+    }
+
+    clear() {
+        delete this.isovalues;
+        delete this.gradient;
+        delete this.gradientMagnitudes;
+        delete this.isovaluesAndGradientMagnitudes;
     }
 
     setHeader(header) {
@@ -71,14 +80,27 @@ class VolumeDataset {
      * count value will be 2^15, so each value is divided by 8
      */
     calculateHistogram() {
-        let max = d3.max(this.isovalues);
         this.histogram = new Uint16Array(4096);
         let iso = -1;
         let i = -1;
-        for (i = 0; i < this.isovalues.length; i++) {
-            let isoValue = this.isovalues[i]/8;
-            ++this.histogram[isoValue];
+
+        switch (this.mode) {
+            case 'Iso':
+                for (i = 0; i < this.isovalues.length; i++) {
+                    let isoValue = this.isovalues[i] / 8;
+                    ++this.histogram[isoValue];
+                }
+                break;
+            case 'IsoGMag':
+                for (i = 0; i < this.isovaluesAndGradientMagnitudes.length; i+=2) {
+                    let isoValue = this.isovaluesAndGradientMagnitudes[i] / 8;
+                    ++this.histogram[isoValue];
+                }
+                break;
+            default:
+                break;
         }
+        //        let max = d3.max(this.isovalues);
     }
 }
 

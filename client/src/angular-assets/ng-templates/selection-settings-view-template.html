@@ -1,0 +1,97 @@
+<div class="selection-settings-view">
+
+    <center class="selection-view-hidenshow">
+        <center class="widget-centered-h2">Hide/show (Local Only)</center>
+        <sm-checkbox model="showRay" class="toggle" label="Show Ray Selection"></sm-checkbox>
+        <!--<sm-checkbox model="showPoints" class="toggle" label="Show Points Selection"></sm-checkbox>-->
+
+        <!--
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Perspective</label>
+                </div>
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Orthographic</label>
+                </div>
+-->
+    </center>
+    <br>
+    <center>
+        <div class="ui main button" ng-click="clearRay()">Clear Ray</div>
+        <!--<div class="ui main button" ng-click="clearPoints()">Clear Points</div>-->
+    </center>
+    <div class="camera-mode-container">
+        <!--<center>
+            <center class="widget-centered-h1">Ray Display Mode</center>
+            <div class="ui vertical buttons">
+                <sm-radio class="button" label="Hide" name="rayMode" ng-click="setRayMode('Hide')">
+                </sm-radio><br>
+                <sm-radio class="button" ng-click="setRayMode('Highlight')" label="Highlight" name="rayMode">
+                </sm-radio><br>
+                <sm-radio class="button" ng-click="setRayMode('Ray Only')" label="Ray Only" name="rayMode">
+                </sm-radio><br>
+
+
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Perspective</label>
+                </div>
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Orthographic</label>
+                </div>
+
+            </div>
+        </center>-->
+        <br>
+
+        <div class="">
+            <div class="light-controller-slider-container">
+                <center class="widget-centered-h2">Non-selected visibility (Always Global)</center>
+                <rzslider class="custom-slider" rz-slider-model="nonSelectedOpacitySlider.value" rz-slider-options="nonSelectedOpacitySlider.options">
+                </rzslider>
+            </div>
+        </div>
+        <br>
+        <div class="">
+            <div class="light-controller-slider-container">
+                <center class="widget-centered-h2">Ray radius (Always Global)</center>
+                <rzslider class="custom-slider" rz-slider-model="rayRadiusSlider.value" rz-slider-options="rayRadiusSlider.options">
+                </rzslider>
+            </div>
+        </div>
+    </div>
+    <br>
+    <div class="camera-mode-container">
+        <!--  <center>
+            <center class="widget-centered-h1">Point Display Mode</center>
+            <div class="ui vertical buttons">
+                <sm-radio class="button" label="Hide" name="pointMode" ng-click="setPointMode('Hide')">
+                </sm-radio><br>
+                <sm-radio class="button" ng-click="setPointMode('Highlight')" label="Highlight" name="pointMode">
+                </sm-radio><br>
+                <sm-radio class="button" ng-click="setPointMode('Ray Only')" label="Ray Only" name="pointMode">
+                </sm-radio><br>
+
+
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Perspective</label>
+                </div>
+                <div class="ui button inline radio checkbox" sm-radio-bind="">
+                    <input type="radio" name="radioGroup">
+                    <label>Orthographic</label>
+                </div>
+
+            </div>
+        </center>-->
+        <!--<div class="">
+            <div class="light-controller-slider-container">
+                <center class="widget-centered-h2">Point Radius (Always Global)</center>
+                <rzslider class="custom-slider" rz-slider-model="pointRadiusSlider.value" rz-slider-options="pointRadiusSlider.options">
+                </rzslider>
+            </div>
+        </div>-->
+    </div>
+</div>

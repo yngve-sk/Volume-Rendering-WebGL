@@ -2,18 +2,18 @@
 precision highp float;
 
 const vec3 u_DirectionColors[3] = vec3[3](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
+    vec3(0.3, 0.4, 0.0),
+    vec3(0.0, 0.3, 0.4),
+    vec3(0.4, 0.0, 0.3)
 );
 
 const vec3 u_SliceColors[6] = vec3[6](
-    vec3(1.0, 0.0, 0.0),
-    vec3(1.0, 1.0, 0.0),
-    vec3(0.5, 0.5, 1.0),
-    vec3(0.7, 0.4, 0.0),
-    vec3(0.9, 0.1, 4.0),
-    vec3(0.1, 0.5, 1.0)
+    vec3(0.3, 0.4, 0.0),
+    vec3(0.3, 0.4, 0.0),
+    vec3(0.0, 0.3, 0.4),
+    vec3(0.0, 0.3, 0.4),
+    vec3(0.4, 0.0, 0.3),
+    vec3(0.4, 0.0, 0.3)
 );
 
 
@@ -57,6 +57,35 @@ bool isFace() {
     return 6 <= v_id && v_id <= 11;
 }
 
+/*vec2 calculateLighting(vec3 gradient, float gmag, vec3 halfV) {
+    // 1. check if gradient magnitude is below threshold
+
+    // 2. If yes, get normal, if no just return 1
+    vec3 gradientN = normalize(-gradient);
+
+    // 3. Get half-vector
+    float specularExponent = u_n;
+
+    float ambient = u_kA;
+    float diffuse = u_Il * u_kD * abs(dot(u_lightDir, gradientN));
+    float specular = u_Il * u_kS * pow(abs(dot(halfV,gradientN)), specularExponent);
+
+    return vec2(ambient + diffuse, specular);
+}
+
+vec3 getNormal() {
+    // 0 = x, 1 = y, 2 = z
+    // Cross eye with direction vec to get an approx
+    if(v_direction == 0) {
+
+    } else if(v_direction == 1) {
+
+    } else {
+
+    }
+    vec3 normal = normalize(cross())
+}*/
+
 void main() {
     if(v_discardMe == 1)
         discard;
@@ -92,6 +121,6 @@ void main() {
 
     outColor = vec4(myColor, myOpacity);
 
-    if(dist < 0.04)
-        outColor = vec4(0.1,1.0,0.6,1.0);
+    //if(dist < 0.04)
+    //    outColor = vec4(0.1,1.0,0.6,1.0);
 }

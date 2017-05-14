@@ -6,15 +6,18 @@
     <!-- INTERACTION MODE SELECTION START -->
     <div class="tf-editor-interaction-mode-container">
 
-        <center class="widget-centered-h1">Interaction Mode</center>
-        <div class="inline fields">
+        <center class="widget-centered-h1">Options</center>
+
+        <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.applyThreshold" label="Apply threshold to histogram">
+                    </sm-checkbox>
+        <!--<div class="inline fields">
             <div class="field">
                 <sm-radio name="iMode" model="interactionMode" enabled="false" label="Histogram" value="1">
             </div>
             <div class="field">
                 <sm-radio name="iMode" model="interactionMode" label="Transfer Function" value="2">
             </div>
-        </div>
+        </div>-->
     </div>
     <!--           <div>
         <div class="ui segment">
@@ -63,14 +66,14 @@
                 <div style="float: left">
                     <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogram" label="Histogram">
                     </sm-checkbox><br>
-                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogramSelection" label="Selection">
-                    </sm-checkbox><br>
+                    <!--<sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showHistogramSelection" label="Selection">
+                    </sm-checkbox>--><br>
                 </div>
                 <div style="float: right">
                     <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.showTransferFunction" label="Transfer Function">
                     </sm-checkbox><br>
-                    <sm-checkbox class="tf-display-options-checkbox" model="displayOptions.show3DSelectionHistogram" label="3D Sel. Histogram" enabled="false">
-                    </sm-checkbox>
+                    <!--<sm-checkbox class="tf-display-options-checkbox" model="displayOptions.show3DSelectionHistogram" label="3D Sel. Histogram" enabled="false">
+                    </sm-checkbox>-->
                 </div>
             </div>
         </div>
@@ -78,11 +81,14 @@
         <div class="tf-gmag-curv-sliders-container widget-bottom-element">
             <!-- G-mag / Curvature weighting on opacity -->
             <div>
-                <rzslider class="custom-slider" rz-slider-model="gradientMagSlider.weighting" style="width: 48%"></rzslider>
-                <rzslider class="custom-slider" rz-slider-model="curvatureSlider.weighting" style="width: 48%"></rzslider>
+                <rzslider class="custom-slider"
+                      rz-slider-model="gradientMagSlider.weighting"
+                      style="width: 48%"
+                          rz-slider-options="gradientMagSlider.options"></rzslider>
+                <rzslider class="custom-slider" rz-slider-model="overallOpacitySlider.weighting" style="width: 48%" rz-slider-options="overallOpacitySlider.options"></rzslider>
             </div>
-            <span style="float: left">Gradient Magnitude<br>Weighting</span>
-            <span style="float: right">Curvature Weighting</span>
+            <span style="float: left">Surface Weighting</span>
+            <span style="float: right">Overall Visibility</span>
             <br><br>
             <div>
                 <rzslider class="custom-slider"

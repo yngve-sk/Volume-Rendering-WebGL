@@ -1,5 +1,10 @@
 let _ = require('underscore');
 
+let ALIASES = {
+    'Select Point': 'select-point',
+    'Select Ray': 'select-ray'
+};
+
 class InteractionModeManager {
     constructor() {
 
@@ -23,7 +28,12 @@ class InteractionModeManager {
         // Quick hack to be able to add suffixes
         // to be displayed @ menu without
         // chainging the everywhere internally
-        lowercasemode = lowercasemode.split(' ')[0];
+        let lcmsplit = lowercasemode.split(' ');
+        lowercasemode = lcmsplit[0];
+
+        if (lowercasemode === 'select') {
+            lowercasemode += '-' + lcmsplit[1];
+        }
 
         if (this.verifyMode && !(_.contains(this.allModes[category], lowercasemode)))
             console.error("Category " + category + " does not have the mode " + lowercasemode + " available, available modes: " + this.allModes[category]);

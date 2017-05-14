@@ -3,15 +3,14 @@
         <center>
             <center class="widget-centered-h1">Camera Mode</center>
             <div class="ui buttons">
-                <sm-radio
-                          class="button"
-                          label="ortho" name="cameraMode"
+                <sm-button
                           ng-click="setCameraMode('ortho')">
-                </sm-radio>
-                <sm-radio
-                          class="button"
-                          ng-click="setCameraMode('perspective')" label="perspective" name="cameraMode">
-                </sm-radio>
+                    Ortho
+                </sm-button>
+                <sm-button
+                          ng-click="setCameraMode('perspective')" >
+                    Perspective
+                </sm-button>
 
                 <!--
                 <div class="ui button inline radio checkbox" sm-radio-bind="">
@@ -30,7 +29,7 @@
     </div>
     <br>
 
-    <div class="camera-align-axis-buttons-container">
+    <!--<div class="camera-align-axis-buttons-container">
         <center>
             <center class="widget-centered-h1">Align Camera With Axis</center>
             <div class="ui buttons">
@@ -38,16 +37,22 @@
                 <div class="ui button" ng-click="alignCamera('Y')">Y</div>
                 <div class="ui button" ng-click="alignCamera('Z')">Z</div>
             </div>
+            <br>
+            <div class="ui buttons">
+                <div class="ui button" ng-click="alignCamera('-X')">-X</div>
+                <div class="ui button" ng-click="alignCamera('-Y')">-Y</div>
+                <div class="ui button" ng-click="alignCamera('-Z')">-Z</div>
+            </div>
 
         </center>
     </div>
-    <br>
+    <br>-->
     <div class="camera-zoom-container widget-bottom-element">
         <center class="widget-centered-h1">Zoom</center>
         <center>
             <div class="ui big button" ng-click="resetZoom()">Reset Zoom</div>
             <div class="ui label">
-                100%
+                {{zoom}}
             </div>
         </center>
     </div>

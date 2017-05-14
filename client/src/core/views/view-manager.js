@@ -4,7 +4,7 @@ let Subview = require('./subview');
 let MiniatureSplitViewOverlay = require('../../widgets/split-view/miniature-split-view-overlay');
 let SubcellLayout = require('../../widgets/split-view/subcell-layout');
 
-let Models = require('../linkable-models').Models;
+let Models = require('../all-models').Models;
 
 let ConfigurationManager = require('../resource-managers/configuration-manager');
 let ShaderManager = require('../resource-managers/shader-manager');
@@ -13,17 +13,17 @@ let ModelSyncManager = require('../resource-managers/model-sync-manager');
 let UniformManager = require('../resource-managers/uniform-manager');
 let BufferManager = require('../resource-managers/buffer-manager');
 let PickingBufferManager = require('../resource-managers/picking-buffer-manager');
+let SelectionManager = require('../resource-managers/selection-manager');
 let VolumeEventHandlerDelegate = require('./volume-event-handler-delegate');
 
 let GetSlicerBufferAttribArrays = require('../models/slicer-model-buffers');
-
-
 
 let Settings = require('../settings').Views.ViewManager,
     OverlaySettings = Settings.WindowsOverlay;
 
 let twgl = require('twgl.js');
 let createCuboidVertices = require('../../geometry/box');
+let v3 = twgl.v3;
 
 let glsl = require('glslify');
 let InteractionModeManager = require('../interaction-modes-v2');
@@ -34,6 +34,9 @@ let OverlayCellEventToModel = {
     'Slicer': 'Slicer'
 };
 
+let DatasetGet = require('../settings').WSClient.get;
+
+let PRESETS = require('../settings-presets');
 /** @module Core/View */
 
 /**
@@ -54,7 +57,7 @@ class ViewManager {
             depth: true
         });
 
-        this.masterContext.clearColor(0.2, 0.2, 0.2, 1.0);
+        this.masterContext.clearColor(0.0, 0.0, 0.0, 0.0);
 
         this.masterContext.getExtension('EXT_color_buffer_float');
         this.masterContext.getExtension('OES_texture_float')
@@ -72,6 +75,8 @@ class ViewManager {
         this.shaderManager = new ShaderManager(this.masterContext);
         this.FBAndTextureManager = new FBAndTextureManager(this.masterContext, environmentRef);
 
+        this.selectionManager = new SelectionManager(this);
+
         this.uniformManagerVolume = new UniformManager();
         this.uniformManagerSlicer = new UniformManager();
         this.uniformManagerUnitQuad = new UniformManager();
@@ -82,6 +87,9 @@ class ViewManager {
                 this.boundingBoxBuffer = null; // Dependent on dataset
                 this.slicerBuffer = null; // TEMP
         */
+
+        this.selectedPoint = null;
+        this.selectedRay = null;
 
         //twgl.bindFramebufferInfo(this.masterContext);
 
@@ -153,8 +161,31 @@ class ViewManager {
         setTimeout(() => {
             //this._init();
         }, 1000);
+
+        this.mm2Float = (mm) => {
+            return mm / 1000.0;
+        }
     }
 
+    getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey) {
+        let subviewID = tfEditorKey === 'GLOBAL' ? 'GLOBAL' : this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, this.localControllerSelectedSubviewID);
+
+        return subviewID;
+    }
+
+    getTransferFunctionForTFEditor(tfEditorKey) {
+        let subviewID = this.getTransferFunctionSubviewIDForTFEditorKey(tfEditorKey);
+        return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
+    }
+
+    getModelObjectForEditor(model, editorKey) {
+        let subviewID = this._getSubviewIDForModelAndEditor(model, editorKey);
+        return this.modelSyncManager.getActiveModel(model.name, subviewID);
+    }
+
+    _getSubviewIDForModelAndEditor(model, editorKey) {
+        return editorKey === 'GLOBAL' ? 'GLOBAL' : this.modelSyncManager.getActiveModelSubviewID(model.name, this.localControllerSelectedSubviewID);
+    }
 
     /**
      * Initializes frame buffers, textures, shader programs and binds uniform managers
@@ -174,20 +205,39 @@ class ViewManager {
         this._genPickingBuffers();
         this._bindUniformManagers();
 
+        // gen millimeter to float scale too
+
+        let dataset = this.env.getActiveDataset('GLOBAL');
+        if (dataset) {
+            let h = dataset.header;
+
+            // Normalized bb:
+            // w, h, d
+            //
+
+            this.mm2Float = (mm) => {
+                return mm * (h.normalizedBB.depth / (h.slices * h.spacing.z));
+            }
+        }
+
         this.addNewView(0);
 
         //this.slicerBuffer = twgl.createBufferInfoFromArrays(this.masterContext, slicerBufferAttribs);
 
         //this.refresh();
+        this.env.notifyViewmanagerInitialized();
         this.requestAnimationFrame();
     }
 
+    _printSettingsForSubviewWithID(id) {
+        let activeModels = this.modelSyncManager.getActiveModels(id);
+        console.log("ACTIVE MODELS ... " + activeModels);
+    }
 
     notifySlicesDidChange(id) {
         this.uniformManagerSlicer.updateAll();
         this.uniformManagerVolume.updateAll();
         this.notifyNeedsUpdateForModel(Models.SLICER.name, id, ['Volume', 'Slicer']);
-        //this._setNeedsUpdateForAllSubviews(['Volume', 'Slicer']);
         this.requestAnimationFrame();
     }
 
@@ -197,6 +247,7 @@ class ViewManager {
         this.requestAnimationFrame();
     }
 
+
     notifyIsoThresholdDidChange(editorName, newMin, newMax) {
         let subviewID = editorName === 'GLOBAL' ? 'GLOBAL' : this.localControllerSelectedSubviewID;
 
@@ -204,7 +255,7 @@ class ViewManager {
         // TODO change to active when local controls are implemented!
 
         thresholds.setMinMax(newMin, newMax);
-        this.notifyNeedsUpdateForModel(Models.THRESHOLDS.name, 0, ['Volume']);
+        this.notifyNeedsUpdateForModel(Models.THRESHOLDS.name, subviewID, ['Volume']);
         this.requestAnimationFrame();
     }
 
@@ -215,13 +266,32 @@ class ViewManager {
 
         let h = dataset.header;
 
-        this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
-            name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
-            cols: h.cols,
-            rows: h.rows,
-            slices: h.slices,
-            isovalues: dataset.isovalues
-        });
+        if (DatasetGet === 'isovalues') {
+            this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+                name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+                cols: h.cols,
+                rows: h.rows,
+                slices: h.slices,
+                isovalues: dataset.isovalues
+            });
+        } else {
+            this.FBAndTextureManager.createGridPos2IsovalueGMag3DTexture({
+                name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+                cols: h.cols,
+                rows: h.rows,
+                slices: h.slices,
+                isovalues: dataset.isovalues
+            });
+        }
+
+        //this.FBAndTextureManager.createGridPos2Isovalue3DTexture({
+        /* this.FBAndTextureManager.createGridPos2IsovalueGMag3DTexture({
+             name: 'u_ModelXYZToIsoValue', // Will be used for looking it up again
+             cols: h.cols,
+             rows: h.rows,
+             slices: h.slices,
+             isovalues: dataset.isovalues
+         });*/
 
         this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
     }
@@ -233,6 +303,30 @@ class ViewManager {
 
         this.FBAndTextureManager.create2DTextureFB({
             name: 'BackFace'
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'RayProjectionTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'RayRenderTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'PointProjectionTexture',
+            width: 512,
+            height: 512
+        });
+
+        this.FBAndTextureManager.create2DTextureFB({
+            name: 'PointRenderTexture',
+            width: 512,
+            height: 512
         });
 
         /*this.FBAndTextureManager.create2DTextureFB({
@@ -289,6 +383,42 @@ class ViewManager {
             format: SlicerPBFormat,
             fbInfo: SlicesPB
         });
+
+        let VolumePBWidth = 512,
+            VolumePBHeight = 512,
+            VolumePBFormat = gl.RGBA;
+
+        // Volume PB layout: .. WHY NOT USE FRONT FACE
+        // R -> X [0,1]
+        // G -> Y [0,1]
+        // B -> Z [0,1]
+        // A -> ???? maybe ISO ... [0,1]
+
+        let VolumePB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'VolumePicking',
+            width: VolumePBWidth,
+            height: VolumePBHeight
+        });
+
+        let VolumeBackfacePB = this.FBAndTextureManager.create2DPickingBufferFB({
+            name: 'VolumeBackfacePicking',
+            width: VolumePBWidth,
+            height: VolumePBHeight
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'Volume',
+            width: VolumePBWidth,
+            height: VolumePBHeight,
+            fbInfo: VolumePB
+        });
+
+        this.pickingBufferManager.addPickingBuffer({
+            name: 'VolumeBackface',
+            width: VolumePBWidth,
+            height: VolumePBHeight,
+            fbInfo: VolumeBackfacePB
+        })
     }
 
     _genVolumeBoundingBoxBuffer() {
@@ -303,9 +433,11 @@ class ViewManager {
 
     _genBuffers() {
         let dataset = this.env.getActiveDataset('GLOBAL');
-        let bb = dataset.header.normalizedBB;
-        let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
-        this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+        if (dataset) {
+            let bb = dataset.header.normalizedBB;
+            let vertices = createCuboidVertices(bb.width, bb.height, bb.depth);
+            this.bufferManager.createBufferInfoFromArrays(vertices, 'VolumeBB');
+        }
 
         this.bufferManager.createFullScreenQuad('FullScreenQuadBuffer');
 
@@ -338,6 +470,9 @@ class ViewManager {
 
         if (modelName === Models.SLICER.name || modelName === Models.CAMERA.name)
             this._syncSlicerAndVolumeCameras();
+
+        this.notifySubviewsNeedFullUpdate();
+        this.requestAnimationFrame();
     }
 
     getPickingBufferInfo(name, id) {
@@ -373,6 +508,16 @@ class ViewManager {
         this.subviews[id].renderSpecific('SlicerPickingSlices');
         this.subviews[id].renderSpecific('SlicerPickingRails');
     }
+
+    renderVolumePickingBuffer(id) {
+        if (id === 'GLOBAL')
+            id = Object.keys(this.subviews)[0];
+
+        this.uniformManagerVolume.updateAll();
+
+        this.subviews[id].renderSpecific('Volume3DPicking');
+    }
+
     renderSlicerPickingBuffersV2(id, bufferNames) {
         if (id === 'GLOBAL')
             id = Object.keys(this.subviews)[0];
@@ -381,6 +526,32 @@ class ViewManager {
 
         for (let bufferName in bufferNames)
             this.subviews[id].renderSpecific(bufferName);
+    }
+
+    renderSelectedPoints() {
+        // 1. Get all subviews displaying points
+        // 2. call
+        let toRender = this._getAllSubviewsShowingPoints();
+
+        for (let subviewID of toRender) {
+            this.subviews[subviewID].renderSpecific('VolumePointRenderer', true);
+        }
+        //this._notifySubviewsNeedUpdate('VolumePointRenderer', toRender, true);
+        //this.requestAnimationFrame();
+    }
+
+    renderVolumeRay(subviewID) {
+        //this.uniformManagerVolume.updateAll();
+        //for (let subviewID in this.subviews) {
+        //    this.viewManager.notifyNeedsUpdateForModel(Models.CAMERA.name, this.localControllerSelectedSubviewID, ['Volume']);
+        //    //this._renderVolumeRayForSubview(subviewID);
+        //}
+        this.notifyShowRayDidChange(true, subviewID);
+        //this.requestAnimationFrame();
+    }
+
+    _renderVolumeRayForSubview(subviewID) {
+        this.subviews[subviewID].renderSpecific('VolumeRayRender', true);
     }
 
     _renderPickingBuffer(name, id) {
@@ -393,36 +564,6 @@ class ViewManager {
         }
         this.uniformManagerSlicer.updateAll();
         this.subviews[id].renderSpecific(name);
-    }
-
-    _generateDebugConfigurationForSubview(subviewID) {
-        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
-
-        let DebugConfig = {
-            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: buffer,
-                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'FRONT'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: buffer,
-                    //bufferInfo: this.bufferManager.getBufferInfo('DebugCubeBuffer'), // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-            ]
-        };
-
-        return DebugConfig;
     }
 
     _bindUniformManagerDebug() {
@@ -492,15 +633,23 @@ class ViewManager {
         });
     }
 
-    viewTypeChanged(subviewID, newType) {
-        // Now configure the renderer of the subview to use the
-        // shader corresponding to the view type!
+    notifyCameraSettingsDidChangeAtEditor(key, args) {
+        console.log("notifyCameraSettingsDidChangeAtEditor");
+        console.log(key);
+        console.log(args);
+        // 1. Get active model
+        // 2. Apply the changes
 
+        let activeModel = this.modelSyncManager.getActiveModel(Models.CAMERA.name, this.localControllerSelectedSubviewID);
+        activeModel.changeState(args);
+
+        this.notifyNeedsUpdateForModel(Models.CAMERA.name, this.localControllerSelectedSubviewID, ['Volume', 'Slicer']);
+        this.requestAnimationFrame();
     }
 
-    datasetDidChange() {
+    notifyDatasetDidChange() {
         this._init();
-        Environment.notifyDatasetWasRead();
+        this.env.notifyDatasetWasRead();
     }
 
     transferFunctionDidChange(tfKey) {
@@ -632,14 +781,15 @@ class ViewManager {
         });
         this.uniformManagerVolume.addUnique('u_IsoValueToColorOpacity', (subviewID) => {
             // 1. Get the active model (in case linked)
-            let activeModel = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
+            let activeModelID = this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, subviewID);
+
 
             // 2. Get the texture associated to the active model
-            return this.FBAndTextureManager.getTransferFunction2DTexture(activeModel);
+            return this.FBAndTextureManager.getTransferFunction2DTexture(activeModelID);
         });
         this.uniformManagerVolume.addUnique('u_IsoMinMax', (subviewID) => {
-//            return this.modelSyncManager.getActiveModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16(); // TEMP, change to local
-            return this.modelSyncManager.getModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16();
+            return this.modelSyncManager.getActiveModel(Models.THRESHOLDS.name, subviewID).getMinMaxInt16(); // TEMP, change to local
+            //return this.modelSyncManager.getModel(Models.THRESHOLDS.name, 'GLOBAL').getMinMaxInt16();
         });
 
         this.uniformManagerVolume.addUnique('u_SliceX', (subviewID) => {
@@ -654,15 +804,130 @@ class ViewManager {
         this.uniformManagerVolume.addUnique('u_VolumeImageTexture', (subviewID) => {
             return this.FBAndTextureManager.getTexture('VolumeImageTexture' + subviewID);
         });
+        this.uniformManagerVolume.addUnique('u_DirectionalLight', (subviewID) => {
+            return {
+                kA: 0.1,
+                kD: 0.2,
+                kS: 0.8,
+                specExp: 17.0,
+                I: 0.1,
+                dir: [1.0, 1.0, 1.0]
+            };
+        });
+        this.uniformManagerVolume.addUnique('u_kA', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).ambient;
+        });
+        this.uniformManagerVolume.addUnique('u_kD', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).diffuse;
+        });
+        this.uniformManagerVolume.addUnique('u_kS', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).specular;
+        });
+        this.uniformManagerVolume.addUnique('u_n', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).specularExponent;
+        });
+        this.uniformManagerVolume.addUnique('u_Il', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).intensity;
+        });
+        this.uniformManagerVolume.addUnique('u_lightDir', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).direction;
+        });
+        this.uniformManagerVolume.addUnique('u_isovalueLightingRange', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).getGradientMagnitudeLightingRange();
+
+        });
+        this.uniformManagerVolume.addUnique('u_belowGMagLightThresholdOpacityMultiplier', (subviewID) => {
+            return this.modelSyncManager.getActiveModel(Models.LIGHTS.name, subviewID).gradientMagBelowThresholdOpacityMultiplier;
+        });
+        this.uniformManagerVolume.addUnique('u_viewDir', (subviewID) => {
+            let camera = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
+            return camera.eye;
+        });
+
+
+
+
+        this.uniformManagerVolume.addShared('u_RayOrigin_M', () => {
+            return this.selectionManager.getRaySelection().start;
+        });
+        this.uniformManagerVolume.addShared('u_RayDirection_M', () => {
+            return this.selectionManager.getRaySelection().direction;
+        });
+        this.uniformManagerVolume.addShared('u_RayRadius_M', () => {
+            return this.selectionManager.getRaySelection().radius;
+        });
+        this.uniformManagerVolume.addShared('u_NonSelectedVisibilityMultiplier', () => {
+            return this.selectionManager.getNonSelectedOpacity();
+        });
+        this.uniformManagerVolume.addUnique('u_Eye_M', (subviewID) => {
+            let eye = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID).getEyePosition();
+
+            // Transform to model space
+            let nbb = this.uniformManagerVolume._getSharedUniform('u_BoundingBoxNormalized');
+
+            let eyeModelSpace = v3.add(v3.divide(eye, nbb), v3.create(0.5, 0.5, 0.5));
+            //            return eyeModelSpace;
+            return eyeModelSpace;
+        });
+        this.uniformManagerVolume.addUnique('u_DoRenderRay', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.SELECTION_DISPLAY.name, subviewID).displayRay;
+        });
+
+        this.uniformManagerVolume.addShared('u_SelectedPoints', () => {
+            return this.selectionManager.getSelectedPoints();
+        });
+        /*this.uniformManagerVolume.addShared('u_SelectedPointsDisplayMode', () => {
+            return this.selectionManager.getPointDisplayMode();
+        });*/
+        this.uniformManagerVolume.addShared('u_SelectedPointsRadius', () => {
+            return this.selectionManager.getPointRadius();
+        });
+        this.uniformManagerVolume.addShared('u_NumSelectedPoints', () => {
+            return this.selectionManager.getNumPoints();
+        });
+
+        this.uniformManagerVolume.addShared('u_GradientDelta', () => {
+            let h = this.env.getActiveDataset('GLOBAL').header;
+
+            return [
+                h.spacing.x / h.cols,
+                h.spacing.y / h.rows,
+                h.spacing.z / h.slices
+            ];
+
+            return this.selectionManager.getNumPoints();
+        });
+
+        this.uniformManagerVolume.addUnique('u_GMagWeighting', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID).gradientMagnitudeWeighting;
+        });
+
+        this.uniformManagerVolume.addUnique('u_OverallOpacity', (subviewID) => {
+            //return this.selectionManager.isRaySelected();
+            return this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID).overallOpacity;
+        });
+    }
+
+    setConfigurationModeForSubview(category, mode, subviewID) {
+        this.configurationManager.configureSubview(subviewID, {
+            [category]: mode
+        });
     }
 
 
     linkChanged(modelKey) {
         this.modelSyncManager.updateSyncForModelKey(modelKey);
 
-        if (modelKey === Models.CAMERA.name) { // Repoint slicer cameras!
-            this._syncSlicerAndVolumeCameras()
+        if (modelKey === Models.CAMERA.name  ||  modelKey === Models.SLICER.name) { // Repoint slicer cameras!
+            this._syncSlicerAndVolumeCameras();
         }
+
+        // re-render all subviews
+
+        this.notifySubviewsNeedFullUpdate();
+        this.requestAnimationFrame();
     }
 
     _syncSlicerAndVolumeCameras() {
@@ -677,170 +942,6 @@ class ViewManager {
         }
     }
 
-    _generateBasicSlicerConfigForSubview(subviewID) {
-        let gl = this.masterContext;
-
-        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
-        let uniforms = this.uniformManagerSlicer.getUniformBundle(subviewID);
-        uniforms.u_QuadTexture = this.FBAndTextureManager.getTexture('UnitQuadTexture');
-
-        let BasicSlicerConfig = {
-            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerBasic'),
-                    frameBufferInfo: null,
-                    //frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'),
-                    //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        clear: [gl.DEPTH_BUFFER_BIT],
-                        disable: [gl.CULL_FACE],
-                        enable: [gl.BLEND],
-                        blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                        //clear: [gl.COLOR_BUFFER_BIT,  gl.DEPTH_BUFFER_BIT] // this caused only one slicer to render... wtf
-                    }
-                },
-                /*{ // Render the picking buffer into a subview..
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('UnitQuadTexture'), //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    subViewport: {
-                        x0: 0.05,
-                        y0: 0.7,
-                        width: 0.3,
-                        height: 0.3
-                    },
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-//                        depthFunc: [gl.LESS],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND],
-                        //clear: [gl.COLOR_BUFFER_BIT]
-
-                    }
-                },*/
-               /* {
-                    programInfo: this.shaderManager.getProgramInfo('Texture2Quad'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: this.bufferManager.getBufferInfo('FullScreenQuadBuffer'),
-                    glSettings: {
-                        clear: [gl.COLOR_BUFFER_BIT],
-                        enable: [gl.CULL_FACE],
-                        cullFace: [gl.BACK],
-                        disable: [gl.BLEND]
-                    }
-                },*/
-
-            ]
-        };
-
-
-
-        return BasicSlicerConfig;
-    }
-
-    _generateSlicerPickingBufferConfigForSubview(subviewID) {
-        let gl = this.masterContext;
-        let model = this.modelSyncManager.getActiveModel(Models.SLICER.name, subviewID);
-
-        let PickingConfig = {
-            uniforms: this.uniformManagerSlicer.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-                    glSettings: {
-                        enable: [gl.DEPTH_TEST],
-                        cullFace: [gl.BACK],
-                        depthFunc: [gl.LESS],
-                        disable: [gl.BLEND, gl.CULL_FACE],
-                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    //                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailBuffer'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerRailPBBuffer'),
-                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    glSettings: { // Same as before...
-                        enable: [gl.DEPTH_TEST, gl.CULL_FACE],
-                        clear: [gl.DEPTH_BUFFER_BIT],
-                        cullFace: [gl.BACK],
-                        depthFunc: [gl.LESS],
-                        disable: [gl.BLEND],
-                    }
-                },
-                /*{
-                    programInfo: this.shaderManager.getProgramInfo('SlicerPicking'),
-                    frameBufferInfo: this.FBAndTextureManager.getFrameBuffer('SlicerPicking'),
-                    bufferInfo: this.bufferManager.getBufferInfo('SlicerSliceBuffer'),
-                    //bufferInfo: this.bufferManager.getBufferInfo('SlicerCubeFaceBuffer'),
-//                    bufferInfo: this.bufferManager.getBufferInfo('SlicerBuffer'),
-                    glSettings: { // Same as before...
-                        enable: [gl.DEPTH_TEST],
-                        clear: [gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT],
-                        disable: [gl.CULL_FACE,gl.BLEND],
-                        //enable: [gl.BLEND],
-                        //blendFunc: [gl.SRC_ALPHA, gl.ONE],
-                    }
-                }*/
-            ]
-        };
-
-        return PickingConfig;
-    }
-
-    _generateBasicVolumeConfigForSubview(subviewID) {
-        let buffer = this.bufferManager.getBufferInfo('VolumeBB');
-        let BasicVolumeConfig = {
-            uniforms: this.uniformManagerVolume.getUniformBundle(subviewID),
-            steps: [
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('FrontFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('PositionToRGB'),
-                    frameBufferInfo: null, //this.FBAndTextureManager.getFrameBuffer('BackFace'),
-                    bufferInfo: buffer, // The bounding box!
-                    glSettings: {
-                        cullFace: 'FRONT'
-                    }
-                },
-                {
-                    programInfo: this.shaderManager.getProgramInfo('BasicVolume'),
-                    frameBufferInfo: null, // Render to screen
-                    bufferInfo: buffer, // The bounding box!
-                    /*NEEDED UNIFORMS:
-                    u_WorldViewProjection,    <- Depends on camera for model
-                    u_BoundingBoxNormalized   <- In dataset header
-                    u_TexCoordToRayOrigin     <- In texture belonging to FB
-                    u_TexCoordToRayEndPoint   <- In texture belonging to FB
-                    u_ModelXYZToIsoValue      <- Get from texture (shared for all)
-                    u_IsoValueToColorOpacity  <- Texture for TF obj the model is pointing to
-                    u_AlphaCorrectionExponent <- Precalculated float
-                    u_SamplingRate            <- 1 voxel per step, i.e 1/max(w,h,d)
-                    */
-                    glSettings: {
-                        cullFace: 'BACK'
-                    }
-                },
-            ]
-        };
-
-        return BasicVolumeConfig;
-    }
-
     updateUniformsForModel(subviewID, modelName) {
 
     }
@@ -848,7 +949,6 @@ class ViewManager {
     uniformsDidChangeForSubview(subviewID) {
 
     }
-
 
     addNewView(id, initialConfigurations) {
         // One texture to hold the output of each of these
@@ -866,40 +966,39 @@ class ViewManager {
         this.uniformManagerVolume.addSubview(id);
         this.uniformManagerSlicer.addSubview(id);
 
-
-        this.configurationManager.configureSubview(id, initialConfigurations || {
-            Volume: 'Basic',
-            Slicer: 'Basic',
-            SlicerPicking: 'Basic',
-            SlicerPickingSlices: 'Default',
-            SlicerPickingRails: 'Default',
-            SlicerPickingCubeFaces: 'Default'
-        });
-
-        /* let config = this._generateBasicVolumeConfigForSubview(id);
-        let slicerConfig = this._generateBasicSlicerConfigForSubview(id),
-            slicerPickerConfig = this._generateSlicerPickingBufferConfigForSubview(id);
-        let volumeConfig = this._generateDebugConfigurationForSubview(id);
-        this.subviews[id].configureRenderer('Volume', slicerConfig);
-*/
-        /*
-                let slicerConfigs = this._generateBasicSlicerConfigForSubview(id);
-
-
-                this.subviews[id].configureRenderer('Slicer', slicerConfig);
-                this.subviews[id].configureRenderer('SlicerPicking', slicerPickerConfig);*/
+        this.configurationManager.configureSubview(id, initialConfigurations);
 
         this.syncWithLayout();
         this._syncSlicerAndVolumeCameras();
 
+        this._notifySubviewsNeedUpdate('Volume', Object.keys(this.subviews), true);
+
+        this.requestAnimationFrame();
     }
 
+
+    /**
+     * Removes a subview
+     *
+     * @param {number} id
+     * @returns {bool} wasSelected whether or not the removed subview was selected locally.
+     */
     removeView(id) {
         delete this.subviews[id];
         this.modelSyncManager.removeSubview(id);
         this.uniformManagerVolume.removeSubview(id);
+        this.uniformManagerSlicer.removeSubview(id);
 
         this.syncWithLayout();
+        this._syncSlicerAndVolumeCameras();
+        this.requestAnimationFrame();
+
+
+        if (this.localControllerSelectedSubviewID === id) {
+            this.localControllerSelectedSubviewID = Object.keys(this.subviews)[0];
+            return true;
+        }
+        return false;
     }
 
 
@@ -928,12 +1027,13 @@ class ViewManager {
         for (let subviewID in this.subviews) {
             this.subviews[subviewID].setViewports(canvasViewports[subviewID]);
         }
+
+        this.refreshLastStep();
     }
 
     _resize() {
         this.syncWithLayout();
     }
-
 
     _debugRotateCube(subviewID) {
         let cam = this.modelSyncManager.getActiveModel(Models.CAMERA.name, subviewID);
@@ -956,6 +1056,32 @@ class ViewManager {
             args[2] * gl.canvas.width,
             args[3] * gl.canvas.height
         );
+    }
+
+    refreshLastStep() {
+        this.uniformManagerSlicer.updateAll();
+        this.uniformManagerVolume.updateAll();
+
+        for (let subviewID in this.subviews) {
+
+            //this._updateTextures(subviewID);
+            let view = this.subviews[subviewID];
+            //this._debugRotateCube(subviewID);
+
+            if (!view)
+                continue;
+
+            view.lastStepRender();
+        }
+
+    }
+
+    notifySubviewsNeedFullUpdate() {
+        for (let subviewID in this.subviews) {
+            let view = this.subviews[subviewID];
+            view.notifyNeedsUpdate('Volume', true);
+            view.notifyNeedsUpdate('Slicer', true);
+        }
     }
 
     refresh() {
@@ -988,29 +1114,6 @@ class ViewManager {
 
 
 
-    transferFunctionDidChangeForSubviewID(tfEditorKey) {
-        if (Object.keys(this.subviews).length === 0)
-            return;
-
-        console.log("Updating TF tex... src: " + tfEditorKey);
-        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey);
-        this.uniformManagerVolume.updateAll();
-
-        let needsUpdateSubviewIDs = [];
-        if (tfEditorKey === 'GLOBAL') {
-            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWithMaster('GLOBAL', Models.TRANSFER_FUNCTION.name);
-        } else {
-            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(this.localControllerSelectedSubviewID, Models.TRANSFER_FUNCTION.name);
-        }
-
-        this._notifySubviewsNeedUpdate('Volume', needsUpdateSubviewIDs, true);
-        //        for (let subviewID of needsUpdateSubviewIDs) {
-        //            this.subviews[subviewID].notifyNeedsUpdate('Volume', true);
-        //        }
-
-        if (needsUpdateSubviewIDs.length > 0)
-            this.requestAnimationFrame(['Volume']);
-    }
 
     _notifySubviewNeedsFullUpdate(subviewID, renderers) {
         for (let renderer of renderers) {
@@ -1027,6 +1130,7 @@ class ViewManager {
             this.subviews[subviewID].notifyNeedsUpdate(rendererName);
         }
     }
+
 
     notifyNeedsUpdateForModel(model, sourceSubview, toUpdate) {
         if (Object.keys(this.subviews).length === 0)
@@ -1048,6 +1152,205 @@ class ViewManager {
         //    this.requestAnimationFrame();
     }
 
+    notifyLightSettingsDidChangeAtEditor(editorKey, args) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.LIGHTS.name, toUpdateSubviewID).update(args);
+
+        this.notifyNeedsUpdateForModel(Models.LIGHTS.name, toUpdateSubviewID, ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyGradientMagnitudeWeightingChanged(editorKey, newValue) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID).gradientMagnitudeWeighting = newValue;
+        this.notifyNeedsUpdateForModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID,   ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyOverallOpacityChanged(editorKey, newValue) {
+        let toUpdateSubviewID = null;
+        if (editorKey === 'GLOBAL') {
+            toUpdateSubviewID = 'GLOBAL';
+        } else {
+            toUpdateSubviewID = this.localControllerSelectedSubviewID;
+        }
+
+        this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID).overallOpacity = newValue;
+        this.notifyNeedsUpdateForModel(Models.TRANSFER_FUNCTION.name, toUpdateSubviewID,   ['Volume']);
+        this.requestAnimationFrame();
+    }
+
+    notifyTransferFunctionDidChangeAtEditor(tfEditorKey) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        console.log("Updating TF tex... src: " + tfEditorKey);
+
+        // Edits go to the master TF not necessarily the local TF itself.
+        // Depends on links
+        let masterSubviewKey = this.modelSyncManager.getActiveModelSubviewID(Models.TRANSFER_FUNCTION.name, this.localControllerSelectedSubviewID);
+
+        this.FBAndTextureManager.createTransferFunction2DTexture(tfEditorKey, masterSubviewKey);
+
+        this.uniformManagerVolume.updateAll();
+
+        let needsUpdateSubviewIDs = [];
+        if (tfEditorKey === 'GLOBAL') {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWithMaster('GLOBAL', Models.TRANSFER_FUNCTION.name);
+        } else {
+            needsUpdateSubviewIDs = this.modelSyncManager.getSubviewIDsLinkedWith(this.localControllerSelectedSubviewID, Models.TRANSFER_FUNCTION.name);
+        }
+
+        this._notifySubviewsNeedUpdate('Volume', needsUpdateSubviewIDs, true);
+        //        for (let subviewID of needsUpdateSubviewIDs) {
+        //            this.subviews[subviewID].notifyNeedsUpdate('Volume', true);
+        //        }
+
+        if (needsUpdateSubviewIDs.length > 0)
+            this.requestAnimationFrame(['Volume']);
+    }
+
+    notifyLocalControllerSelectionDidChange(newSubview) {
+        this.localControllerSelectedSubviewID = newSubview;
+    }
+
+    notifyShowRayDidChange(showRay, subviewID) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        let model = this.modelSyncManager.getModel(Models.SELECTION_DISPLAY.name, subviewID || this.localControllerSelectedSubviewID);
+        model.displayRay = showRay;
+        //this._updateAndRefreshVolumeViewForSubviewID(subviewID || this.localControllerSelectedSubviewID);
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    _updateAndRefreshVolumeViewForLocalSubviewID() {
+        this._updateAndRefreshVolumeViewForSubviewID(this.localControllerSelectedSubviewID);
+    }
+
+    _updateAndRefreshVolumeViewForSubviewID(subviewID) {
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', [subviewID], true);
+        this.requestAnimationFrame();
+    }
+
+    notifyShowPointsDidChange(showPoints) {
+        if (Object.keys(this.subviews).length === 0)
+            return;
+
+        let model = this.modelSyncManager.getModel(Models.SELECTION_DISPLAY.name, this.localControllerSelectedSubviewID);
+
+        model.displayPoints = showPoints;
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForLocalSubviewID();
+    }
+
+    notifyClearRay(editorKey) {
+        // temp just let it be global by default, ignore editor key
+        this.selectionManager.unselectRay();
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    notifyClearPoints(editorKey) {
+        this.selectionManager.unselectPoints();
+        this.uniformManagerVolume.updateAll();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPoints();
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingRay() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayRay)
+                toUpdate.push(subviewID);
+        }
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingPoints() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = this._getAllSubviewsShowingPoints();
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    _getAllSubviewsShowingPoints() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let showingPoints = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayPoints)
+                showingPoints.push(subviewID);
+        }
+
+        return showingPoints;
+    }
+
+    _updateAndRefreshVolumeViewForSubviewIDsShowingPointsOrRay() {
+        let models = this.modelSyncManager.getAllDefaultModels(Models.SELECTION_DISPLAY.name);
+
+        let toUpdate = [];
+
+        for (let subviewID in this.subviews) {
+            if (models[subviewID].displayPoints || models[subviewID].displayRay)
+                toUpdate.push(subviewID);
+        }
+
+        this.uniformManagerVolume.updateAll();
+        this._notifySubviewsNeedUpdate('Volume', toUpdate, true);
+        this.requestAnimationFrame();
+    }
+
+    notifyRayRadiusDidChange(editorKey, newRadius) {
+        this.selectionManager.setRayRadius(newRadius);
+        this.uniformManagerVolume.updateAll();
+        //this._updateAndRefreshVolumeViewForLocalSubviewID();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+    }
+
+    notifyPointRadiusDidChange(editorKey, newRadius) {
+        this.selectionManager.setPointRadius(newRadius);
+        this.uniformManagerVolume.updateAll();
+        //this._updateAndRefreshVolumeViewForLocalSubviewID();
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPoints();
+    }
+
+    notifyNonSelectedOpacityDidChange(editorKey, value01) {
+        // Let it be global for now ...
+        this.selectionManager.setNonSelectedOpacity(value01);
+        this._updateAndRefreshVolumeViewForSubviewIDsShowingPointsOrRay();
+    }
+
+    notifyViewTypeChanged(subviewID, newType) {
+        //TODO change shader config upon change
+        let presets = PRESETS[newType];
+        this.modelSyncManager.applyPresetsToSubview(presets, subviewID);
+        this._notifySubviewsNeedUpdate('Volume', Object.keys(this.subviews), true);
+        this.requestAnimationFrame();
+    }
+
     _notifyNeedsUpdate(name, subviewID) {
         for (let theSubviewID in this.subviews) {
             this.subviews[theSubviewID].notifyNeedsUpdate(name);
@@ -1060,7 +1363,7 @@ class ViewManager {
 
 
 
-    _updateTextures(subviewID) {
+    /*_updateTextures(subviewID) {
         let TFModelID = this.modelSyncManager.getActiveModel(Models.TRANSFER_FUNCTION.name, subviewID);
 
         let check = Environment.TransferFunctionManager.checkNeedsUpdate(TFModelID);
@@ -1068,7 +1371,7 @@ class ViewManager {
 
             this.FBAndTextureManager.createTransferFunction2DTexture('GLOBAL');
         }
-    }
+    }*/
 
     __DEBUGRefreshView0() {
         console.log("__DEBUGRefreshView0()");

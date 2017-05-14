@@ -22,6 +22,12 @@ class Thresholds {
             this.minmax[1] * 8
         ];
     }
+
+    applyPresetFromJSON(preset) {
+        for (let attrib in preset) {
+            this[attrib] = preset[attrib];
+        }
+    }
 }
 
 module.exports = Thresholds;

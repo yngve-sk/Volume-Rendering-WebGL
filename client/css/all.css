@@ -9,6 +9,8 @@
 @import url("camera-settings-view.css");
 @import url("toolbar-view.css");
 @import url("slider-style.css");
+@import url("light-controller-style.css");
+@import url("selection-view.css");
 
 /* Shared for all widgets, h1 h2 etc */
 
@@ -20,6 +22,8 @@
 
 .widget-centered-h2 {
     border-bottom: 1px grey solid;
+    width: 50%;
+    margin-left: 5%;
 }
 
 .widget-bottom-element {

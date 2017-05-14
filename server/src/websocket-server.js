@@ -30,7 +30,7 @@ wss.on('connection', function connection(ws) {
             case 'get':
                 let toSend = null;
                 if (resource.type === 'dataset-list') {
-                    toSend = ['manix', 'hand'];
+                    toSend = Object.keys(theDatasets);
                 } else if (resource.type === 'dataset') {
                     let dataset = resource.dataset;
                     let field = resource.field;
@@ -40,8 +40,8 @@ wss.on('connection', function connection(ws) {
 
 
                     console.log("Datasett = " + datasett);
-                    console.log("fieldd = " + fieldd);
-                    console.log("field = " + field);
+                    /*console.log("fieldd = " + fieldd);
+                    console.log("field = " + field);*/
 
                     toSend = theDatasets[dataset][field];
                 }
@@ -57,7 +57,7 @@ wss.on('connection', function connection(ws) {
                 if (doStringify)
                     toSend = JSON.stringify(toSend);
 
-                console.log(toSend);
+                //console.log(toSend);
                 ws.send(toSend);
                 console.log("Sent object!");
                 break;

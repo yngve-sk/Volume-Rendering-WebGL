@@ -2,6 +2,9 @@ let displayFramebuffer = () => {
 
 }
 
+let displayFBImage = require('../debug-fb-to-canvas').displayFBImage;
+/*
+
 let displayFBImage = (image, w, h, target) => {
     let canvas = document.getElementById(target);
 
@@ -15,6 +18,7 @@ let displayFBImage = (image, w, h, target) => {
     let imagedata = new ImageData(new Uint8ClampedArray(image), w, h);
     ctx.putImageData(imagedata, 0, 0);
 }
+*/
 
 let displayFBImagePixelByPixel = (pixelReader) => {
 

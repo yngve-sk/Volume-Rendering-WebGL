@@ -2,7 +2,10 @@ let twgl = require('twgl.js'),
     m4 = twgl.m4,
     v3 = twgl.v3;
 
-let glmvec4 = require('gl-matrix').vec4;
+let glm = require('gl-matrix'),
+    glmvec3 = glm.vec3,
+    glmmat4 = glm.mat4,
+    glmmat3 = glm.mat3;
 
 let Quat = require('gl-matrix').quat;
 let _ = require('underscore');
@@ -12,10 +15,15 @@ console.log(Quat);
 class Camera {
     constructor(args) {
         this.radius = args.radius || 5.2;
+        this.refRadius = this.radius;
+
+        this.zoomFactor = 1.0;
+        this.zoomListener = null;
 
         this.theta = args.theta  ||  Math.PI / 3.0;
         this.phi = args.phi || Math.PI / 3.0;
 
+        this.eye = null; // Will be cached
         this.target = args.target || v3.create(0, 0, 0);
 
         this.projectionSettings = args.projectionSettings || {
@@ -37,8 +45,6 @@ class Camera {
         this.view = null;
         this.translationVec = v3.create(0, 0, 0);
 
-        this._updateViewMatrix();
-        this.setPerspective({});
 
         this.mouseCache = {
             isDrag: false,
@@ -54,10 +60,28 @@ class Camera {
         };
 
         this.upDir = 1;
+        this.mode = "perspective";
 
-        this.rotate(0.000001, 0.000001); // Init...
+        this.UP = v3.create(0, 1, 0);
+        this.RIGHT = v3.create(1, 0, 0);
+        this.EYE = v3.create(-2, 2, -5);
+        this.TARGET = v3.create(0, 0, 0);
 
+        this.prevEye = [4, 4, 4];
+        this.nextEye = [4, 4, 3];
 
+        this.prevAngle = [];
+        this.nextAngle = [];
+
+        /*
+                rot from prev to next, around axis: prev X next by angle Theta:
+                get the matrix
+                multiply into rotation matrix
+                recalc eye position and shiet
+        */
+
+        this._updateViewMatrixV2();
+        this.setPerspective({});
     }
 
     linkTo(master, properties, callback) {
@@ -76,16 +100,24 @@ class Camera {
         switch (property) {
             case 'rotation':
                 for (let slaveInfo of this.slaves[property]) {
-                    slaveInfo.slave.theta = this.theta;
-                    slaveInfo.slave.phi = this.phi;
-                    slaveInfo.slave._updateViewMatrix();
+                    //slaveInfo.slave.theta = this.theta;
+                    //slaveInfo.slave.phi = this.phi;
+                    //slaveInfo.slave.mode = this.mode;
+                    //slaveInfo.slave.upDir = this.upDir;
+                    //slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.slave.UP = this.UP;
+                    slaveInfo.slave.RIGHT = this.RIGHT;
+                    slaveInfo.slave.EYE = this.EYE;
+                    slaveInfo.slave._updateViewMatrixV2();
                     slaveInfo.callback();
                 }
                 break;
             case 'radius':
                 for (let slaveInfo of this.slaves[property]) {
-                    slaveInfo.slave.radius = this.radius;
-                    slaveInfo.slave._updateViewMatrix();
+                    //slaveInfo.slave.radius = this.radius;
+                    //slaveInfo.slave._updateViewMatrix();
+                    slaveInfo.slave.zoomFactor = this.zoomFactor;
+                    slaveInfo.slave._updateViewMatrixV2();
                     slaveInfo.callback();
                 }
                 break;
@@ -94,42 +126,162 @@ class Camera {
         }
     }
 
+    setZoomListener(listener) {
+        this.zoomListener = listener;
+    }
+
+    _notifyZoomListener(needsApply) {
+        if (this.zoomListener)
+            this.zoomListener(this.zoomFactor);
+    }
+
     killSlaves() {
         this.slaves.rotation = [];
         this.slaves.radius = [];
     }
 
-    rotate(dTheta, dPhi) {
-        if (this.upDir > 0) {
-            this.theta += this.ROT_SPEED_X * dTheta;
-        } else {
-            this.theta -= this.ROT_SPEED_X * dTheta;
-        }
+    /*
+     rotate(dTheta, dPhi) {
+         let dtheta = this.ROT_SPEED_X * dTheta;
 
-        this.phi += this.ROT_SPEED_Y * dPhi;
+         if (this.upDir > 0) {
+             this.theta += this.ROT_SPEED_X * dTheta;
+         } else {
+             this.theta -= this.ROT_SPEED_X * dTheta;
+         }
 
-        let _2PI = Math.PI * 2;
+         this.phi += this.ROT_SPEED_Y * dPhi;
 
-        if (this.phi > _2PI)
-            this.phi -= _2PI;
-        else if (this.phi < -_2PI)
-            this.phi += _2PI;
+         let _2PI = Math.PI * 2;
 
-        if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
-            this.upDir = 1;
-        } else {
-            this.upDir = -1;
-        }
+         if (this.phi > _2PI)
+             this.phi -= _2PI;
+         else if (this.phi < -_2PI)
+             this.phi += _2PI;
 
-        this._updateViewMatrix();
+         if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
+             this.upDir = 1;
+         } else {
+             this.upDir = -1;
+         }
+
+         //this.phi = Math.PI/2;
+
+         this._updateViewMatrix();
+         this._notifySlaves('rotation');
+     }   */
+
+    /*    rotate(dTheta, dPhi) {
+            let dtheta = this.ROT_SPEED_X * dTheta;
+
+            if (this.upDir > 0) {
+                this.theta += this.ROT_SPEED_X * dTheta;
+            } else {
+                this.theta -= this.ROT_SPEED_X * dTheta;
+            }
+
+            this.phi += this.ROT_SPEED_Y * dPhi;
+
+            let _2PI = Math.PI * 2;
+
+            if (this.phi > _2PI)
+                this.phi -= _2PI;
+            else if (this.phi < -_2PI)
+                this.phi += _2PI;
+
+            if ((0 < this.phi && this.phi < Math.PI) ||  (-_2PI < this.phi && this.phi < -Math.PI)) {
+                this.upDir = 1;
+            } else {
+                this.upDir = -1;
+            }
+
+            //this.phi = Math.PI/2;
+
+            this._updateViewMatrix();
+            this._notifySlaves('rotation');
+        }*/
+
+    rotate(dx, dy, x, y) {
+
+        // Rotate dx rad around UP
+        // Update RIGHT
+
+        let rotX = -this.ROT_SPEED_X * dx,
+            rotY = this.ROT_SPEED_Y * dy;
+
+        this._rotateAngles(rotX, rotY);
+        /*        // 1. Rotate around up
+                let rotAroundUP = m4.axisRotation(this.UP, rotX);
+
+                // 2. Apply rotation to RIGHT vector
+                this.RIGHT = m4.transformDirection(rotAroundUP, this.RIGHT);
+
+                // 3. Rotate around RIGHT
+                let rotAroundRIGHT = m4.axisRotation(this.RIGHT, rotY);
+
+                // 4. Apply rotation to UP vector
+                this.UP = m4.transformDirection(rotAroundRIGHT, this.UP);
+
+                this.EYE = m4.transformPoint(rotAroundUP, this.EYE);
+                this.EYE = m4.transformPoint(rotAroundRIGHT, this.EYE);
+
+                // Now calculate view matrix
+                /*let lookat = m4.lookAt(this.EYE * this.zoomFactor, this.TARGET, this.UP);
+                this.view = m4.inverse(lookat);*/
+        this._updateViewMatrixV2();
         this._notifySlaves('rotation');
+    }
+
+    _rotateAngles(rotX, rotY) {
+        let rotAroundUP = m4.axisRotation(this.UP, rotX);
+
+        // 2. Apply rotation to RIGHT vector
+        this.RIGHT = m4.transformDirection(rotAroundUP, this.RIGHT);
+
+        // 3. Rotate around RIGHT
+        let rotAroundRIGHT = m4.axisRotation(this.RIGHT, rotY);
+
+        // 4. Apply rotation to UP vector
+        this.UP = m4.transformDirection(rotAroundRIGHT, this.UP);
+
+        this.EYE = m4.transformPoint(rotAroundUP, this.EYE);
+        this.EYE = m4.transformPoint(rotAroundRIGHT, this.EYE);
+
+        // Now calculate view matrix
+        /*let lookat = m4.lookAt(this.EYE * this.zoomFactor, this.TARGET, this.UP);
+        this.view = m4.inverse(lookat);*/
+        /*this._updateViewMatrixV2();
+        this._notifySlaves('rotation');*/
+    }
+
+    repositionTo(newUP, newRIGHT) {
+        // 1. Find angle between newUP and this UP
+        // 2. Find angle between newRIGHT and this RIGHT
+
+        let angleUP = Math.acos(v3.dot(newUP, this.UP)),
+            angleRIGHT = Math.acos(v3.dot(newRIGHT, this.RIGHT));
+
+        // TODO do after quat.
     }
 
     zoom(dist) {
         console.log("ZOOM " + dist);
-        this.radius -= dist * this.ZOOM_SPEED;
-        this._updateViewMatrix();
+        //this.radius -= dist * this.ZOOM_SPEED;
+
+        this.zoomFactor += dist * this.ZOOM_SPEED;
+        //this._updateZoom();
+
+        //this._updateViewMatrix();
+        this._updateViewMatrixV2();
+        if (this.mode === 'ortho')
+            this.setOrtho();
+
         this._notifySlaves('radius');
+    }
+
+    _updateZoom() {
+        // perspective zoom
+        this.radius = this.zoomFactor * this.refRadius;
     }
 
     pan(dx, dy) {
@@ -148,11 +300,12 @@ class Camera {
                 let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
         */
 
-        let x = this.radius * Math.sin(this.phi) * Math.sin(this.theta);
-        let y = this.radius * Math.cos(this.phi);
-        let z = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+        let x = this.radius * Math.sin(this.phi + Math.PI / 2) * Math.sin(this.theta);
+        let y = this.radius * Math.cos(this.phi + Math.PI / 2);
+        let z = this.radius * Math.sin(this.phi + Math.PI / 2) * Math.cos(this.theta);
 
-        return v3.create(x, y, z);
+        this.eye = v3.create(x, y, z);
+        return this.eye;
     }
 
     toCartesian() {
@@ -173,12 +326,121 @@ class Camera {
     }
 
     setPerspective(args) {
+        if (!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
         this.projection = m4.perspective(
             args.fieldOfViewRadians || this.projectionSettings.fieldOfViewRadians,
             args.aspectRatio || this.projectionSettings.aspectRatio,
             args.zNear || this.projectionSettings.zNear,
             args.zFar || this.projectionSettings.zFar
         );
+    }
+
+    _updateProjectionSettings(args) {
+        for (let key in args) {
+            this.projectionSettings[key] = args[key];
+        }
+    }
+
+    setOrtho(args) {
+        // Use near plane
+
+        if (!args)
+            args = {};
+        else
+            this._updateProjectionSettings(args);
+
+
+        let zNear = args.zNear ||  this.projectionSettings.zNear,
+            zFar = args.zFar ||  this.projectionSettings.zFar,
+            ar = args.aspectRatio || this.projectionSettings.aspectRatio,
+            fovy = args.fieldOfViewRadians  ||  this.projectionSettings.fieldOfViewRadians;
+
+
+        // this coeff seems to work best, TODO
+        // find formula taking in FOV, zNear zFar to calculate
+        // ortho zNear
+        let zStep = 0.41; // 1 = use zFar plane, 0 = use zNear
+
+        //let near2Far = zFar - zNear,
+        //    orthoPlaneZ = zNear + zStep * near2Far;
+        let near2Far = (zFar - zNear),
+            zOffset = near2Far * zStep,
+            orthoPlaneZ = zOffset / this.zoomFactor;
+
+        // Use AR to get center2sidesX, ar = w/h => w = ar*h
+        let center2sidesY = orthoPlaneZ * Math.tan(fovy / 2),
+            center2sidesX = center2sidesY * ar;
+
+        let top = -center2sidesY,
+            right = center2sidesX,
+            bottom = center2sidesY,
+            left = -center2sidesX;
+
+        // use same zNear / far as perspective camera
+
+        this.projection = m4.ortho(left, right, top, bottom, zNear, zFar);
+    }
+
+    changeState(args) {
+        if (args.mode) {
+            if (args.mode === 'ortho') {
+                this.setOrtho();
+            } else if (args.mode === 'perspective') {
+                this.setPerspective();
+            } else {
+                console.error("Invalid mode " + args.mode);
+            }
+            this.mode = args.mode;
+        }
+
+        if (args.align) {
+            switch (args.align) {
+                case 'X':
+
+                    break;
+                case 'Y':
+
+                    break;
+                case 'Z':
+
+                    break;
+                case '-X':
+
+                    break;
+                case '-Y':
+
+                    break;
+                case '-Z':
+
+                    break;
+            }
+        }
+
+        if (args.zoomFactor) {
+            this.zoomFactor = args.zoomFactor;
+            this._updateViewMatrixV2(true);
+        }
+    }
+
+    _updateViewMatrixV2(skipNotify) {
+        let eye = this.EYE;
+
+        /* if(this.mode === 'perspective') {
+
+         } else {
+             eye = v3.negate(this.EYE);
+         }*/
+
+        let lookat = m4.lookAt(v3.divScalar(eye, this.zoomFactor), this.TARGET, this.UP);
+
+        this.view = m4.inverse(lookat);
+
+        if (!skipNotify)
+            this._notifyZoomListener();
     }
 
     _updateViewMatrix() {
@@ -188,6 +450,7 @@ class Camera {
             return rad * 180 / Math.PI;
         }
 
+        console.log("zoom factor = " + this.zoomFactor);
         console.log("PHI = " + rad2deg(this.phi));
         console.log("THETA = " + rad2deg(this.theta));
         console.log("POS = " + '(' +
@@ -196,41 +459,22 @@ class Camera {
         console.log("-----------------");
         console.log("-----------------");
 
-        this.view = m4.inverse(m4.lookAt(c.eye, c.target, c.up));
-/*
-        let zaxis = v3.normalize(v3.subtract(c.eye, c.target)); // The "forward" vector.
-        let xaxis = v3.normalize(v3.cross(c.up, zaxis)); // The "right" vector.
-        let yaxis = v3.normalize(v3.cross(zaxis, xaxis)); // The "up" vector.
+        let lookat = m4.lookAt(c.eye, c.target, c.up);
 
-        // Create a 4x4 orientation matrix from the right, up, and forward vectors
-        // This is transposed which is equivalent to performing an inverse
-        // if the matrix is orthonormalized (in this case, it is).
-        let orientation = [
-            xaxis[0], yaxis[0], zaxis[0], 0,
-            xaxis[1], yaxis[1], zaxis[1], 0,
-            xaxis[2], yaxis[2], zaxis[2], 0,
-            0, 0, 0, 1
-        ];
-
-        // Create a 4x4 translation matrix.
-        // The eye position is negated which is equivalent
-        // to the inverse of the translation matrix.
-        // T(v)^-1 == T(-v)
-        let translation = [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            -c.eye[0], -c.eye[1], -c.eye[2], 1
-        ];
-
-        this.view = m4.multiply(orientation, translation);*/
+        this.view = m4.inverse(lookat);
     }
 
     getWorldViewProjectionMatrix(aspectRatio) {
         if (aspectRatio)
-            this.setPerspective({
-                aspectRatio: aspectRatio
-            });
+            if (this.mode === "perspective")
+                this.setPerspective({
+                    aspectRatio: aspectRatio
+                });
+            else {
+                this.setOrtho({
+                    aspectRatio: aspectRatio
+                })
+            }
 
         // no world matrix, not needed ATM.
 
@@ -241,8 +485,8 @@ class Camera {
 
         let inverseVP = m4.inverse(m4.multiply(this.projection, this.view));
 
-        let homogenous = glmvec4.fromValues(devX, devY, devZ, 1.0);
-        let p = glmvec4.transformMat4(homogenous, homogenous, inverseVP),
+        let homogenous = glmvec3.fromValues(devX, devY, devZ, 1.0);
+        let p = glmvec3.transformMat4(homogenous, homogenous, inverseVP),
             w = p[3];
 
         // Divide by w also
@@ -260,16 +504,16 @@ class Camera {
         let p0 = this.__unproject(device.x, device.y, -1);
         let p1 = this.__unproject(device.x, device.y, 1);
 
-        let homogenous = glmvec4.fromValues(device.x, device.y, -1.0, 1.0);
+        let homogenous = glmvec3.fromValues(device.x, device.y, -1.0, 1.0);
 
         let inverseView = m4.inverse(this.view),
             inverseP = m4.inverse(this.projection);
 
-        let rayFromEye = glmvec4.transformMat4(glmvec4.create(), homogenous, inverseP);
+        let rayFromEye = glmvec3.transformMat4(glmvec3.create(), homogenous, inverseP);
         rayFromEye[2] = -1; // z
         rayFromEye[3] = 1; // w
 
-        let rayFromEyeWORLD = glmvec4.transformMat4(glmvec4.create(), rayFromEye, inverseView);
+        let rayFromEyeWORLD = glmvec3.transformMat4(glmvec3.create(), rayFromEye, inverseView);
         rayFromEyeWORLD = v3.negate(v3.normalize(v3.create(rayFromEyeWORLD[0], rayFromEyeWORLD[1], rayFromEyeWORLD[2])));
 
         let rayV2 = v3.normalize(v3.subtract(p1, p0));

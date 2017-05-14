@@ -6,6 +6,11 @@ let controller = function ($scope) {
         console.log("Local control panel DOM ready.");
     }
 
+    $scope.onOpenTFEditorPane = () => {
+        setTimeout(function () {
+            window.dispatchEvent(new Event('resizeTFEditor'));
+        }, 200);
+    }
 }
 
 module.exports = controller;

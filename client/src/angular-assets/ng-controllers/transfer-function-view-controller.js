@@ -6,6 +6,7 @@ let $ = require('jquery');
 require('spectrum-colorpicker');
 let TransferFunctionEditor = require('../../widgets/transfer-function/transfer-function-editor-v2');
 let Environment = require('../../core/environment');
+let Settings = require('../../core/settings');
 
 let controller = function ($scope, $timeout) {
     let tfEditor = null; // Initialized when DOM is ready.
@@ -22,6 +23,8 @@ let controller = function ($scope, $timeout) {
                     $scope.name,
                     $scope.thresholdSlider.minValue,
                     $scope.thresholdSlider.maxValue);
+                tfEditor.updateIsoThreshold($scope.thresholdSlider.minValue,
+                    $scope.thresholdSlider.maxValue);
             }
         }
     }
@@ -30,7 +33,8 @@ let controller = function ($scope, $timeout) {
         showHistogram: true,
         showHistogramSelection: true,
         showTransferFunction: true,
-        show3DSelectionHistogram: false
+        show3DSelectionHistogram: false,
+        applyThreshold: false
     };
 
     $scope.displayOptionsChanged = function () {
@@ -51,11 +55,17 @@ let controller = function ($scope, $timeout) {
             readOnly: false,
             disabled: false,
             showTicks: false,
-            showTicksValues: false
-        }
+            showTicksValues: false,
+            onChange: () => {
+                Environment.notifyGradientMagnitudeWeightingChanged(
+                    $scope.name,
+                    Math.max(0.1, ($scope.gradientMagSlider.weighting / 90.0))
+                );
+            }
+        },
     };
 
-    $scope.curvatureSlider = {
+    $scope.overallOpacitySlider = {
         weighting: 100,
         minValue: 0,
         options: {
@@ -69,7 +79,13 @@ let controller = function ($scope, $timeout) {
             readOnly: false,
             disabled: false,
             showTicks: false,
-            showTicksValues: false
+            showTicksValues: false,
+            onChange: () => {
+                Environment.notifyOverallOpacityChanged(
+                    $scope.name,
+                    Math.max(0.1, ($scope.overallOpacitySlider.weighting / 100.0))
+                );
+            }
         }
     };
 
@@ -96,19 +112,42 @@ let controller = function ($scope, $timeout) {
             $scope.getInteractionMode,
             $scope.$id,
             $scope.name);
+
+        let canvas = document.querySelector('.tf-editor-background-canvas.ng-id' + $scope.$id);
+
+        Environment.ready('TransferFunctionController', {
+            name: $scope.name,
+            editor: tfEditor,
+            canvas: canvas
+        });
+
         tfEditor.notifyModelDidChange();
         tfEditor.render();
 
         $scope.$watch('displayOptions', (newV, oldV) => {
-            console.log("DISP OPTIONS CHANGE!");
             tfEditor.render();
         }, true);
 
-        Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID($scope.name, $scope.$id)
+        //Environment.TransferFunctionManager.notifyTFPointsToCanvasWithID($scope.name, $scope.$id)
 
-        console.log("L93 TF Ctrlr");
-        Environment.ready('TransferFunctionController');
     }
+
+    Environment.listen('TFModelDidChange', $scope.name, (detail) => {
+        let tf = detail.TRANSFER_FUNCTION,
+            threshold = detail.THRESHOLDS;
+
+        tfEditor.setTFModel(tf);
+
+        $scope.thresholdSlider.minValue = threshold.minmax[0];
+        $scope.thresholdSlider.maxValue = threshold.minmax[1];
+
+        $scope.gradientMagSlider.value = tf.gradientMagnitudeWeighting * 90.0;
+        $scope.overallOpacitySlider.value = tf.overallOpacity * 100.0;
+    });
+
+    Environment.listen('DatasetDidChange', $scope.name, (detail) => {
+        let dataset = detail.dataset;
+    });
 
     $scope.renderTFEditor = () => {
         console.log("$scope.renderTFEditor");

@@ -37,7 +37,7 @@ module.exports = function (grunt) {
                 interval: 100
             },
             js: {
-                files: ['src/**/*.js', 'src/**/*.glsl'],
+                files: ['src/**/*.js', 'src/**/*.glsl', 'src/**/**/*.glsl'],
                 tasks: [
                     /*'jsdoc:dist',*/
                     'browserify:dist',
@@ -114,9 +114,6 @@ module.exports = function (grunt) {
                 }
             }
         }
-
-
-
     });
 
     grunt.registerTask('dist', ['jsdoc', 'cssmin', 'uglify:externals', 'browserify']);

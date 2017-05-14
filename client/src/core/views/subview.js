@@ -50,13 +50,17 @@ class Subview {
             SlicerPickingSlices: new ConfigurableRenderer(this.gl),
             SlicerPickingRails: new ConfigurableRenderer(this.gl),
             SlicerPickingCubeFaces: new ConfigurableRenderer(this.gl),
+            Volume3DPicking: new ConfigurableRenderer(this.gl),
+            VolumeRayRender: new ConfigurableRenderer(this.gl),
+            VolumePointRenderer: new ConfigurableRenderer(this.gl),
             Sphere: null
         };
 
         this.viewports = {
             Volume: null, // pointer to volume viewport obj
             Slicer: null, // pointer to slicer viewport obj
-            Sphere: null // pointer to sphere viewport obj
+            Sphere: null, // pointer to sphere viewport obj
+            VolumeRayRender: null
         };
     }
 
@@ -68,8 +72,8 @@ class Subview {
             return 1; // default fallback
     }
 
-    renderSpecific(name, configTweak) {
-        this.renderers[name].render(configTweak);
+    renderSpecific(name, full) {
+        this.renderers[name].render(full  || true); //shitty design but w/E! might be a json later to render a certain set of steps and so on.
     }
 
     notifyNeedsUpdate(name, fullUpdate) {
@@ -86,19 +90,24 @@ class Subview {
             this.needsUpdate.Volume = false;
             this.needsFullUpdate.Volume = false;
             this.needsUpdate.Slicer = false;
-        }
-
-        if (this.needsUpdate.Slicer) {
+        } else if (this.needsUpdate.Slicer) {
             this.renderers.Volume.render(false);
             this.renderers.Slicer.render(true);
             this.needsUpdate.Slicer = false;
-        }
-        if (this.needsUpdate.SlicerPicking) {
+        } else if (this.needsUpdate.SlicerPicking) {
             //this.renderers.SlicerPicking.render();
             this.needsUpdate.SlicerPicking = false;
         }
+    }
 
+    fullRender() {
+        this.renderers.Volume.render(true);
+        this.renderers.Slicer.render(true);
+    }
 
+    lastStepRender() {
+        this.renderers.Volume.render(false);
+        this.renderers.Slicer.render(false);
     }
 
     /**
@@ -146,6 +155,9 @@ class Subview {
                 this.renderers[vp.name].setViewport(vp);
             this.viewports[vp.name] = vp;
         }
+
+        this.renderers.VolumeRayRender.setViewport(this.viewports.Volume);
+        this.renderers.VolumePointRenderer.setViewport(this.viewports.Volume);
     }
 }
 

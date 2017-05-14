@@ -13,7 +13,7 @@ let directive = function ($timeout) {
                 // avoid executing code on DOM before it is initialized!
             }, 0); //Calling a scoped method
         },
-        templateUrl: 'src/angular-assets/ng-templates/toolbar-view-template.html'
+        templateUrl: 'src/angular-assets/ng-templates/selection-settings-view-template.html'
     }
 };
 
