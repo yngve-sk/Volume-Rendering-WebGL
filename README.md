@@ -118,9 +118,6 @@
 ![Adjust opacity](./screenshots/tf-drop.gif)
 
 # <a name="AddCGControlPoint"></a>
-<br>
---
-<br>
 ```
     Adding a color gradient control point (Click on the gradient below)
 ```
@@ -128,9 +125,6 @@
 ![Adjust opacity](./screenshots/tf-addcgcontrolpoint.gif)
 
 # <a name="DeleteCGControlPoint"></a>
-<br>
---
-<br>
 ```
     Deleting gradient control point (Click on the cross below the control point)
 ```
@@ -138,9 +132,6 @@
 ![Adjust opacity](./screenshots/tf-deletecgcontrolpoint.gif)
 
 # <a name="MoveCGControlPoint"></a>
-<br>
---
-<br>
 ```
     Moving a color gradient control point (Drag a triangle)
 ```
@@ -148,9 +139,6 @@
 ![Adjust opacity](./screenshots/tf-movecgcontrolpoint.gif)
 
 # <a name="ChangeCGControlPoint"></a>
-<br>
---
-<br>
 ```
     Changing color of a color gradient control point (Double-Click on triangle & select color)
 ```
@@ -167,18 +155,12 @@
 ![Surface Weighting](./screenshots/histo-surfaceweighting.gif)
 
 <a name="OverallVisibility"></a>
-<br>
---
-<br>
 ```
     Modifying overall visibility (It is useful to adjust this UP and surface weighting is adjusted up)
 ``` 
 ![Overall visibility](./screenshots/histo-overallopacity.gif)
 
 <a name="HistogramThreshold"></a>
-<br>
---
-<br>
 ```
     Histogram & Thresholds (Drag slider to adjust displayed range of isovalues)
 ```
@@ -186,9 +168,6 @@
 
 # [Lighting<a name="Lighting"></a>](#Lighting)
 <a name="Intensity"></a>
-<br>
---
-<br>
 ```
 Adjust intensity (Adjusts all light components)
 ```
@@ -196,9 +175,6 @@ Adjust intensity (Adjusts all light components)
 ![Intensity](./screenshots/lights-overallintensity.gif)
 
 <a name="LightThreshold"></a>
-<br>
---
-<br>
 ```
 Lighting range (select which isovalues to apply lighting to)
 ```
@@ -206,9 +182,6 @@ Lighting range (select which isovalues to apply lighting to)
 ![Intensity](./screenshots/lights-threshold.gif)
 
 <a name="Ambient"></a>
-<br>
---
-<br>
 ```
 Adjust ambient (High ambience makes color more prominent)
 ```
@@ -216,9 +189,6 @@ Adjust ambient (High ambience makes color more prominent)
 ![Intensity](./screenshots/lights-ambient.gif)
 
 <a name="Diffuse"></a>
-<br>
---
-<br>
 ```
 Adjust diffuse lighting
 ```
@@ -226,9 +196,6 @@ Adjust diffuse lighting
 ![Intensity](./screenshots/lights-diffuse.gif)
 
 <a name="Specular"></a>
-<br>
---
-<br>
 ```
 Adjust specular lighting 
 ```
@@ -247,7 +214,6 @@ Toggle ortho and perspective
 
 
 <a name="#CameraSettings"></a>
---
 
 ```
 Camera operations - (Move, rotate, zoom)
@@ -255,9 +221,6 @@ Camera operations - (Move, rotate, zoom)
 
 ![Camera interaction](./screenshots/interact-camera.gif)
 <a name="#InteractSlicer"></a>
-<br>
---
-<br>
 ```
 Slicing the volume (Drag a slice along the edges of the box)
 ```
@@ -265,11 +228,7 @@ Slicing the volume (Drag a slice along the edges of the box)
 ![Camera interaction](./screenshots/interact-slicer.gif)
 
 <a name="#SelectRay"></a>
-<br>
---
-<br>
 ```
 Selecting a ray
 ```
-
 ![Camera interaction](./screenshots/interact-ray.gif)
