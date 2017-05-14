@@ -15,23 +15,24 @@
         * [Adding a control point](#AddPoint)
         * [Deleting a control point](#DeletePoint)
         * [Dropping a control point](#DropPoint)
-        * --
+        * 
         * [Adding a color gradient control point](#AddCGControlPoint)
         * [Deleting gradient control point](#DeleteCGControlPoint)
         * [Moving a color gradient control point](#MoveCGControlPoint)
         * [Changing color of a color gradient control point](#ChangeCGControlPoint)
-        * --
+        * 
     * [Thresholds & Histogram](#Histogram)
         * [Surface weighting](#SurfaceWeighting)
         * [Overall visibility](#OverallVisibility)
         * [Isovalue threshold & histogram](#HistogramThreshold)
-        * --
-    * Lighting(#Lighting)
+        * 
+    * [Lighting](#Lighting)
         * [Intensity](#Intensity)
         * [Lighting isovalue threshold](#LightThreshold)
         * [Ambient](#Ambient)
         * [Diffuse](#Diffuse)
         * [Specular](#Specular)
+        *
     * [Camera settings (Toggle ortho & perspective)](#Camera)
 
 * [Interacting with the volume](#Interacting)
