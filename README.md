@@ -203,7 +203,6 @@ Adjust specular lighting
 ![Intensity](./screenshots/lights-specular.gif)
 
 # [Camera<a name="Camera"></a>](#Camera)
-<br>
 ```
 Toggle ortho and perspective
 ```
