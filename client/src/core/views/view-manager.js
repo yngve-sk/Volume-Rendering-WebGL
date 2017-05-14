@@ -1233,7 +1233,10 @@ class ViewManager {
         let model = this.modelSyncManager.getModel(Models.SELECTION_DISPLAY.name, subviewID || this.localControllerSelectedSubviewID);
         model.displayRay = showRay;
         //this._updateAndRefreshVolumeViewForSubviewID(subviewID || this.localControllerSelectedSubviewID);
-        this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+        if (showRay)
+            this._updateAndRefreshVolumeViewForSubviewIDsShowingRay();
+        else
+            this._updateAndRefreshVolumeViewForSubviewID(this.localControllerSelectedSubviewID);
     }
 
     _updateAndRefreshVolumeViewForLocalSubviewID() {
