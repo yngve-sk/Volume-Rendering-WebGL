@@ -7,7 +7,7 @@ let datasets = {
     //'Sinus Veins (174.6MB)': new VolumeDataset('./datasets/sinusveins/sinusveins', 1),
     'Whole Body (12.7MB)': new VolumeDataset('./datasets/wholebody/wholebody-128x128x389', 1),
     'Whole Body (30MB)': new VolumeDataset('./datasets/wholebody/wholebody-170x170x519', 1),
-    'Whole Body (102MB)': new VolumeDataset('./datasets/wholebody/wholebody-256x256x779', 1),
+    //'Whole Body (102MB)': new VolumeDataset('./datasets/wholebody/wholebody-256x256x779', 1),
     //'Manix(241MB)': new VolumeDataset('./datasets/manix/manix', 1)
 };
 
