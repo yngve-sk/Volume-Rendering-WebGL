@@ -126,19 +126,19 @@ let SETTINGS = {
             showIconsOnSelectView: true,
             icons: new SplitViewIconSet({
                 /*Icons: {
-                    'Surface View': '../client/images/icons/skull-icon.png',
-                    'Slice View': '../client/images/icons/icon-slicer.png',
-                    '3D Volume': '../client/images/icons/3d-icon-skull.png'
+                    'Surface View': '../images/icons/skull-icon.png',
+                    'Slice View': '../images/icons/icon-slicer.png',
+                    '3D Volume': '../images/icons/3d-icon-skull.png'
 
 
                 },*/
                 Icons: {
-                    'Blank': '../client/images/preset-icons/Blank.png',
-                    'Basic': '../client/images/preset-icons/Basic.png',
-                    'X-Ray': '../client/images/preset-icons/X-Ray.png',
-                    'Brain': '../client/images/preset-icons/Brain.png',
-                    'Sinuses&Lungs': '../client/images/preset-icons/Sinuses&Lungs.png',
-                    'Skeleton': '../client/images/preset-icons/Skeleton.png',
+                    'Blank': '../images/preset-icons/Blank.png',
+                    'Basic': '../images/preset-icons/Basic.png',
+                    'X-Ray': '../images/preset-icons/X-Ray.png',
+                    'Brain': '../images/preset-icons/Brain.png',
+                    'Sinuses&Lungs': '../images/preset-icons/Sinuses&Lungs.png',
+                    'Skeleton': '../images/preset-icons/Skeleton.png',
 
                 },
                 defaultIcon: '3D Volume'
@@ -189,19 +189,19 @@ let SETTINGS = {
         },
         ContextMenus: {
             Volume: { // Item name : icon img path
-                'Rotate': '../client/images/icons/rotate.png',
-                'Move': '../client/images/icons/move.png',
-                'Zoom': '../client/images/icons/zoom.png',
-                //'Measure': '../client/images/icons/ruler.png',
-                //'Select Point': '../client/images/icons/ruler.png',
-                'Select Ray': '../client/images/icons/ruler.png'
+                'Rotate': '../images/icons/rotate.png',
+                'Move': '../images/icons/move.png',
+                'Zoom': '../images/icons/zoom.png',
+                //'Measure': '../images/icons/ruler.png',
+                //'Select Point': '../images/icons/ruler.png',
+                'Select Ray': '../images/icons/ruler.png'
             },
             Slicer: {
-                'Rotate': '../client/images/icons/rotate.png',
-                /*'Zoom': '../client/images/icons/zoom.png',
-                'Add Slice': '../client/images/icons/add.png',
-                'Remove Slice': '../client/images/icons/remove.png',*/
-                'Move Slice': '../client/images/icons/move-slice.png',
+                'Rotate': '../images/icons/rotate.png',
+                /*'Zoom': '../images/icons/zoom.png',
+                'Add Slice': '../images/icons/add.png',
+                'Remove Slice': '../images/icons/remove.png',*/
+                'Move Slice': '../images/icons/move-slice.png',
             }
         }
     },

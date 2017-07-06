@@ -1,168 +1,168 @@
 <html ng-app="WebGLVolumeRendererClient">
 
 <head>
-    <title>WebGL2 Volume Renderer</title>
+  <title>WebGL2 Volume Renderer</title>
 
-    <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
-    <link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/6.1.1/rzslider.css" />
+  <link type="text/css" rel="stylesheet" href="semantic/dist/semantic.min.css">
+  <!--<link rel="stylesheet" href="./node_modules/spectrum-colorpicker/spectrum.css">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/6.1.1/rzslider.css" />
+-->
+  <script src="build/externals.min.js"></script>
+  <!--<script src="templibs/jquery.toolbar.min.js"></script>
+  <link type="text/css" rel="stylesheet" href="./templibs/jquery.toolbar.min.css" />
+-->
+  <link type="text/css" rel="stylesheet" href="build/style.css">
+  <link type="text/css" rel="stylesheet" href="css/all.css">
+  <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
 
-    <script src="build/externals.min.js"></script>
-    <script src="templibs/jquery.toolbar.min.js"></script>
-    <link type="text/css" rel="stylesheet" href="./templibs/jquery.toolbar.min.css" />
-
-    <link type="text/css" rel="stylesheet" href="build/style.css">
-    <link type="text/css" rel="stylesheet" href="css/all.css">
-    <!--script src="./node_modules/spectrum-colorpicker/spectrum.js"></script-->
-
-    <script src="./templibs/contextMenu.js-master/contextMenu.js"></script>
-    <link type="text/css" rel="stylesheet" href="./templibs/contextMenu.js-master/contextMenu.css">
+  <script src="./templibs/contextMenu.js-master/contextMenu.js"></script>
+  <link type="text/css" rel="stylesheet" href="./templibs/contextMenu.js-master/contextMenu.css">
 </head>
 
 <body>
 
-    <div ng-controller="master-controller as mc" id="master-container">
-        <div>
-            <div id="lvw-select-view" class="minimized" data-tooltip="Set/View the selected subview here, this will be the target for the local controls"></div>
-            <button data-tooltip="Minimize/maximize subview selection panel" id="lvw-select-view-btn" class="ui icon button minimized">
-            <i class="expand icon"></i>
-            </button>
+  <div ng-controller="master-controller as mc" id="master-container">
+    <div>
+      <div id="lvw-select-view" class="minimized" data-tooltip="Set/View the selected subview here, this will be the target for the local controls"></div>
+      <button data-tooltip="Minimize/maximize subview selection panel" id="lvw-select-view-btn" class="ui icon button minimized">
+      <i class="expand icon"></i>
+      </button>
+    </div>
+    <links-and-views-view></links-and-views-view>
+    <div class="panel-container">
+
+
+      <div class="panel-left">
+        <div id="webgl-canvas-container">
+          <canvas id="webgl-master-canvas" class="webgl-canvas">
+          </canvas>
         </div>
-        <links-and-views-view></links-and-views-view>
-        <div class="panel-container">
+      </div>
 
+      <div class="splitter">
+      </div>
 
-            <div class="panel-left">
-                <div id="webgl-canvas-container">
-                    <canvas id="webgl-master-canvas" class="webgl-canvas">
-                    </canvas>
-                </div>
+      <div class="panel-right">
+        <div id="controllers-container">
+
+          <div class="panel-container-vertical">
+
+            <div class="panel-top">
+              <global-control-panel></global-control-panel>
             </div>
 
-            <div class="splitter">
+            <div class="splitter-horizontal">
             </div>
 
-            <div class="panel-right">
-                <div id="controllers-container">
-
-                    <div class="panel-container-vertical">
-
-                        <div class="panel-top">
-                            <global-control-panel></global-control-panel>
-                        </div>
-
-                        <div class="splitter-horizontal">
-                        </div>
-
-                        <div class="panel-bottom">
-                            <local-control-panel></local-control-panel>
-                        </div>
-
-                    </div>
-
-                </div>
+            <div class="panel-bottom">
+              <local-control-panel></local-control-panel>
             </div>
+
+          </div>
+
         </div>
-
-
-
-
+      </div>
     </div>
 
 
 
 
-    <!--
-
-            Couldn't get these to work with browserify,
-             esp semantic UI and its angular integration
-             is problematic, this way it works. Only catch
-             is that now angular is in the global namespace
-             so it doesn't need to be require'd via browserify
-
-        -->
+  </div>
 
 
 
-    <!--
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <script src="semantic/dist/semantic.min.js"></script>
-    <script src="./node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="./semantic/dist/semantic.min.js"></script>
-    <script src="./node_modules/angular/angular.min.js"></script>
-    <script src="./node_modules/jquery-resizable-dom/dist/jquery-resizable.js"></script>
-    <script src="./node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js"></script>
+
+  <!--
+
+      Couldn't get these to work with browserify,
+       esp semantic UI and its angular integration
+       is problematic, this way it works. Only catch
+       is that now angular is in the global namespace
+       so it doesn't need to be require'd via browserify
+
+    -->
+
+
+
+  <!--
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+  <script src="semantic/dist/semantic.min.js"></script>
+  <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="./semantic/dist/semantic.min.js"></script>
+  <script src="./node_modules/angular/angular.min.js"></script>
+  <script src="./node_modules/jquery-resizable-dom/dist/jquery-resizable.js"></script>
+  <script src="./node_modules/semantic-ui-angular-jquery/angular-semantic-ui.min.js"></script>
 -->
 
 
 
-    <!--    <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>-->
+  <!--  <script src="//cdnjs.cloudflare.com/ajax/libs/angularjs-slider/2.8.0/rzslider.js"></script>-->
 
 
 
-    <script src="build/main-compiled.js"></script>
+  <script src="build/main-compiled.js"></script>
 
-    <svg style="width:0;height:0"><defs>
-        <filter id="linkgroup-master-cell-filter22">
+  <svg style="width:0;height:0"><defs>
+    <filter id="linkgroup-master-cell-filter22">
 
 			<feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"></feGaussianBlur>
 			<feOffset dy="3" dx="3"></feOffset>
 			<feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
 
-           <feFlood flood-color="white" flood-opacity="1"></feFlood>
-		   <feComposite in2="shadowDiff" operator="in"></feComposite>
-		   <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
+      <feFlood flood-color="white" flood-opacity="1"></feFlood>
+		  <feComposite in2="shadowDiff" operator="in"></feComposite>
+		  <feComposite in2="SourceGraphic" operator="over" result="firstfilter"></feComposite>
 
 
-          <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
+     <feGaussianBlur in="firstfilter" stdDeviation="6" result="blur2"></feGaussianBlur>
 			<feOffset dy="-7" dx="-7"></feOffset>
 			<feComposite in2="firstfilter" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"></feComposite>
 
-           <feFlood flood-color="black" flood-opacity="1"></feFlood>
+      <feFlood flood-color="black" flood-opacity="1"></feFlood>
 			<feComposite in2="shadowDiff" operator="in"></feComposite>
 			<feComposite in2="firstfilter" operator="over"></feComposite>
-  </filter></defs></svg>
-    <br><br><br><br><br><br><br><br><br><br><br>
-    <div id="debug-container">
-       <div class="ui celled grid">
-        <div class="three column row">
-            <div class="column view-splitter-cell">
-                <canvas id="debugcanvas1"></canvas>
-            </div>
+ </filter></defs></svg>
+  <br><br><br><br><br><br><br><br><br><br><br>
+  <div id="debug-container">
+    <div class="ui celled grid">
+    <div class="three column row">
+      <div class="column view-splitter-cell">
+        <canvas id="debugcanvas1"></canvas>
+      </div>
 
-            <div class="column view-splitter-cell">
-             <canvas id="debugcanvas2"></canvas>
-            </div>
+      <div class="column view-splitter-cell">
+       <canvas id="debugcanvas2"></canvas>
+      </div>
 
-            <div class="column view-splitter-cell">
+      <div class="column view-splitter-cell">
 
-                <canvas id="debugcanvas3"></canvas>
-            </div>
+        <canvas id="debugcanvas3"></canvas>
+      </div>
 
-           <!-- <div class="column view-splitter-cell">
+      <!-- <div class="column view-splitter-cell">
 
-                <canvas id="debugcanvas4"></canvas>
-            </div>
+        <canvas id="debugcanvas4"></canvas>
+      </div>
 
-            <div class="column view-splitter-cell">
-               <canvas id="debugcanvas5"></canvas>
-            </div>-->
-        </div>
+      <div class="column view-splitter-cell">
+        <canvas id="debugcanvas5"></canvas>
+      </div>-->
     </div>
+  </div>
 
-    </div>
-    <script>
-//        console.log = function() {};
-    </script>
+  </div>
+  <script>
+//    console.log = function() {};
+  </script>
 </body>
 <!--footer style="font-size:8px; color: grey; opacity: 0.2">
-    <center>
-        <div>Icons made by <a href="http://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        <div>Icons made by <a href="http://www.flaticon.com/authors/nikita-golubev" title="Nikita Golubev">Nikita Golubev</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        <div>Icons made by <a href="http://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        <div>Icons made by <a href="http://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        <div>Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-    </center>
+  <center>
+    <div>Icons made by <a href="http://www.flaticon.com/authors/madebyoliver" title="Madebyoliver">Madebyoliver</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    <div>Icons made by <a href="http://www.flaticon.com/authors/nikita-golubev" title="Nikita Golubev">Nikita Golubev</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    <div>Icons made by <a href="http://www.flaticon.com/authors/gregor-cresnar" title="Gregor Cresnar">Gregor Cresnar</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    <div>Icons made by <a href="http://www.flaticon.com/authors/simpleicon" title="SimpleIcon">SimpleIcon</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    <div>Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+  </center>
 </footer-->
 
 </html>

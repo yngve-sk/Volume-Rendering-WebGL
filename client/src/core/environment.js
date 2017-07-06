@@ -1,7 +1,7 @@
 let ViewManager = require('../core/views/view-manager');
 let DatasetManager = require('../datasets&selections/dataset-manager');
 let LinksAndLayout = require('../widgets/split-view/view-splitter-master-controller');
-
+ 
 let modes = require('./interaction-modes'),
     Interactions = modes.Interactions,
     CameraModes = modes.CameraModes;

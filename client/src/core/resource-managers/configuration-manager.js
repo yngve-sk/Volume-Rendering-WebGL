@@ -364,7 +364,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.FRONT]
@@ -419,7 +419,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.FRONT]
@@ -474,7 +474,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.FRONT]
@@ -529,7 +529,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.FRONT]
@@ -582,7 +582,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.FRONT]
@@ -594,7 +594,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.BACK]
@@ -627,7 +627,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.BACK]
@@ -674,7 +674,7 @@ class ConfigurationManager {
                     bufferInfo: buffer,
                     glSettings: {
                         //clear: [gl.COLOR_BUFFER_BIT],
-                        clear: [gl.DEPTH_BUFFER_BIT  |  gl.COLOR_BUFFER_BIT],
+                        clear: [gl.DEPTH_BUFFER_BIT |  gl.COLOR_BUFFER_BIT],
                         disable: [gl.BLEND],
                         enable: [gl.CULL_FACE, gl.DEPTH_TEST],
                         cullFace: [gl.BACK]

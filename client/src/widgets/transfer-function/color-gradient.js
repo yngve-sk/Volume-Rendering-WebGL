@@ -17,7 +17,7 @@ class ColorGradient {
      */
     constructor(controlPoints) {
         //this.gradient = []; // Format: [{offset: n, color: color}], offset is between 0 and 100
-        this.gradient = controlPoints || [];
+        this.gradient = controlPoints ||  [];
     }
 
 

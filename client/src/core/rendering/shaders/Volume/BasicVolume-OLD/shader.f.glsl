@@ -23,106 +23,106 @@ out vec4 outColor;
 const int MAX_STEPS = 1000;
 
 float getNormalizedIsovalue(vec3 modelPosition) {
-    //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);
-    int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);
-    return float(iso) / 32736.0;
+  //vec3 gridPosition = (modelPosition, u_BoundingBoxNormalized);
+  int iso = int(texture(u_ModelXYZToIsoValue, modelPosition).r);
+  return float(iso) / 32736.0;
 }
 
 
 void main() {
-    vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;
-    vec3 front2Back = (backfaceGridPos - v_gridPosition);
+  vec3 backfaceGridPos = texture(u_TexCoordToRayEndPoint, v_screenCoord).rgb;
+  vec3 front2Back = (backfaceGridPos - v_gridPosition);
 
-    float rayLength = length(front2Back);
-    vec3 ray = normalize(front2Back);
+  float rayLength = length(front2Back);
+  vec3 ray = normalize(front2Back);
 
-    float delta = u_SamplingRate;
-    vec3 deltaRay = delta * ray;
+  float delta = u_SamplingRate;
+  vec3 deltaRay = delta * ray;
 
-    vec3 currentPos = v_gridPosition;
+  vec3 currentPos = v_gridPosition;
 
-    float accumulatedAlpha = 0.0;
-    vec3 accumulatedColor = vec3(0.0);
-    float accumulatedLength = 0.0;
+  float accumulatedAlpha = 0.0;
+  vec3 accumulatedColor = vec3(0.0);
+  float accumulatedLength = 0.0;
 
-    float isovalue; // normalized
+  float isovalue; // normalized
 
-    vec3 color;
-    highp float alpha;
-    highp float alphaIn;
-    vec4 isoRGBA;
+  vec3 color;
+  highp float alpha;
+  highp float alphaIn;
+  vec4 isoRGBA;
 
-    float alphaCorrection = 0.1;
+  float alphaCorrection = 0.1;
 
-//    for(int i = 0; i < u_Steps; i++) {
-    for(int i = 0; i < MAX_STEPS; i++) {
-        //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);
-        isovalue = getNormalizedIsovalue(currentPos);
-        //gradientMagnitude = isoAndGradientMag.g;
+//  for(int i = 0; i < u_Steps; i++) {
+  for(int i = 0; i < MAX_STEPS; i++) {
+    //vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);
+    isovalue = getNormalizedIsovalue(currentPos);
+    //gradientMagnitude = isoAndGradientMag.g;
 
-        // find color&Opacity via TF
-        isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));
+    // find color&Opacity via TF
+    isoRGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));
 
-        alpha = isoRGBA.a * alphaCorrection;
-        color = isoRGBA.rgb;
+    alpha = isoRGBA.a * alphaCorrection;
+    color = isoRGBA.rgb;
 
-        // Accumulate color and opacity
-        accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;
-        accumulatedAlpha += alpha;
+    // Accumulate color and opacity
+    accumulatedColor += (1.0 - accumulatedAlpha) * color * alpha;
+    accumulatedAlpha += alpha;
 
-        //alphaIn = isoRGBA.a;
-        //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);
+    //alphaIn = isoRGBA.a;
+    //alphaIn = 1.0 - pow((1.0 - accumulatedAlpha), u_AlphaCorrectionExponent);
 
-        //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;
-        //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;
+    //accumulatedColor = accumulatedColor + (1.0 - accumulatedAlpha) * alpha * color;
+    //accumulatedAlpha = accumulatedAlpha + (1.0 - accumulatedAlpha) * alpha;
 
-        // Increment step & accumulated length
-        currentPos += deltaRay;
-        accumulatedLength += delta;
+    // Increment step & accumulated length
+    currentPos += deltaRay;
+    accumulatedLength += delta;
 
-        // Stop if opacity reached
-        if(accumulatedLength >= rayLength || accumulatedAlpha >= 1.0)
-            break;
-    }
+    // Stop if opacity reached
+    if(accumulatedLength >= rayLength ||accumulatedAlpha >= 1.0)
+      break;
+  }
 
-    //vec3 isovalueLookup = currentPos - vec3(0.5);
-    /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);
-    ////isovalue = isoAndGradientMag.r;
-    //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));
-    //vec3 colorTestRGB = colorTest.rgb;
-    //float colorTestA = colorTest.a;
+  //vec3 isovalueLookup = currentPos - vec3(0.5);
+  /////vec2 isoAndGradientMag = getIsovalueAndGradientMagnitude(currentPos);
+  ////isovalue = isoAndGradientMag.r;
+  //vec4 colorTest = texture(u_IsoValueToColorOpacity, vec2(currentPos.x,0));
+  //vec3 colorTestRGB = colorTest.rgb;
+  //float colorTestA = colorTest.a;
 
-    ///isovalue = getNormalizedIsovalue(v_gridPosition);
-    /////float alph = iso2RGBA.a;
-    ///
-    ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;
-    ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));
-    ///
-    ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));
+  ///isovalue = getNormalizedIsovalue(v_gridPosition);
+  /////float alph = iso2RGBA.a;
+  ///
+  ///alpha = texture(u_IsoValueToColorOpacity, vec2(0.5,0.5)).a;
+  ///isovalue = getNormalizedIsovalue(vec3(v_gridPosition.xy, alpha));
+  ///
+  ///vec4 iso2RGBA = texture(u_IsoValueToColorOpacity, vec2(isovalue, 0.5));
 ///
 
-    outColor = vec4(accumulatedColor, accumulatedAlpha);
-    //outColor = iso2RGBA;
-    //outColor = vec4(vec3(alph),1.0);
-    //outColor = vec4(vec3(isovalue/2.0),1.0);
-    //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);
-    //outColor = vec4(backfaceGridPos, 1.0);
+  outColor = vec4(accumulatedColor, accumulatedAlpha);
+  //outColor = iso2RGBA;
+  //outColor = vec4(vec3(alph),1.0);
+  //outColor = vec4(vec3(isovalue/2.0),1.0);
+  //outColor = vec4(texture(u_IsoValueToColorOpacity, vec2(0.2, 0.5)).rg, 0.5, 1.0);
+  //outColor = vec4(backfaceGridPos, 1.0);
 
-    //outColor = theDirection;
-    //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);
-    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);
-    //outColor = normalize(theDirection);
-    //outColor = backface;
+  //outColor = theDirection;
+  //outColor = vec4(texture(u_TexCoordToRayDirection, texCoord).rgb, 1.0);
+  //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);
+  //outColor = normalize(theDirection);
+  //outColor = backface;
 
-    //outColor = colorTest;
-    //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!
-    //outColor = isohalfRGBA;
-    //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!
-    //outColor = vec4(xNormalized, yNormalized, 0.5, 1);
-    //outColor = vec4(1,1,1,1);
-    //outColor = vec4(0.3,0.4,0.2,1);
-    //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);
-    //outColor = isovalue;
-    //outColor = vec4(colorTestRGB, 1);
-    //outColor = vec4(rayDirectionNormalized,1);
+  //outColor = colorTest;
+  //outColor = texture(u_TexCoordToRayOrigin, texCoord); // WORKS!!!
+  //outColor = isohalfRGBA;
+  //outColor = vec4(vec3(isovalueNormalized),1); // WORKS!
+  //outColor = vec4(xNormalized, yNormalized, 0.5, 1);
+  //outColor = vec4(1,1,1,1);
+  //outColor = vec4(0.3,0.4,0.2,1);
+  //outColor = v_gridPosition + vec4(0.5,0.5,0.5,0);
+  //outColor = isovalue;
+  //outColor = vec4(colorTestRGB, 1);
+  //outColor = vec4(rayDirectionNormalized,1);
 }

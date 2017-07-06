@@ -4,45 +4,45 @@
 
 * [Loading a dataset](#DatasetLoading)
 * [Windowing operations](#WindowingOperations)
-    * [Adding and removing subviews](#AddSubview)
-    * [Linking and unlinking properties between subviews](#Linking)
-    * [Local vs global controllers](#LocalVsGlobal)
-    * [Selecting a subview](#SelectSubview)
-    
+  * [Adding and removing subviews](#AddSubview)
+  * [Linking and unlinking properties between subviews](#Linking)
+  * [Local vs global controllers](#LocalVsGlobal)
+  * [Selecting a subview](#SelectSubview)
+  
 * [Changing appearance of the volume](#VolumeAppearance)
-    * [Transfer Function](#TransferFunction)
-        * [Adjusting opacity](#AdjustOpacity)
-        * [Adding a control point](#AddPoint)
-        * [Deleting a control point](#DeletePoint)
-        * [Dropping a control point](#DropPoint)
-        * 
-        * [Adding a color gradient control point](#AddCGControlPoint)
-        * [Deleting gradient control point](#DeleteCGControlPoint)
-        * [Moving a color gradient control point](#MoveCGControlPoint)
-        * [Changing color of a color gradient control point](#ChangeCGControlPoint)
-        * 
-    * [Thresholds & Histogram](#Histogram)
-        * [Surface weighting](#SurfaceWeighting)
-        * [Overall visibility](#OverallVisibility)
-        * [Isovalue threshold & histogram](#HistogramThreshold)
-        * 
-    * [Lighting](#Lighting)
-        * [Intensity](#Intensity)
-        * [Lighting isovalue threshold](#LightThreshold)
-        * [Ambient](#Ambient)
-        * [Diffuse](#Diffuse)
-        * [Specular](#Specular)
-        *
-    * [Camera settings (Toggle ortho & perspective)](#Camera)
+  * [Transfer Function](#TransferFunction)
+    * [Adjusting opacity](#AdjustOpacity)
+    * [Adding a control point](#AddPoint)
+    * [Deleting a control point](#DeletePoint)
+    * [Dropping a control point](#DropPoint)
+    * 
+    * [Adding a color gradient control point](#AddCGControlPoint)
+    * [Deleting gradient control point](#DeleteCGControlPoint)
+    * [Moving a color gradient control point](#MoveCGControlPoint)
+    * [Changing color of a color gradient control point](#ChangeCGControlPoint)
+    * 
+  * [Thresholds & Histogram](#Histogram)
+    * [Surface weighting](#SurfaceWeighting)
+    * [Overall visibility](#OverallVisibility)
+    * [Isovalue threshold & histogram](#HistogramThreshold)
+    * 
+  * [Lighting](#Lighting)
+    * [Intensity](#Intensity)
+    * [Lighting isovalue threshold](#LightThreshold)
+    * [Ambient](#Ambient)
+    * [Diffuse](#Diffuse)
+    * [Specular](#Specular)
+    *
+  * [Camera settings (Toggle ortho & perspective)](#Camera)
 
 * [Interacting with the volume](#Interacting)
-    * [Camera navigation (Rotate, zoom & move)](#CameraSettings)
-    * [Slicing](#InteractSlicer)
-    * [Selecting a ray](#SelectRay)
+  * [Camera navigation (Rotate, zoom & move)](#CameraSettings)
+  * [Slicing](#InteractSlicer)
+  * [Selecting a ray](#SelectRay)
 
 ## [Dataset Loading<a name="DatasetLoading"></a>](#DatasetLoading)
 ```
-    Loading a dataset:
+  Loading a dataset:
 ```
 
 ![Adding a subview](./screenshots/dataset-load.gif)
@@ -52,96 +52,96 @@
 
 ## <a name="AddSubview"></a>
 ```
-    Adding a subview (Click):
+  Adding a subview (Click):
 ```
 
 ![Adding a subview](./screenshots/windowing-addsubview.gif)
 
 
 ```
-    Removing a subview (Click):
+  Removing a subview (Click):
 ```
 
 ![Removing a subview](./screenshots/windowing-removesubview.gif)
-  
+ 
 ## <a name="Linking"></a>
 
 ```
-    Linking properties between subviews (Click, move and click):
+  Linking properties between subviews (Click, move and click):
 ```
 
 ![Linking properties](./screenshots/windowing-linkingprops.gif)
-  
+ 
 ## <a name="LocalVsGlobal"></a>
 ```
-    Setting properties to global (Click to toggle):
+  Setting properties to global (Click to toggle):
 ```
 
 ![Toggle global](./screenshots/windowing-toggleglobal.gif)
 
 ## <a name="SelectSubview"></a>
 ```
-    Selecting a local subview (Click to select):
+  Selecting a local subview (Click to select):
 ```
 
 ![Selecting a subview](./screenshots/windowing-selectsubview.gif)
-  
-  
+ 
+ 
 ## [Volume Appearance<a name="VolumeAppearance"></a>](#VolumeAppearance)
 
 ## <a name="TransferFunction"></a> Transfer Function
 # <a name="AdjustOpacity"></a>
 ```
-    Adjusting opacity (Drag)
+  Adjusting opacity (Drag)
 ```
 
 ![Adjust opacity](./screenshots/tf-adjustopacity.gif)
 
 # <a name="AddPoint"></a>
 ```
-    Adding a control point (Click)
+  Adding a control point (Click)
 ```
 
 ![Adjust opacity](./screenshots/tf-addcontrolpoint.gif)
 
 # <a name="DeletePoint"></a>
 ```
-    Deleting a control point (Double click)
+  Deleting a control point (Double click)
 ```
 
 ![Adjust opacity](./screenshots/tf-delete.gif)
 
 # <a name="DropPoint"></a>
 ```
-    Dropping a control point (Single click)
+  Dropping a control point (Single click)
 ```
 
 ![Adjust opacity](./screenshots/tf-drop.gif)
 
 # <a name="AddCGControlPoint"></a>
 ```
-    Adding a color gradient control point (Click on the gradient below)
+  Adding a color gradient control point (Click on the gradient below)
 ```
 
 ![Adjust opacity](./screenshots/tf-addcgcontrolpoint.gif)
 
 # <a name="DeleteCGControlPoint"></a>
 ```
-    Deleting gradient control point (Click on the cross below the control point)
+  Deleting gradient control point (Click on the cross below the control point)
 ```
 
 ![Adjust opacity](./screenshots/tf-deletecgcontrolpoint.gif)
 
 # <a name="MoveCGControlPoint"></a>
 ```
-    Moving a color gradient control point (Drag a triangle)
+  Moving a color gradient control point (Drag a triangle)
 ```
 
 ![Adjust opacity](./screenshots/tf-movecgcontrolpoint.gif)
 
 # <a name="ChangeCGControlPoint"></a>
 ```
-    Changing color of a color gradient control point (Double-Click on triangle & select color)
+  Changing color of a color gradient control point (Double-Click on triangle & select color)
 ```
 
 ![Adjust opacity](./screenshots/tf-changecgcontrolpoint.gif)
@@ -151,19 +151,19 @@
 # <a name="SurfaceWeighting"></a>
 
 ```
-    Surface weighting (Higher weighting = more prominent surfaces and less prominent non-surfaces)
+  Surface weighting (Higher weighting = more prominent surfaces and less prominent non-surfaces)
 ```
 ![Surface Weighting](./screenshots/histo-surfaceweighting.gif)
 
 <a name="OverallVisibility"></a>
 ```
-    Modifying overall visibility (It is useful to adjust this UP and surface weighting is adjusted up)
+  Modifying overall visibility (It is useful to adjust this UP and surface weighting is adjusted up)
 ``` 
 ![Overall visibility](./screenshots/histo-overallopacity.gif)
 
 <a name="HistogramThreshold"></a>
 ```
-    Histogram & Thresholds (Drag slider to adjust displayed range of isovalues)
+  Histogram & Thresholds (Drag slider to adjust displayed range of isovalues)
 ```
 ![Histogram and thresholds](./screenshots/histo-thresholds.gif)
 

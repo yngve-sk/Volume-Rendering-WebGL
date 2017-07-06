@@ -7,7 +7,7 @@ var toBuffer = require('blob-to-buffer');
 
 let Main = require('../main');
 
-let socket = new WebSocket("ws://localhost:8081");
+let socket = new WebSocket("ws://localhost:8001");
 
 let expect = null;
 let cache = null;

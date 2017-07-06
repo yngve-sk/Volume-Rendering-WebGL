@@ -24,7 +24,7 @@ let Models = {
         name: 'Slicer',
         class: Slicer
     },
-    THRESHOLDS: {
+    THRESHOLDS: { 
         name: 'Thresholds',
         class: Thresholds
     },

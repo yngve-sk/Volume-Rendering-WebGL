@@ -76,10 +76,11 @@ let controller = function ($scope) {
     };
     $scope.linkStates = linkStates;
 
-
+    $scope.isActiveLinker = false;
+/*
     $scope.isActiveLinker = (id, on) => {
         return linkStates[viewID2LinkerKey[id]] === 'LINK-ADD';
-    }
+    }*/
 
     $scope.isAddMode = () => {
         return isAddMode;
@@ -97,6 +98,16 @@ let controller = function ($scope) {
         return linkStates[key] === 'LINK-ADD' ? 'Adding...' : 'Deleting...';
     }
 
+    $scope.getAddLinkerColor = (id) => {
+        let key = viewID2LinkerKey[id];
+        return linkStates[key] === 'LINK-ADD' ? 'green' : 'red';
+    }
+    
+    $scope.getRemoveLinkerColor = (id) => {
+        let key = viewID2LinkerKey[id];
+        return linkStates[key] === 'LINK-ADD' ? 'red' : 'green';
+    }
+
 
 
     // state: 'add' or 'delete'
@@ -107,7 +118,7 @@ let controller = function ($scope) {
         linkStates[key] = state;
     }
 
-    let colorButtons = () => {
+    let colorButtons = () => { 
         for (let id in viewID2LinkerKey) {
             let key = viewID2LinkerKey[id];
 

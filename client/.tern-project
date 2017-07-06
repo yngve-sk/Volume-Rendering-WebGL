@@ -1,20 +1,20 @@
 {
-  "libs": [
-    "./libs/tern/defs/reserved",
-    "./libs/tern/defs/lodash",
-    "browser",
-    "chai",
-    "ecma5",
-    "ecma6",
-    "browser",
-    "jquery"
-  ],
-  "loadEagerly": [],
-  "async": true,
-  "plugins": {
-    "modules": {},
-    "requirejs": {},
-    "doc_comment": "strong",
-    "es_modules": true
-  }
+ "libs": [
+  "./libs/tern/defs/reserved",
+  "./libs/tern/defs/lodash",
+  "browser",
+  "chai",
+  "ecma5",
+  "ecma6",
+  "browser",
+  "jquery"
+ ],
+ "loadEagerly": [],
+ "async": true,
+ "plugins": {
+  "modules": {},
+  "requirejs": {},
+  "doc_comment": "strong",
+  "es_modules": true
+ }
 }

@@ -110,7 +110,7 @@ class DatasetManager {
      * Adds a point selection and returns the selection index
      *
      * @param {number} cellID The cell ID the selection was done from
-     * @param {Object} point The selected point in [0,1] coordinates
+     * @param {Object} point The selected point in [0,1] coordinates
      * @param {number} point.x the x coordinate of the selection [0, 1]
      * @param {number} point.y the y coordinate of the selection [0, 1]
      * @param {number} point.z the z coordinate of the selection [0, 1]
